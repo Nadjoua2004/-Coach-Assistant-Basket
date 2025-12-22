@@ -1,0 +1,292 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { validationResult } = require('express-validator');
+const supabase = require('../config/database');
+
+class AuthController {
+  /**
+   * Register new user
+   */
+  static async register(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          errors: errors.array()
+        });
+      }
+
+      const { email, password, name, role } = req.body;
+
+      // Check if user already exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'User already exists'
+        });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create user
+      const { data: user, error } = await supabase
+        .from('users')
+        .insert({
+          email,
+          password: hashedPassword,
+          name,
+          role,
+          created_at: new Date().toISOString()
+        })
+        .select('id, email, name, role')
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Error creating user',
+          error: error.message
+        });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'User registered successfully',
+        data: {
+          user,
+          token
+        }
+      });
+    } catch (error) {
+      console.error('Register error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Login user
+   */
+  static async login(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          errors: errors.array()
+        });
+      }
+
+      const { email, password } = req.body;
+
+      // Get user from database
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('id, email, password, name, role')
+        .eq('email', email)
+        .single();
+
+      if (error || !user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid email or password'
+        });
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid email or password'
+        });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      );
+
+      // Remove password from response
+      delete user.password;
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          user,
+          token
+        }
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Get current user
+   */
+  static async getMe(req, res) {
+    try {
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('id, email, name, role, created_at')
+        .eq('id', req.user.id)
+        .single();
+
+      if (error || !user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: user
+      });
+    } catch (error) {
+      console.error('Get user error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
+    }
+  }
+
+  /**
+   * Forgot password
+   */
+  static async forgotPassword(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          errors: errors.array()
+        });
+      }
+
+      const { email } = req.body;
+
+      // Check if user exists
+      const { data: user } = await supabase
+        .from('users')
+        .select('id, email')
+        .eq('email', email)
+        .single();
+
+      // Always return success for security (don't reveal if email exists)
+      if (user) {
+        // Generate reset token
+        const resetToken = jwt.sign(
+          { userId: user.id, type: 'password-reset' },
+          process.env.JWT_SECRET,
+          { expiresIn: '1h' }
+        );
+
+        // TODO: Send email with reset link
+        // For now, just log it (in production, use email service)
+        console.log(`Password reset token for ${email}: ${resetToken}`);
+      }
+
+      res.json({
+        success: true,
+        message: 'If the email exists, a password reset link has been sent'
+      });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
+    }
+  }
+
+  /**
+   * Reset password
+   */
+  static async resetPassword(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          errors: errors.array()
+        });
+      }
+
+      const { token, password } = req.body;
+
+      // Verify reset token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded.type !== 'password-reset') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid reset token'
+        });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Update password
+      const { error } = await supabase
+        .from('users')
+        .update({ password: hashedPassword })
+        .eq('id', decoded.userId);
+
+      if (error) {
+        return res.status(500).json({
+          success: false,
+          message: 'Error updating password'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Password reset successfully'
+      });
+    } catch (error) {
+      if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired reset token'
+        });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
+    }
+  }
+}
+
+module.exports = AuthController;
+
