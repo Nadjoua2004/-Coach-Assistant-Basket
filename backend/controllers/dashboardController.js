@@ -44,9 +44,20 @@ class DashboardController {
 
       const totalRecords = attendanceRecords?.length || 0;
       const presentRecords = attendanceRecords?.filter(r => r.status === 'present').length || 0;
-      const attendanceRate = totalRecords > 0 
-        ? ((presentRecords / totalRecords) * 100).toFixed(1) 
+      const attendanceRate = totalRecords > 0
+        ? ((presentRecords / totalRecords) * 100).toFixed(1)
         : 0;
+
+      // Get recently registered players (last 7 days)
+      const lastWeek = new Date();
+      lastWeek.setDate(lastWeek.getDate() - 7);
+
+      const { data: recentPlayers } = await supabase
+        .from('users')
+        .select('id, name, email, created_at')
+        .eq('role', 'joueur')
+        .gte('created_at', lastWeek.toISOString())
+        .order('created_at', { ascending: false });
 
       res.json({
         success: true,
@@ -55,7 +66,8 @@ class DashboardController {
           activeAthletes: activeAthletes || 0,
           injuredAthletes: injuredAthletes || 0,
           sessionsThisWeek: sessionsThisWeek || 0,
-          attendanceRate: parseFloat(attendanceRate)
+          attendanceRate: parseFloat(attendanceRate),
+          recentPlayers: recentPlayers || []
         }
       });
     } catch (error) {

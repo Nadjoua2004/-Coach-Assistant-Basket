@@ -43,7 +43,7 @@ class ApiService {
    */
   static async request(endpoint, options = {}) {
     const token = await this.getToken();
-    
+
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -60,15 +60,32 @@ class ApiService {
 
     try {
       const response = await fetch(`${API_URL}${endpoint}`, config);
-      const data = await response.json();
+
+      // Handle non-JSON responses (crashes)
+      const contentType = response.headers.get('content-type');
+      let data;
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Server error (${response.status}): ${text.substring(0, 100)}`);
+      }
 
       if (!response.ok) {
+        // Suppress "Access token required" log for startup check if it's expected
+        if (response.status === 401 && endpoint === '/api/auth/me' && !token) {
+          // Expected, don't log as error
+        } else {
+          console.error(`API Error [${endpoint}]:`, data.message || 'Request failed');
+        }
         throw new Error(data.message || 'Request failed');
       }
 
       return data;
     } catch (error) {
-      console.error('API Error:', error);
+      if (error.message !== 'Access token required') {
+        console.error(`API Request failed [${endpoint}]:`, error.message);
+      }
       throw error;
     }
   }
@@ -112,7 +129,7 @@ class ApiService {
    */
   static async postFormData(endpoint, formData) {
     const token = await this.getToken();
-    
+
     const headers = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;

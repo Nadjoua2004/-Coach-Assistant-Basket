@@ -9,8 +9,23 @@ router.post('/register', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
   body('name').notEmpty().trim(),
-  body('role').isIn(['coach', 'adjoint', 'admin', 'joueur', 'parent'])
+  body('role').isIn(['joueur', 'parent'])
 ], AuthController.register);
+
+// Admin: Create any user
+router.post('/users', [
+  authenticateToken,
+  body('email').isEmail().normalizeEmail(),
+  body('password').isLength({ min: 6 }),
+  body('name').notEmpty().trim(),
+  body('role').isIn(['coach', 'adjoint', 'admin', 'joueur', 'parent'])
+], AuthController.adminCreateUser);
+
+// Admin: Get all users
+router.get('/users', authenticateToken, AuthController.getAllUsers);
+
+// Admin: Delete user
+router.delete('/users/:id', authenticateToken, AuthController.deleteUser);
 
 // Login
 router.post('/login', [

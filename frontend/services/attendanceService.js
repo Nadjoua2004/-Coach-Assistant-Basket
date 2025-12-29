@@ -11,7 +11,7 @@ class AttendanceService {
             if (filters.session_id) queryParams.append('session_id', filters.session_id);
             if (filters.athlete_id) queryParams.append('athlete_id', filters.athlete_id);
 
-            const endpoint = `/attendance${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+            const endpoint = `/api/attendance${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
             return await ApiService.get(endpoint);
         } catch (error) {
             console.error('Error in AttendanceService.getAllAttendance:', error);
@@ -25,7 +25,7 @@ class AttendanceService {
      */
     static async recordAttendance(attendanceData) {
         try {
-            return await ApiService.post('/attendance', attendanceData);
+            return await ApiService.post('/api/attendance', attendanceData);
         } catch (error) {
             console.error('Error in AttendanceService.recordAttendance:', error);
             throw error;
@@ -43,7 +43,7 @@ class AttendanceService {
             if (filters.start_date) queryParams.append('start_date', filters.start_date);
             if (filters.end_date) queryParams.append('end_date', filters.end_date);
 
-            const endpoint = `/attendance/stats${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+            const endpoint = `/api/attendance/stats${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
             return await ApiService.get(endpoint);
         } catch (error) {
             console.error('Error in AttendanceService.getStats:', error);

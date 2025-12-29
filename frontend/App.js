@@ -570,10 +570,10 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './components/Common/AuthProvider';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -582,12 +582,14 @@ import LoginScreen from './components/Auth/LoginScreen';
 import CoachHomeScreen from './components/Coach/CoachHomeScreen';
 import SessionsListScreen from './components/Coach/SessionsListScreen';
 import SessionCreationScreen from './components/Coach/SessionCreationScreen';
+import CoachUsersListScreen from './components/Coach/CoachUsersListScreen';
 import AthleteListScreen from './components/Coach/AthleteListScreen';
 import AthleteFormScreen from './components/Coach/AthleteFormScreen';
 import MedicalRecordScreen from './components/Coach/MedicalRecordScreen';
 import CalendarScreen from './components/Coach/CalendarScreen';
 import AttendanceScreen from './components/Coach/AttendanceScreen';
 import AdminDashboard from './components/Admin/AdminDashboard';
+import UsersListScreen from './components/Admin/UsersListScreen';
 import ReadOnlyScreen from './components/Player/ReadOnlyScreen';
 import BottomNav from './components/Common/bottomNav';
 
@@ -711,6 +713,7 @@ const AppContent = () => {
     }
 
     // Regular content based on role and tab
+    // Regular content based on role and tab
     if (user.role === 'coach' || user.role === 'adjoint') {
       if (activeTab === 'home') {
         return <CoachHomeScreen onCreateSession={handleCreateSession} />;
@@ -719,13 +722,9 @@ const AppContent = () => {
       } else if (activeTab === 'calendar') {
         return <CalendarScreen onTakeAttendance={handleTakeAttendance} />;
       } else if (activeTab === 'athletes') {
-        return (
-          <AthleteListScreen
-            onAddAthlete={handleAddAthlete}
-            onEditAthlete={handleEditAthlete}
-            onViewMedical={handleViewMedical}
-          />
-        );
+        return <CoachUsersListScreen />;
+      } else if (activeTab === 'attendance') {
+        return <AttendanceScreen />;
       }
       return (
         <View style={styles.placeholder}>
@@ -736,6 +735,7 @@ const AppContent = () => {
 
     if (user.role === 'admin') {
       if (activeTab === 'dashboard') return <AdminDashboard />;
+      if (activeTab === 'users') return <UsersListScreen />;
       return (
         <View style={styles.placeholder}>
           <Text style={styles.placeholderText}>Page {activeTab} en développement</Text>
@@ -777,9 +777,11 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 };
 

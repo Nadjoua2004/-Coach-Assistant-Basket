@@ -11,7 +11,7 @@ class PlanningService {
             if (range.start_date) queryParams.append('start_date', range.start_date);
             if (range.end_date) queryParams.append('end_date', range.end_date);
 
-            const endpoint = `/planning${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+            const endpoint = `/api/planning${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
             return await ApiService.get(endpoint);
         } catch (error) {
             console.error('Error in PlanningService.getAllPlanning:', error);
@@ -25,7 +25,7 @@ class PlanningService {
      */
     static async createEvent(eventData) {
         try {
-            return await ApiService.post('/planning', eventData);
+            return await ApiService.post('/api/planning', eventData);
         } catch (error) {
             console.error('Error in PlanningService.createEvent:', error);
             throw error;
@@ -39,7 +39,7 @@ class PlanningService {
      */
     static async updateEvent(id, updateData) {
         try {
-            return await ApiService.put(`/planning/${id}`, updateData);
+            return await ApiService.put(`/api/planning/${id}`, updateData);
         } catch (error) {
             console.error('Error in PlanningService.updateEvent:', error);
             throw error;
@@ -52,7 +52,7 @@ class PlanningService {
      */
     static async deleteEvent(id) {
         try {
-            return await ApiService.delete(`/planning/${id}`);
+            return await ApiService.delete(`/api/planning/${id}`);
         } catch (error) {
             console.error('Error in PlanningService.deleteEvent:', error);
             throw error;

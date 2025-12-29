@@ -129,6 +129,53 @@ class AuthService {
     const user = await this.getCurrentUser();
     return user !== null;
   }
+
+  /**
+   * Admin: Create a new user (any role)
+   */
+  static async adminCreateUser(userData) {
+    try {
+      return await ApiService.post('/api/auth/users', userData);
+    } catch (error) {
+      console.error('Admin create user error:', error);
+      return {
+        success: false,
+        message: error.message || 'Erreur lors de la création de l\'utilisateur'
+      };
+    }
+  }
+
+  /**
+   * Admin: Get all users
+   */
+  static async getAllUsers() {
+    try {
+      const response = await ApiService.get('/api/auth/users');
+      return response;
+    } catch (error) {
+      console.error('Get all users error:', error);
+      return {
+        success: false,
+        message: error.message || 'Erreur lors de la récupération des utilisateurs'
+      };
+    }
+  }
+
+  /**
+   * Admin: Delete user
+   */
+  static async deleteUser(userId) {
+    try {
+      const response = await ApiService.delete(`/api/auth/users/${userId}`);
+      return response;
+    } catch (error) {
+      console.error('Delete user error:', error);
+      return {
+        success: false,
+        message: error.message || 'Erreur lors de la suppression'
+      };
+    }
+  }
 }
 
 export default AuthService;

@@ -10,6 +10,7 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
+console.log(`🔌 Connecting to Supabase at: "${supabaseUrl}"`);
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 module.exports = supabase;

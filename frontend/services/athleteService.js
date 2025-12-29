@@ -13,7 +13,7 @@ class AthleteService {
             if (filters.poste) queryParams.append('poste', filters.poste);
             if (filters.blesse !== undefined) queryParams.append('blesse', filters.blesse);
 
-            const endpoint = `/athletes${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+            const endpoint = `/api/athletes${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
             return await ApiService.get(endpoint);
         } catch (error) {
             console.error('Error in AthleteService.getAllAthletes:', error);
@@ -27,7 +27,7 @@ class AthleteService {
      */
     static async getAthleteById(id) {
         try {
-            return await ApiService.get(`/athletes/${id}`);
+            return await ApiService.get(`/api/athletes/${id}`);
         } catch (error) {
             console.error('Error in AthleteService.getAthleteById:', error);
             throw error;
@@ -55,9 +55,9 @@ class AthleteService {
                     type: photoFile.type || 'image/jpeg'
                 });
 
-                return await ApiService.postFormData('/athletes', formData);
+                return await ApiService.postFormData('/api/athletes', formData);
             } else {
-                return await ApiService.post('/athletes', athleteData);
+                return await ApiService.post('/api/athletes', athleteData);
             }
         } catch (error) {
             console.error('Error in AthleteService.createAthlete:', error);
@@ -85,9 +85,9 @@ class AthleteService {
                     type: photoFile.type || 'image/jpeg'
                 });
 
-                return await ApiService.postFormData(`/athletes/${id}`, formData);
+                return await ApiService.postFormData(`/api/athletes/${id}`, formData);
             } else {
-                return await ApiService.put(`/athletes/${id}`, updateData);
+                return await ApiService.put(`/api/athletes/${id}`, updateData);
             }
         } catch (error) {
             console.error('Error in AthleteService.updateAthlete:', error);
@@ -101,7 +101,7 @@ class AthleteService {
      */
     static async deleteAthlete(id) {
         try {
-            return await ApiService.delete(`/athletes/${id}`);
+            return await ApiService.delete(`/api/athletes/${id}`);
         } catch (error) {
             console.error('Error in AthleteService.deleteAthlete:', error);
             throw error;

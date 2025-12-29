@@ -81,7 +81,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'Not configured'}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`💡 Access from Expo Go: http://YOUR_LOCAL_IP:${PORT}`);
+  console.log(`💡 Access from Expo Go: http://192.168.43.76:${PORT}`);
 });
 
 module.exports = app;

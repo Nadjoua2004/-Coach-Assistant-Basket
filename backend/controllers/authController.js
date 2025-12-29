@@ -16,8 +16,15 @@ class AuthController {
           errors: errors.array()
         });
       }
-
       const { email, password, name, role } = req.body;
+
+      // Restrict roles for public registration
+      if (!['joueur', 'parent'].includes(role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Seuls les rôles Joueur et Parent peuvent s\'inscrire publiquement.'
+        });
+      }
 
       // Check if user already exists
       const { data: existingUser } = await supabase
@@ -53,7 +60,7 @@ class AuthController {
         console.error('Supabase error:', error);
         return res.status(500).json({
           success: false,
-          message: 'Error creating user',
+          message: `Erreur base de données: ${error.message}`,
           error: error.message
         });
       }
@@ -283,6 +290,174 @@ class AuthController {
       res.status(500).json({
         success: false,
         message: 'Server error'
+      });
+    }
+  }
+
+  /**
+   * Admin: Create a new user (any role)
+   */
+  static async adminCreateUser(req, res) {
+    try {
+      // Check if requester is admin
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Accès refusé. Seul un administrateur peut créer des utilisateurs.'
+        });
+      }
+
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Erreur de validation: ' + errors.array().map(e => `${e.param || e.path}: ${e.msg}`).join(', '),
+          errors: errors.array()
+        });
+      }
+
+      const { email, password, name, role } = req.body;
+
+      // Check if user already exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cet utilisateur existe déjà.'
+        });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create user
+      const { data: newUser, error } = await supabase
+        .from('users')
+        .insert({
+          email,
+          password: hashedPassword,
+          name,
+          role,
+          created_at: new Date().toISOString()
+        })
+        .select('id, email, name, role')
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return res.status(500).json({
+          success: false,
+          message: `Erreur base de données: ${error.message}`
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'Utilisateur créé avec succès',
+        data: newUser
+      });
+    } catch (error) {
+      console.error('Admin create user error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur serveur lors de la création de l\'utilisateur'
+      });
+      res.status(500).json({
+        success: false,
+        message: 'Erreur serveur lors de la création de l\'utilisateur'
+      });
+    }
+  }
+
+  /**
+   * Admin: Get all users
+   */
+  static async getAllUsers(req, res) {
+    try {
+      // Check if requester is admin
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Accès refusé'
+        });
+      }
+
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('id, name, email, role, created_at')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return res.status(500).json({
+          success: false,
+          message: 'Erreur lors de la récupération des utilisateurs',
+          error: error.message
+        });
+      }
+
+      res.json({
+        success: true,
+        data: users
+      });
+    } catch (error) {
+      console.error('Get all users error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur serveur'
+      });
+    }
+  }
+
+  /**
+   * Admin: Delete user
+   */
+  static async deleteUser(req, res) {
+    try {
+      // Check if requester is admin
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Accès refusé'
+        });
+      }
+
+      const userIdToDelete = req.params.id;
+
+      // Prevent self-deletion
+      if (userIdToDelete === req.user.userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vous ne pouvez pas supprimer votre propre compte.'
+        });
+      }
+
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userIdToDelete);
+
+      if (error) {
+        return res.status(500).json({
+          success: false,
+          message: 'Erreur lors de la suppression',
+          error: error.message
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Utilisateur supprimé avec succès'
+      });
+    } catch (error) {
+      console.error('Delete user error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur serveur'
       });
     }
   }

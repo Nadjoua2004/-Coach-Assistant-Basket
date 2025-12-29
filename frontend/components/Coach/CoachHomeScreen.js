@@ -5,10 +5,10 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   RefreshControl
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../Common/AuthProvider';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DashboardService from '../../services/dashboardService';
@@ -108,6 +108,33 @@ const CoachHomeScreen = ({ onCreateSession }) => {
               <Text style={styles.statSubLabel}>actifs: {stats?.activeAthletes || 0}</Text>
             </View>
           </View>
+        </View>
+
+        {/* New Player Registrations */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Nouveaux inscrits (Attente affectation)</Text>
+          {stats?.recentPlayers?.length > 0 ? (
+            <View style={styles.recentList}>
+              {stats.recentPlayers.map((player) => (
+                <View key={player.id} style={styles.recentItem}>
+                  <View style={styles.playerAvatar}>
+                    <Icon name="account" size={20} color="#64748b" />
+                  </View>
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.playerName}>{player.name}</Text>
+                    <Text style={styles.playerDate}>Inscrit le {new Date(player.created_at).toLocaleDateString()}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.assignButton}>
+                    <Text style={styles.assignText}>Affecter</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>Aucun nouveau joueur inscrit cette semaine.</Text>
+            </View>
+          )}
         </View>
 
         {/* Upcoming Sessions */}
@@ -472,6 +499,54 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#10b981',
     borderRadius: 4,
+  },
+  recentList: {
+    gap: 12,
+  },
+  recentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  playerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff7ed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  playerInfo: {
+    flex: 1,
+  },
+  playerName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  playerDate: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  assignButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#f97316',
+  },
+  assignText: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
 });
 

@@ -5,17 +5,19 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   RefreshControl
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DashboardService from '../../services/dashboardService';
+import UserCreationModal from './UserCreationModal';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -84,9 +86,36 @@ const AdminDashboard = () => {
         </View>
 
         <View style={styles.actionsCard}>
+          <Text style={styles.actionsTitle}>Nouveaux inscrits (Joueurs)</Text>
+          {stats?.recentPlayers?.length > 0 ? (
+            <View style={styles.recentList}>
+              {stats.recentPlayers.map((player) => (
+                <View key={player.id} style={styles.recentItem}>
+                  <View style={styles.playerAvatar}>
+                    <Icon name="account" size={20} color="#64748b" />
+                  </View>
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.playerName}>{player.name}</Text>
+                    <Text style={styles.playerDate}>Inscrit le {new Date(player.created_at).toLocaleDateString()}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.assignButton}>
+                    <Text style={styles.assignText}>Affecter</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.noRecentText}>Aucun nouvel inscrit ces 7 derniers jours.</Text>
+          )}
+        </View>
+
+        <View style={styles.actionsCard}>
           <Text style={styles.actionsTitle}>Actions rapides</Text>
           <View style={styles.actionsList}>
-            <TouchableOpacity style={[styles.actionButton, styles.blueAction]}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.blueAction]}
+              onPress={() => setShowUserModal(true)}
+            >
               <Text style={styles.actionText}>Gérer les utilisateurs</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.actionButton, styles.greenAction]}>
@@ -98,6 +127,12 @@ const AdminDashboard = () => {
           </View>
         </View>
       </ScrollView>
+
+      <UserCreationModal
+        visible={showUserModal}
+        onClose={() => setShowUserModal(false)}
+        onSuccess={fetchStats}
+      />
     </SafeAreaView>
   );
 };
@@ -187,6 +222,54 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  recentList: {
+    gap: 12,
+  },
+  recentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+  },
+  playerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e2e8f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  playerInfo: {
+    flex: 1,
+  },
+  playerName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  playerDate: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  assignButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#f97316',
+  },
+  assignText: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  noRecentText: {
+    textAlign: 'center',
+    color: '#94a3b8',
+    paddingVertical: 12,
   },
 });
 

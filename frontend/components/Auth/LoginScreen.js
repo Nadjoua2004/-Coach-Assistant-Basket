@@ -23,14 +23,14 @@ const LoginScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [role, setRole] = useState('coach');
+  const [role, setRole] = useState('joueur');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const scrollViewRef = useRef(null);
 
   const handleLogin = async () => {
     Keyboard.dismiss();
-    
+
     if (!email || !password) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs');
       return;
@@ -47,7 +47,7 @@ const LoginScreen = () => {
 
   const handleSignUp = async () => {
     Keyboard.dismiss();
-    
+
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs');
       return;
@@ -88,7 +88,7 @@ const LoginScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
@@ -105,7 +105,7 @@ const LoginScreen = () => {
           </View>
 
           <View style={styles.toggleContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.toggleButton, !isSignUp && styles.activeToggle]}
               onPress={() => setIsSignUp(false)}
             >
@@ -113,7 +113,7 @@ const LoginScreen = () => {
                 Connexion
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.toggleButton, isSignUp && styles.activeToggle]}
               onPress={() => setIsSignUp(true)}
             >
@@ -200,14 +200,14 @@ const LoginScreen = () => {
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Rôle</Text>
                   <View style={styles.roleContainer}>
-                    {['coach', 'adjoint', 'admin', 'joueur', 'parent'].map((r) => (
+                    {['joueur', 'parent'].map((r) => (
                       <TouchableOpacity
                         key={r}
                         style={[styles.roleButton, role === r && styles.roleButtonActive]}
                         onPress={() => setRole(r)}
                       >
                         <Text style={[styles.roleButtonText, role === r && styles.roleButtonTextActive]}>
-                          {r.charAt(0).toUpperCase() + r.slice(1)}
+                          {r === 'joueur' ? 'Joueur' : 'Parent'}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -216,8 +216,8 @@ const LoginScreen = () => {
               </>
             )}
 
-            <TouchableOpacity 
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]} 
+            <TouchableOpacity
+              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
               onPress={isSignUp ? handleSignUp : handleLogin}
               activeOpacity={0.8}
               disabled={loading}
@@ -230,8 +230,8 @@ const LoginScreen = () => {
 
           <TouchableOpacity style={styles.switchMode} onPress={toggleMode} activeOpacity={0.7}>
             <Text style={styles.switchModeText}>
-              {isSignUp 
-                ? "Déjà un compte ? Se connecter" 
+              {isSignUp
+                ? "Déjà un compte ? Se connecter"
                 : "Pas de compte ? S'inscrire"}
             </Text>
           </TouchableOpacity>
