@@ -13,7 +13,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DashboardService from '../../services/dashboardService';
 import UserCreationModal from './UserCreationModal';
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ onNavigate }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -43,6 +43,14 @@ const AdminDashboard = () => {
     fetchStats();
   };
 
+  const handleActionPress = (action) => {
+    if (action === 'users') {
+      setShowUserModal(true);
+    } else if (onNavigate) {
+      onNavigate(action);
+    }
+  };
+
   if (loading && !refreshing) {
     return (
       <View style={styles.center}>
@@ -63,25 +71,25 @@ const AdminDashboard = () => {
         <Text style={styles.title}>Tableau de bord Admin</Text>
 
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
+          <TouchableOpacity style={styles.statCard} onPress={() => handleActionPress('users')}>
             <Icon name="account-group" size={32} color="#3b82f6" />
             <Text style={styles.statNumber}>{stats?.totalAthletes || 0}</Text>
             <Text style={styles.statLabel}>Total Joueurs</Text>
-          </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.statCard} onPress={() => handleActionPress('admin_exercises')}>
+            <Icon name="dumbbell" size={32} color="#f97316" />
+            <Text style={styles.statNumber}>{stats?.totalExercises || 0}</Text>
+            <Text style={styles.statLabel}>Exercices</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.statCard} onPress={() => handleActionPress('videos')}>
+            <Icon name="video-collection" size={32} color="#10b981" />
+            <Text style={styles.statLabel}>Vidéothèque</Text>
+            <Text style={styles.statSubLabel}>Gérer les vidéos</Text>
+          </TouchableOpacity>
           <View style={styles.statCard}>
-            <Icon name="calendar" size={32} color="#10b981" />
-            <Text style={styles.statNumber}>{stats?.sessionsThisWeek || 0}</Text>
-            <Text style={styles.statLabel}>Séances/Semaine</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Icon name="trending-up" size={32} color="#f97316" />
+            <Icon name="trending-up" size={32} color="#8b5cf6" />
             <Text style={styles.statNumber}>{stats?.attendanceRate || 0}%</Text>
             <Text style={styles.statLabel}>Assiduité</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Icon name="alert-circle-outline" size={32} color="#ef4444" />
-            <Text style={styles.statNumber}>{stats?.injuredAthletes || 0}</Text>
-            <Text style={styles.statLabel}>Joueurs blessés</Text>
           </View>
         </View>
 
@@ -114,15 +122,21 @@ const AdminDashboard = () => {
           <View style={styles.actionsList}>
             <TouchableOpacity
               style={[styles.actionButton, styles.blueAction]}
-              onPress={() => setShowUserModal(true)}
+              onPress={() => handleActionPress('users')}
             >
               <Text style={styles.actionText}>Gérer les utilisateurs</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionButton, styles.greenAction]}>
-              <Text style={styles.actionText}>Sauvegardes système</Text>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.greenAction]}
+              onPress={() => handleActionPress('videos')}
+            >
+              <Text style={styles.actionText}>Bibliothèque Vidéos</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionButton, styles.orangeAction]}>
-              <Text style={styles.actionText}>Rapports d'activité</Text>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.orangeAction]}
+              onPress={() => handleActionPress('admin_exercises')}
+            >
+              <Text style={styles.actionText}>Gestion Exercices</Text>
             </TouchableOpacity>
           </View>
         </View>

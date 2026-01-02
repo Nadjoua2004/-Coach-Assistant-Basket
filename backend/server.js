@@ -25,6 +25,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/athletes', require('./routes/athletes'));
 app.use('/api/medical-records', require('./routes/medicalRecords'));
 app.use('/api/sessions', require('./routes/sessions'));
+app.use('/api/videos', require('./routes/videos'));
 app.use('/api/exercises', require('./routes/exercises'));
 app.use('/api/planning', require('./routes/planning'));
 app.use('/api/attendance', require('./routes/attendance'));
@@ -32,8 +33,8 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Coach Assistant API is running',
     timestamp: new Date().toISOString()
   });
@@ -44,7 +45,7 @@ app.get('/', (req, res) => {
   res.json({
     message: 'Coach Assistant Basket API',
     version: '1.0.0',
-      endpoints: {
+    endpoints: {
       health: '/health',
       auth: '/api/auth',
       athletes: '/api/athletes',

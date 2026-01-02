@@ -12,7 +12,7 @@ router.post('/register', [
   body('role').isIn(['joueur', 'parent'])
 ], AuthController.register);
 
-// Admin: Create any user
+// Admin: Create any user | Coach/Adjoint: Create 'joueur' users only
 router.post('/users', [
   authenticateToken,
   body('email').isEmail().normalizeEmail(),
@@ -21,7 +21,7 @@ router.post('/users', [
   body('role').isIn(['coach', 'adjoint', 'admin', 'joueur', 'parent'])
 ], AuthController.adminCreateUser);
 
-// Admin: Get all users
+// Admin: Get all users | Coach/Adjoint: Get 'joueur' users only
 router.get('/users', authenticateToken, AuthController.getAllUsers);
 
 // Admin: Delete user

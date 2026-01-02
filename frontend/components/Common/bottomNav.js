@@ -16,7 +16,7 @@ const BottomNav = ({ activeTab, setActiveTab, role }) => {
         { id: 'athletes', icon: 'account-group', label: 'Athlètes' },
         { id: 'calendar', icon: 'calendar', label: 'Planning' },
         { id: 'sessions', icon: 'clipboard-list', label: 'Séances' },
-        { id: 'profile', icon: 'account', label: 'Profil' }
+        { id: 'exercises', icon: 'dumbbell', label: 'Exercices' }
       ];
     }
 

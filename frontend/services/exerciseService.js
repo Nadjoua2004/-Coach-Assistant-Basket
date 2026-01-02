@@ -37,16 +37,25 @@ class ExerciseService {
     }
 
     /**
-     * Create exercise (with optional video)
+     * Create exercise
      */
     static async createExercise(exerciseData, videoFile = null) {
         try {
             if (videoFile) {
                 const formData = new FormData();
                 Object.keys(exerciseData).forEach(key => {
-                    formData.append(key, exerciseData[key]);
+                    if (exerciseData[key] !== null && exerciseData[key] !== undefined) {
+                        formData.append(key, exerciseData[key]);
+                    }
                 });
-                formData.append('video', videoFile);
+
+                const filename = videoFile.name || 'video_exercise.mp4';
+                formData.append('video', {
+                    uri: videoFile.uri,
+                    name: filename,
+                    type: videoFile.mimeType || 'video/mp4'
+                });
+
                 return await ApiService.postFormData('/api/exercises', formData);
             }
             return await ApiService.post('/api/exercises', exerciseData);
@@ -64,10 +73,19 @@ class ExerciseService {
             if (videoFile) {
                 const formData = new FormData();
                 Object.keys(exerciseData).forEach(key => {
-                    formData.append(key, exerciseData[key]);
+                    if (exerciseData[key] !== null && exerciseData[key] !== undefined) {
+                        formData.append(key, exerciseData[key]);
+                    }
                 });
-                formData.append('video', videoFile);
-                return await ApiService.postFormData(`/api/exercises/${id}?_method=PUT`, formData);
+
+                const filename = videoFile.name || 'video_exercise.mp4';
+                formData.append('video', {
+                    uri: videoFile.uri,
+                    name: filename,
+                    type: videoFile.mimeType || 'video/mp4'
+                });
+
+                return await ApiService.putFormData(`/api/exercises/${id}`, formData);
             }
             return await ApiService.put(`/api/exercises/${id}`, exerciseData);
         } catch (error) {

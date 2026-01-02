@@ -14,7 +14,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DashboardService from '../../services/dashboardService';
 import PlanningService from '../../services/planningService';
 
-const CoachHomeScreen = ({ onCreateSession }) => {
+const CoachHomeScreen = ({ onCreateSession, onNavigate }) => {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [upcomingSessions, setUpcomingSessions] = useState([]);
@@ -55,6 +55,17 @@ const CoachHomeScreen = ({ onCreateSession }) => {
     fetchData();
   };
 
+  const handleMenuPress = (item) => {
+    if (item.id === 1 && onNavigate) {
+      onNavigate('exercises');
+    } else if (item.id === 2 && onNavigate) {
+      // Statistiques might go to a different screen later
+      Alert.alert('Info', 'Module statistiques en cours de développement');
+    } else {
+      Alert.alert('Info', `${item.title} en cours de développement`);
+    }
+  };
+
   const menuItems = [
     { id: 1, title: 'Exercices', icon: 'dumbbell', color: '#3b82f6' },
     { id: 2, title: 'Statistiques', icon: 'chart-bar', color: '#10b981' },
@@ -79,7 +90,9 @@ const CoachHomeScreen = ({ onCreateSession }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header */}
+        {/* Header content... */}
+        {/* Skipping detailed header for brevity in replace_file_content but keeping structure */}
+        {/* Actual replacement below will match the actual file lines */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
@@ -88,7 +101,6 @@ const CoachHomeScreen = ({ onCreateSession }) => {
             </View>
           </View>
 
-          {/* Stats Section */}
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
               <View style={styles.statIconContainer}>
@@ -109,6 +121,10 @@ const CoachHomeScreen = ({ onCreateSession }) => {
             </View>
           </View>
         </View>
+
+        {/* ... Other sections (New Player, Upcoming Sessions) ... */}
+        {/* We need to be careful with replace_file_content to not delete the middle content */}
+        {/* I will perform smaller contiguous edits instead */}
 
         {/* New Player Registrations */}
         <View style={styles.sectionContainer}>
@@ -179,7 +195,11 @@ const CoachHomeScreen = ({ onCreateSession }) => {
           <Text style={styles.sectionTitle}>Actions rapides</Text>
           <View style={styles.menuGrid}>
             {menuItems.map((item) => (
-              <TouchableOpacity key={item.id} style={styles.menuItem}>
+              <TouchableOpacity
+                key={item.id}
+                style={styles.menuItem}
+                onPress={() => handleMenuPress(item)}
+              >
                 <View style={[styles.menuIcon, { backgroundColor: `${item.color}20` }]}>
                   <Icon name={item.icon} size={24} color={item.color} />
                 </View>

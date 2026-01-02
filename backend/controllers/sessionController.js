@@ -192,7 +192,7 @@ class SessionController {
   }
 
   /**
-   * Export session to PDF (placeholder - implement PDF generation)
+   * Export session to PDF
    */
   static async exportSessionToPDF(req, res) {
     try {
@@ -212,13 +212,102 @@ class SessionController {
         });
       }
 
-      // TODO: Generate PDF using a library like pdfkit or puppeteer
-      // For now, return session data
-      res.json({
-        success: true,
-        message: 'PDF export functionality to be implemented',
-        data: session
+      // Fetch exercise details
+      let exercises = [];
+      if (session.exercises && Array.isArray(session.exercises) && session.exercises.length > 0) {
+        const { data: exerciseData, error: exerciseError } = await supabase
+          .from('exercises')
+          .select('*')
+          .in('id', session.exercises);
+
+        if (!exerciseError && exerciseData) {
+          // Preserve order from session.exercises
+          exercises = session.exercises
+            .map(exId => exerciseData.find(e => e.id === exId))
+            .filter(Boolean);
+        }
+      }
+
+      // Initialize PDF
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument({ margin: 50 });
+      let filename = `session_${id}.pdf`;
+
+      res.setHeader('Content-disposition', 'attachment; filename="' + filename + '"');
+      res.setHeader('Content-type', 'application/pdf');
+
+      doc.pipe(res);
+
+      // Header
+      doc.fillColor('#f97316').fontSize(25).text('Fiche Séance Basket', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.fillColor('#1f2937').fontSize(20).text(session.title, { align: 'center' });
+      doc.moveDown();
+
+      // Info box
+      doc.rect(50, doc.y, 500, 100).strokeColor('#e5e7eb').stroke();
+      const currentY = doc.y + 10;
+      doc.fontSize(12).fillColor('#4b5563');
+      doc.text(`Objectif:`, 60, currentY);
+      doc.text(`Durée:`, 60, currentY + 20);
+      doc.text(`Date & Heure:`, 60, currentY + 40);
+      doc.text(`Lieu:`, 60, currentY + 60);
+
+      doc.fillColor('#111827');
+      doc.text(session.objective, 150, currentY);
+      doc.text(`${session.total_duration} minutes`, 150, currentY + 20);
+      doc.text(`${session.date || 'Non spécifiée'} à ${session.heure || '--:--'}`, 150, currentY + 40);
+      doc.text(session.lieu || 'Non spécifié', 150, currentY + 60);
+
+      doc.moveDown(5);
+
+      // Structure
+      const sections = [
+        { title: 'ÉCHAUFFEMENT', content: session.warmup },
+        { title: 'FOND PRINCIPAL', content: session.main_content },
+        { title: 'FIN DE SÉANCE', content: session.cooldown }
+      ];
+
+      sections.forEach(section => {
+        if (section.content) {
+          doc.fillColor('#f97316').fontSize(14).text(section.title, { underline: true });
+          doc.moveDown(0.2);
+          doc.fillColor('#374151').fontSize(11).text(section.content);
+          doc.moveDown();
+        }
       });
+
+      // Exercises
+      if (exercises.length > 0) {
+        doc.addPage();
+        doc.fillColor('#f97316').fontSize(18).text('LISTE DES EXERCICES', { align: 'center' });
+        doc.moveDown();
+
+        exercises.forEach((ex, index) => {
+          doc.fillColor('#1f2937').fontSize(14).text(`${index + 1}. ${ex.name}`);
+          doc.fontSize(10).fillColor('#6b7280').text(`Durée: ${ex.duration}min | Joueurs: ${ex.players_min}-${ex.players_max} | Matériel: ${ex.equipment || 'Standard'}`);
+          doc.moveDown(0.5);
+          doc.fillColor('#374151').fontSize(11).text(ex.description);
+          doc.moveDown();
+          doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#f3f4f6').stroke();
+          doc.moveDown();
+        });
+      }
+
+      // Footer
+      const range = doc.bufferedPageRange();
+      for (let i = range.start; i < range.start + range.count; i++) {
+        doc.switchToPage(i);
+        doc.fontSize(8).fillColor('#9ca3af').text(
+          `Généré par Coach Assistant Basket - Page ${i + 1} sur ${range.count}`,
+          50,
+          doc.page.height - 50,
+          { align: 'center' }
+        );
+      }
+
+      doc.end();
+
     } catch (error) {
       console.error('Export PDF error:', error);
       res.status(500).json({

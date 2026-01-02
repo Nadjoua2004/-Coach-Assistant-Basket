@@ -74,22 +74,30 @@ const SessionsListScreen = ({ onCreateSession }) => {
           ]} />
           <Text style={styles.sessionTitle}>{item.title}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeleteSession(item.id)}
-        >
-          <Icon name="delete-outline" size={20} color="#ef4444" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.reuseButton}
+            onPress={() => onReuseSession && onReuseSession(item)}
+          >
+            <Icon name="content-copy" size={20} color="#3b82f6" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDeleteSession(item.id)}
+          >
+            <Icon name="delete-outline" size={20} color="#ef4444" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <Text style={styles.sessionObjective}>{item.objective}</Text>
+      <Text style={styles.sessionObjective} numberOfLines={2}>{item.objective}</Text>
 
       <View style={styles.sessionDetails}>
         <View style={styles.detailRow}>
           <View style={styles.detailItem}>
             <Icon name="calendar" size={16} color="#6b7280" />
             <Text style={styles.detailText}>
-              {new Date(item.date).toLocaleDateString()} • {item.time}
+              {new Date(item.date).toLocaleDateString()} • {item.heure || item.time}
             </Text>
           </View>
           <View style={styles.detailItem}>
@@ -100,8 +108,8 @@ const SessionsListScreen = ({ onCreateSession }) => {
 
         <View style={styles.detailRow}>
           <View style={styles.detailItem}>
-            <Icon name="account-group" size={16} color="#6b7280" />
-            <Text style={styles.detailText}>{item.players_count || item.playersCount || 0} joueurs</Text>
+            <Icon name="map-marker-outline" size={16} color="#6b7280" />
+            <Text style={styles.detailText}>{item.lieu || 'Salle'}</Text>
           </View>
           <View style={[
             styles.statusBadge,
@@ -215,6 +223,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1f2937',
     flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reuseButton: {
+    padding: 4,
+    marginRight: 12,
   },
   deleteButton: {
     padding: 4,

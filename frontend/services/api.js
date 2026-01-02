@@ -154,6 +154,37 @@ class ApiService {
       throw error;
     }
   }
+
+  /**
+   * PUT with FormData (for file uploads)
+   */
+  static async putFormData(endpoint, formData) {
+    const token = await this.getToken();
+
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'PUT',
+        headers,
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Request failed');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  }
 }
 
 export default ApiService;

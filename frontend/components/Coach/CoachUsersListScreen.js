@@ -30,12 +30,16 @@ const CoachUsersListScreen = () => {
         try {
             const response = await AuthService.getAllUsers();
             if (response.success) {
-                // FILTER: Only keep 'joueur'
+                // Backend already filters for coaches, but keep filter as safety
                 const players = response.data.filter(u => u.role === 'joueur');
                 setUsers(players);
+            } else {
+                // Show error message if request failed
+                Alert.alert('Erreur', response.message || 'Impossible de charger les joueurs');
             }
         } catch (error) {
             console.error('Error fetching users:', error);
+            Alert.alert('Erreur', 'Impossible de charger les joueurs');
         } finally {
             setLoading(false);
             setRefreshing(false);

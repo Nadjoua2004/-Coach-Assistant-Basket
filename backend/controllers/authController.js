@@ -299,8 +299,9 @@ class AuthController {
    */
   static async adminCreateUser(req, res) {
     try {
-      // Check if requester is admin
-      if (req.user.role !== 'admin') {
+      // Check if requester is admin, coach, or adjoint
+      const allowedRoles = ['admin', 'coach', 'adjoint'];
+      if (!allowedRoles.includes(req.user.role)) {
         return res.status(403).json({
           success: false,
           message: 'Accès refusé. Seul un administrateur peut créer des utilisateurs.'
@@ -317,6 +318,14 @@ class AuthController {
       }
 
       const { email, password, name, role } = req.body;
+
+      // Coaches and adjoints can only create 'joueur' users
+      if (req.user.role !== 'admin' && role !== 'joueur') {
+        return res.status(403).json({
+          success: false,
+          message: 'Accès refusé. Les coaches et adjoints ne peuvent créer que des joueurs.'
+        });
+      }
 
       // Check if user already exists
       const { data: existingUser } = await supabase
@@ -376,21 +385,29 @@ class AuthController {
 
   /**
    * Admin: Get all users
+   * Coach/Adjoint: Get only 'joueur' users
    */
   static async getAllUsers(req, res) {
     try {
-      // Check if requester is admin
-      if (req.user.role !== 'admin') {
+      // Check if requester is admin, coach, or adjoint
+      const allowedRoles = ['admin', 'coach', 'adjoint'];
+      if (!allowedRoles.includes(req.user.role)) {
         return res.status(403).json({
           success: false,
           message: 'Accès refusé'
         });
       }
 
-      const { data: users, error } = await supabase
+      let query = supabase
         .from('users')
-        .select('id, name, email, role, created_at')
-        .order('created_at', { ascending: false });
+        .select('id, name, email, role, created_at');
+
+      // Coaches and adjoints can only see 'joueur' users
+      if (req.user.role !== 'admin') {
+        query = query.eq('role', 'joueur');
+      }
+
+      const { data: users, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         return res.status(500).json({

@@ -88,22 +88,25 @@ class ExerciseController {
         });
       }
 
+      let videoUrl = req.body.video_url;
+      let storageKey = null;
+
+      // Handle direct file upload
+      if (req.file) {
+        const uploadResult = await uploadToR2(req.file, 'exercises');
+        if (uploadResult.success) {
+          videoUrl = uploadResult.url;
+          storageKey = uploadResult.key;
+        }
+      }
+
       const exerciseData = {
         ...req.body,
+        video_url: videoUrl,
+        storage_key: storageKey,
         created_by: req.user.id,
         created_at: new Date().toISOString()
       };
-
-      // Handle video upload if provided
-      if (req.file) {
-        const videoPath = `exercises/videos/${Date.now()}-${req.file.originalname}`;
-        const videoUrl = await uploadToR2(
-          req.file.buffer,
-          videoPath,
-          req.file.mimetype
-        );
-        exerciseData.video_url = videoUrl;
-      }
 
       const { data: exercise, error } = await supabase
         .from('exercises')
@@ -112,6 +115,10 @@ class ExerciseController {
         .single();
 
       if (error) {
+        // Rollback: delete from R2 if DB insert fails
+        if (storageKey) {
+          await deleteFromR2(storageKey);
+        }
         return res.status(500).json({
           success: false,
           message: 'Error creating exercise',
@@ -138,44 +145,41 @@ class ExerciseController {
    */
   static async updateExercise(req, res) {
     try {
-      const { data: exercise, error: fetchError } = await supabase
+      const { data: oldExercise, error: fetchError } = await supabase
         .from('exercises')
-        .select('video_url')
+        .select('storage_key, video_url')
         .eq('id', req.params.id)
         .single();
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
+      if (fetchError) {
         return res.status(404).json({
           success: false,
           message: 'Exercise not found'
         });
       }
 
+      let videoUrl = req.body.video_url;
+      let storageKey = oldExercise.storage_key;
+
+      // Handle new file upload
+      if (req.file) {
+        // Delete old video from R2 if it exists
+        if (oldExercise.storage_key) {
+          await deleteFromR2(oldExercise.storage_key);
+        }
+        const uploadResult = await uploadToR2(req.file, 'exercises');
+        if (uploadResult.success) {
+          videoUrl = uploadResult.url;
+          storageKey = uploadResult.key;
+        }
+      }
+
       const updateData = {
         ...req.body,
+        video_url: videoUrl,
+        storage_key: storageKey,
         updated_at: new Date().toISOString()
       };
-
-      // Handle video upload if provided
-      if (req.file) {
-        // Delete old video if exists
-        if (exercise?.video_url) {
-          try {
-            const oldVideoPath = exercise.video_url.split('/').pop();
-            await deleteFromR2(`exercises/videos/${oldVideoPath}`);
-          } catch (error) {
-            console.error('Error deleting old video:', error);
-          }
-        }
-
-        const videoPath = `exercises/videos/${req.params.id}-${Date.now()}-${req.file.originalname}`;
-        const videoUrl = await uploadToR2(
-          req.file.buffer,
-          videoPath,
-          req.file.mimetype
-        );
-        updateData.video_url = videoUrl;
-      }
 
       const { data: updatedExercise, error } = await supabase
         .from('exercises')
@@ -211,21 +215,15 @@ class ExerciseController {
    */
   static async deleteExercise(req, res) {
     try {
-      // Get exercise to delete video
-      const { data: exercise } = await supabase
+      // Fetch to check for storage_key
+      const { data: exercise, error: fetchError } = await supabase
         .from('exercises')
-        .select('video_url')
+        .select('storage_key')
         .eq('id', req.params.id)
         .single();
 
-      // Delete video from R2 if exists
-      if (exercise?.video_url) {
-        try {
-          const videoPath = exercise.video_url.split('/').pop();
-          await deleteFromR2(`exercises/videos/${videoPath}`);
-        } catch (error) {
-          console.error('Error deleting video:', error);
-        }
+      if (!fetchError && exercise?.storage_key) {
+        await deleteFromR2(exercise.storage_key);
       }
 
       const { error } = await supabase

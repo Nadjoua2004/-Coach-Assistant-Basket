@@ -588,7 +588,9 @@ import AthleteFormScreen from './components/Coach/AthleteFormScreen';
 import MedicalRecordScreen from './components/Coach/MedicalRecordScreen';
 import CalendarScreen from './components/Coach/CalendarScreen';
 import AttendanceScreen from './components/Coach/AttendanceScreen';
+import ExerciseManagerScreen from './components/Coach/ExerciseManagerScreen';
 import AdminDashboard from './components/Admin/AdminDashboard';
+import VideoManagerScreen from './components/Admin/VideoManagerScreen';
 import UsersListScreen from './components/Admin/UsersListScreen';
 import ReadOnlyScreen from './components/Player/ReadOnlyScreen';
 import BottomNav from './components/Common/bottomNav';
@@ -596,12 +598,14 @@ import BottomNav from './components/Common/bottomNav';
 const AppContent = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('home');
+  const [currentAdminScreen, setCurrentAdminScreen] = useState('dashboard');
   const [showCreateSession, setShowCreateSession] = useState(false);
   const [showAthleteForm, setShowAthleteForm] = useState(false);
   const [showMedicalRecord, setShowMedicalRecord] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
   const [editingAthlete, setEditingAthlete] = useState(null);
   const [currentSession, setCurrentSession] = useState(null);
+  const [reuseData, setReuseData] = useState(null);
 
   if (!user) {
     return <LoginScreen />;
@@ -620,10 +624,19 @@ const AppContent = () => {
       setShowAttendance(false);
       setCurrentSession(null);
     }
+    if (user.role === 'admin') {
+      setCurrentAdminScreen('dashboard'); // Reset admin sub-screen when changing main tabs
+    }
     setActiveTab(tabId);
   };
 
   const handleCreateSession = () => {
+    setReuseData(null);
+    setShowCreateSession(true);
+  };
+
+  const handleReuseSession = (session) => {
+    setReuseData(session);
     setShowCreateSession(true);
   };
 
@@ -672,6 +685,7 @@ const AppContent = () => {
       return (
         <SessionCreationScreen
           onBack={handleBackFromCreation}
+          initialData={reuseData}
           onSaveSession={() => {
             handleBackFromCreation();
           }}
@@ -716,13 +730,15 @@ const AppContent = () => {
     // Regular content based on role and tab
     if (user.role === 'coach' || user.role === 'adjoint') {
       if (activeTab === 'home') {
-        return <CoachHomeScreen onCreateSession={handleCreateSession} />;
+        return <CoachHomeScreen onCreateSession={handleCreateSession} onNavigate={handleTabPress} />;
       } else if (activeTab === 'sessions') {
-        return <SessionsListScreen onCreateSession={handleCreateSession} />;
+        return <SessionsListScreen onCreateSession={handleCreateSession} onReuseSession={handleReuseSession} />;
       } else if (activeTab === 'calendar') {
         return <CalendarScreen onTakeAttendance={handleTakeAttendance} />;
       } else if (activeTab === 'athletes') {
         return <CoachUsersListScreen />;
+      } else if (activeTab === 'exercises') {
+        return <ExerciseManagerScreen />;
       } else if (activeTab === 'attendance') {
         return <AttendanceScreen />;
       }
@@ -734,7 +750,15 @@ const AppContent = () => {
     }
 
     if (user.role === 'admin') {
-      if (activeTab === 'dashboard') return <AdminDashboard />;
+      if (activeTab === 'dashboard') {
+        if (currentAdminScreen === 'videos') {
+          return <VideoManagerScreen onBack={() => setCurrentAdminScreen('dashboard')} />;
+        }
+        if (currentAdminScreen === 'admin_exercises') {
+          return <ExerciseManagerScreen onBack={() => setCurrentAdminScreen('dashboard')} isAdmin={true} />;
+        }
+        return <AdminDashboard onNavigate={(screen) => setCurrentAdminScreen(screen)} />;
+      }
       if (activeTab === 'users') return <UsersListScreen />;
       return (
         <View style={styles.placeholder}>

@@ -16,26 +16,63 @@ import ExerciseService from '../../services/exerciseService';
 
 const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCustomExercise, setShowCustomExercise] = useState(false);
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Exercise categories data (kept for UI mapping)
+  // Exercise categories data
   const categories = [
     { id: 'shoot', name: 'Shoot', icon: 'basketball-hoop' },
-    { id: 'dribble', name: 'Conduite de balle', icon: 'basketball' },
+    { id: 'dribble', name: 'Maniement de balle', icon: 'basketball' },
     { id: 'defense', name: 'Défense', icon: 'shield' },
-    { id: 'system', name: 'Système', icon: 'sitemap' },
+    { id: 'system', name: 'Systèmes / Tactique', icon: 'sitemap' },
     { id: 'physical', name: 'Physique', icon: 'dumbbell' },
     { id: 'mental', name: 'Mental', icon: 'brain' }
   ];
 
-  const fetchExercises = async (category = null) => {
+  // Subcategories mapping
+  const subcategoriesMap = {
+    shoot: [
+      { id: 'catch_shoot', name: 'Catch & Shoot' },
+      { id: 'free_throw', name: 'Lancer-franc' },
+      { id: 'runner', name: 'Runner / Layup' },
+      { id: 'post_up', name: 'Jeu au poste' }
+    ],
+    dribble: [
+      { id: 'ball_handling', name: 'Ball Handling' },
+      { id: 'crossover', name: 'Crossover' },
+      { id: 'speed_dribble', name: 'Dribble de vitesse' }
+    ],
+    defense: [
+      { id: 'individual', name: 'Individuelle' },
+      { id: 'help', name: 'Aide défensive' },
+      { id: 'system', name: 'Défense de zone / système' }
+    ],
+    system: [
+      { id: 'offense', name: 'Attaque' },
+      { id: 'defense', name: 'Défense collective' },
+      { id: 'transition', name: 'Contre-attaque' }
+    ],
+    physical: [
+      { id: 'conditioning', name: 'Cardio / Condition physique' },
+      { id: 'strength', name: 'Renforcement musculaire' },
+      { id: 'agility', name: 'Agilité / Vitesse' }
+    ],
+    mental: [
+      { id: 'visualization', name: 'Visualisation' },
+      { id: 'focus', name: 'Concentration' }
+    ]
+  };
+
+  const fetchExercises = async (category = null, subcategory = null) => {
     try {
       setLoading(true);
       const filters = {};
       if (category) filters.category = category;
+      if (subcategory) filters.subcategory = subcategory;
+
       const response = await ExerciseService.getAllExercises(filters);
       if (response.success) {
         setExercises(response.data);
@@ -50,13 +87,18 @@ const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {
 
   useEffect(() => {
     if (visible && !selectedCategory) {
-      // Potentially fetch all exercises or wait for category selection
+      // Initial state
     }
   }, [visible]);
 
   const handleSelectCategory = (category) => {
     setSelectedCategory(category);
-    fetchExercises(category.id);
+    setSelectedSubcategory(null);
+  };
+
+  const handleSelectSubcategory = (subcategory) => {
+    setSelectedSubcategory(subcategory);
+    fetchExercises(selectedCategory.id, subcategory.id);
   };
 
   const handleSelectExercise = (exercise) => {
@@ -72,6 +114,133 @@ const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {
     (ex.description && ex.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const renderContent = () => {
+    if (showCustomExercise) {
+      return (
+        <CustomExerciseForm
+          onSave={async (exerciseData, videoFile) => {
+            try {
+              const response = await ExerciseService.createExercise(exerciseData, videoFile);
+              if (response.success) {
+                onSelectExercise(response.data);
+                onClose();
+              }
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible de créer l\'exercice');
+            }
+          }}
+          onCancel={() => setShowCustomExercise(false)}
+        />
+      );
+    }
+
+    // Step 1: Select Category
+    if (!selectedCategory) {
+      return (
+        <FlatList
+          data={categories}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.categoryItem}
+              onPress={() => handleSelectCategory(item)}
+            >
+              <View style={styles.categoryIcon}>
+                <Icon name={item.icon} size={24} color="#f97316" />
+              </View>
+              <Text style={styles.categoryName}>{item.name}</Text>
+              <Icon name="chevron-right" size={20} color="#d1d5db" />
+            </TouchableOpacity>
+          )}
+        />
+      );
+    }
+
+    // Step 2: Select Subcategory
+    if (!selectedSubcategory) {
+      return (
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => setSelectedCategory(null)}
+          >
+            <Icon name="arrow-left" size={20} color="#6b7280" />
+            <Text style={styles.backButtonText}>{selectedCategory.name}</Text>
+          </TouchableOpacity>
+          <FlatList
+            data={subcategoriesMap[selectedCategory.id] || []}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.categoryItem}
+                onPress={() => handleSelectSubcategory(item)}
+              >
+                <Text style={styles.categoryName}>{item.name}</Text>
+                <Icon name="chevron-right" size={20} color="#d1d5db" />
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyExercises}>
+                <Text style={styles.emptyText}>Aucune sous-catégorie trouvée</Text>
+              </View>
+            }
+          />
+        </View>
+      );
+    }
+
+    // Step 3: Select Exercise
+    return (
+      <View style={{ flex: 1 }}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => setSelectedSubcategory(null)}
+        >
+          <Icon name="arrow-left" size={20} color="#6b7280" />
+          <Text style={styles.backButtonText}>{selectedSubcategory.name}</Text>
+        </TouchableOpacity>
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#f97316" style={{ marginTop: 20 }} />
+        ) : (
+          <FlatList
+            data={filteredExercises}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.exerciseItem}
+                onPress={() => handleSelectExercise(item)}
+              >
+                <View style={styles.exerciseInfo}>
+                  <Text style={styles.exerciseName}>{item.name}</Text>
+                  <View style={styles.exerciseDetails}>
+                    <View style={styles.exerciseDetail}>
+                      <Icon name="clock-outline" size={14} color="#6b7280" />
+                      <Text style={styles.exerciseDetailText}>{item.duration} min</Text>
+                    </View>
+                    <View style={styles.exerciseDetail}>
+                      <Icon name="account-group" size={14} color="#6b7280" />
+                      <Text style={styles.exerciseDetailText}>
+                        {item.players_min || item.playersMin}-{item.players_max || item.playersMax} joueurs
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <Icon name="plus-circle" size={24} color="#f97316" />
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyExercises}>
+                <Icon name="clipboard-text-outline" size={48} color="#d1d5db" />
+                <Text style={styles.emptyText}>Aucun exercice trouvé</Text>
+              </View>
+            }
+          />
+        )}
+      </View>
+    );
+  };
+
   return (
     <Modal
       animationType="slide"
@@ -81,127 +250,46 @@ const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
-          {/* Modal Header */}
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Sélectionner un exercice</Text>
+            <View style={styles.modalHeaderLeft}>
+              <Text style={styles.modalTitle}>Sélectionner un exercice</Text>
+              <TouchableOpacity
+                style={styles.manageButton}
+                onPress={() => {
+                  onClose();
+                }}
+              >
+                <Icon name="cog" size={16} color="#f97316" />
+                <Text style={styles.manageButtonText}>Gérer</Text>
+              </TouchableOpacity>
+            </View>
             <TouchableOpacity onPress={onClose}>
               <Icon name="close" size={24} color="#6b7280" />
             </TouchableOpacity>
           </View>
 
-          {showCustomExercise ? (
-            <CustomExerciseForm
-              onSave={async (exerciseData, videoFile) => {
-                try {
-                  const response = await ExerciseService.createExercise(exerciseData, videoFile);
-                  if (response.success) {
-                    onSelectExercise(response.data);
-                    onClose();
-                  }
-                } catch (error) {
-                  Alert.alert('Erreur', 'Impossible de créer l\'exercice');
-                }
-              }}
-              onCancel={() => setShowCustomExercise(false)}
+          <View style={styles.searchContainer}>
+            <Icon name="magnify" size={20} color="#9ca3af" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Rechercher un exercice..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor="#9ca3af"
             />
-          ) : (
-            <>
-              {/* Search Bar */}
-              <View style={styles.searchContainer}>
-                <Icon name="magnify" size={20} color="#9ca3af" style={styles.searchIcon} />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Rechercher un exercice..."
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholderTextColor="#9ca3af"
-                />
-              </View>
+          </View>
 
-              {/* Categories or Exercises */}
-              {!selectedCategory ? (
-                <FlatList
-                  data={categories}
-                  keyExtractor={(item) => item.id}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={styles.categoryItem}
-                      onPress={() => handleSelectCategory(item)}
-                    >
-                      <View style={styles.categoryIcon}>
-                        <Icon name={item.icon} size={24} color="#f97316" />
-                      </View>
-                      <Text style={styles.categoryName}>{item.name}</Text>
-                      <Icon name="chevron-right" size={20} color="#d1d5db" />
-                    </TouchableOpacity>
-                  )}
-                />
-              ) : (
-                <View style={{ flex: 1 }}>
-                  {/* Back button */}
-                  <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => setSelectedCategory(null)}
-                  >
-                    <Icon name="arrow-left" size={20} color="#6b7280" />
-                    <Text style={styles.backButtonText}>{selectedCategory.name}</Text>
-                  </TouchableOpacity>
+          <View style={{ flex: 1, minHeight: 400 }}>
+            {renderContent()}
+          </View>
 
-                  {loading ? (
-                    <ActivityIndicator size="large" color="#f97316" style={{ marginTop: 20 }} />
-                  ) : (
-                    <FlatList
-                      data={filteredExercises}
-                      keyExtractor={(item) => item.id.toString()}
-                      renderItem={({ item }) => (
-                        <TouchableOpacity
-                          style={styles.exerciseItem}
-                          onPress={() => handleSelectExercise(item)}
-                        >
-                          <View style={styles.exerciseInfo}>
-                            <Text style={styles.exerciseName}>{item.name}</Text>
-                            <View style={styles.exerciseDetails}>
-                              <View style={styles.exerciseDetail}>
-                                <Icon name="clock-outline" size={14} color="#6b7280" />
-                                <Text style={styles.exerciseDetailText}>{item.duration} min</Text>
-                              </View>
-                              <View style={styles.exerciseDetail}>
-                                <Icon name="account-group" size={14} color="#6b7280" />
-                                <Text style={styles.exerciseDetailText}>
-                                  {item.players_min || item.playersMin}-{item.players_max || item.playersMax} joueurs
-                                </Text>
-                              </View>
-                            </View>
-                            {item.equipment && (
-                              <Text style={styles.exerciseEquipment}>
-                                <Icon name="toolbox-outline" size={12} color="#6b7280" /> {item.equipment}
-                              </Text>
-                            )}
-                          </View>
-                          <Icon name="plus-circle" size={24} color="#f97316" />
-                        </TouchableOpacity>
-                      )}
-                      ListEmptyComponent={
-                        <View style={styles.emptyExercises}>
-                          <Icon name="clipboard-text-outline" size={48} color="#d1d5db" />
-                          <Text style={styles.emptyText}>Aucun exercice trouvé</Text>
-                        </View>
-                      }
-                    />
-                  )}
-                </View>
-              )}
-
-              {/* Add Custom Exercise Button */}
-              <TouchableOpacity
-                style={styles.customExerciseButton}
-                onPress={handleCreateCustomExercise}
-              >
-                <Icon name="plus-circle-outline" size={20} color="#3b82f6" />
-                <Text style={styles.customExerciseButtonText}>Ajouter mon propre exercice</Text>
-              </TouchableOpacity>
-            </>
-          )}
+          <TouchableOpacity
+            style={styles.customExerciseButton}
+            onPress={handleCreateCustomExercise}
+          >
+            <Icon name="plus-circle-outline" size={20} color="#3b82f6" />
+            <Text style={styles.customExerciseButtonText}>Ajouter mon propre exercice</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -360,6 +448,27 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#1f2937',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  manageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff7ed',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginLeft: 12,
+    borderWidth: 1,
+    borderColor: '#ffedd5',
+  },
+  manageButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#f97316',
+    marginLeft: 4,
   },
   searchContainer: {
     flexDirection: 'row',
