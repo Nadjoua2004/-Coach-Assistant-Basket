@@ -2,6 +2,20 @@ import ApiService from './api';
 
 class AthleteService {
     /**
+     * Get athlete profile for the current logged-in user
+     */
+    static async getMyProfile() {
+        try {
+            return await ApiService.get('/api/athletes/me');
+        } catch (error) {
+            // If 404/not found, it might return null or error depending on backend implementation
+            // Assuming backend returns success: true, data: null or similar
+            console.error('Error in AthleteService.getMyProfile:', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    /**
      * Get all athletes with optional filters
      * @param {Object} filters - { groupe, sexe, poste, blesse }
      */

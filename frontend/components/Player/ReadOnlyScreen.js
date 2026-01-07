@@ -10,6 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../Common/AuthProvider';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import AthleteService from '../../services/athleteService';
+import PlayerProfileModal from './PlayerProfileModal';
 import PlanningService from '../../services/planningService';
 import AttendanceService from '../../services/attendanceService';
 
@@ -19,6 +21,8 @@ const ReadOnlyScreen = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasProfile, setHasProfile] = useState(true); // Assume true initially to avoid flicker
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -27,6 +31,18 @@ const ReadOnlyScreen = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+
+      // 1. Check for Athlete Profile
+      try {
+        const profileRes = await AthleteService.getMyProfile();
+        // If we get a profile, hasProfile = true. If data is null, false.
+        setHasProfile(!!(profileRes.success && profileRes.data));
+      } catch (e) {
+        console.log('Profile check failed (likely no profile yet)', e);
+        setHasProfile(false);
+      }
+
+      // 2. Fetch Planning
       const planningRes = await PlanningService.getAllPlanning({
         start_date: new Date().toISOString().split('T')[0]
       });
@@ -35,6 +51,7 @@ const ReadOnlyScreen = () => {
         setEvents(planningRes.data);
       }
 
+      // 3. Fetch Stats
       const statsRes = await AttendanceService.getStats();
       if (statsRes.success) {
         setStats(statsRes.data);
@@ -73,6 +90,24 @@ const ReadOnlyScreen = () => {
           Bonjour {user?.name?.split(' ')[0]}
         </Text>
         <Text style={styles.subtitle}>Votre planning et vos statistiques</Text>
+
+        {!hasProfile && (
+          <TouchableOpacity
+            style={styles.profileAlert}
+            onPress={() => setShowProfileModal(true)}
+          >
+            <View style={styles.alertIcon}>
+              <Icon name="account-alert" size={32} color="white" />
+            </View>
+            <View style={styles.alertContent}>
+              <Text style={styles.alertTitle}>Profil Incomplet</Text>
+              <Text style={styles.alertText}>
+                Complétez votre profil athlète pour permettre au coach de suivre vos performances.
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={24} color="white" />
+          </TouchableOpacity>
+        )}
 
         <View style={styles.content}>
           <Text style={styles.sectionTitle}>Prochains événements</Text>
@@ -117,7 +152,16 @@ const ReadOnlyScreen = () => {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+      </ScrollView>
+
+      <PlayerProfileModal 
+        visible={showProfileModal} 
+        onClose={() => setShowProfileModal(false)}
+        onSuccess={fetchData}
+        userEmail={user?.email}
+        userName={user?.name}
+      />
+    </SafeAreaView >
   );
 };
 
@@ -125,6 +169,44 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  // ... existing styles ...
+  profileAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f97316',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 24,
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  alertIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  alertContent: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
+  },
+  alertText: {
+    fontSize: 12,
+    color: 'white',
+    opacity: 0.9,
+    lineHeight: 16,
   },
   center: {
     flex: 1,

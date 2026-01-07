@@ -6,38 +6,95 @@ class AthleteController {
   /**
    * Get all athletes with filters
    */
-  static async getAllAthletes(req, res) {
+  /**
+   * Get athlete profile for the current logged-in user
+   */
+  static async getMyProfile(req, res) {
     try {
-      let query = supabase.from('athletes').select('*');
-
-      // Apply filters
-      if (req.query.groupe) {
-        query = query.eq('groupe', req.query.groupe);
-      }
-      if (req.query.sexe) {
-        query = query.eq('sexe', req.query.sexe);
-      }
-      if (req.query.poste) {
-        query = query.eq('poste', req.query.poste);
-      }
-      if (req.query.blesse === 'true') {
-        query = query.eq('blesse', true);
+      if (!req.user || !req.user.id) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
       }
 
-      const { data: athletes, error } = await query.order('nom', { ascending: true });
+      const { data: athlete, error } = await supabase
+        .from('athletes')
+        .select('*')
+        .eq('user_id', req.user.id)
+        .single();
 
-      if (error) {
-        return res.status(500).json({
-          success: false,
-          message: 'Error fetching athletes',
-          error: error.message
-        });
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "Row not found" which is fine here
+        throw error;
       }
 
       res.json({
         success: true,
-        data: athletes,
-        count: athletes.length
+        data: athlete || null
+      });
+    } catch (error) {
+      console.error('Get my profile error:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  }
+
+  /**
+   * Get all athletes with filters
+   * Now includes users with role 'joueur' who don't have an athlete profile yet
+   */
+  static async getAllAthletes(req, res) {
+    try {
+      // 1. Get existing athletes
+      let query = supabase.from('athletes').select('*');
+
+      // Apply filters
+      if (req.query.groupe) query = query.eq('groupe', req.query.groupe);
+      if (req.query.sexe) query = query.eq('sexe', req.query.sexe);
+      if (req.query.poste) query = query.eq('poste', req.query.poste);
+      if (req.query.blesse === 'true') query = query.eq('blesse', true);
+
+      const { data: existingAthletes, error: athletesError } = await query.order('nom', { ascending: true });
+
+      if (athletesError) throw athletesError;
+
+      // 2. Get unlinked users with role 'joueur'
+      // Only fetch if no specific filters preventing it (like 'groupe' or 'blesse' which unlinked users won't have)
+      let unlinkedPlayers = [];
+      if (!req.query.groupe && !req.query.sexe && !req.query.poste && !req.query.blesse) {
+        const { data: players, error: playersError } = await supabase
+          .from('users')
+          .select('id, name, email')
+          .eq('role', 'joueur');
+
+        if (!playersError && players) {
+          // Filter out users who already have an athlete record linked (assuming we link them later, or just name matching)
+          // Since we don't have a direct link yet, we'll check against existing athletes 
+          // (Note: This is a loose check. Ideally, we should have a user_id foreign key in athletes table.
+          // Schema indicates created_by relates to user, but doesn't explicitly say 'user_id' is the athlete's account.
+          // Assuming 'name' might match or we just show them as "New")
+
+          // Only filter by exact name match for now to avoid duplicates if manual entry exists
+          const existingNames = new Set(existingAthletes.map(a => `${a.prenom} ${a.nom}`.toLowerCase().trim()));
+
+          unlinkedPlayers = players.filter(p => !existingNames.has(p.name.toLowerCase().trim())).map(p => {
+            const nameParts = p.name.split(' ');
+            return {
+              id: `temp_${p.id}`, // Temporary ID to distinguish
+              user_id: p.id,
+              nom: nameParts[0] || p.name,
+              prenom: nameParts.slice(1).join(' ') || '',
+              groupe: 'Non assigné',
+              poste: null,
+              photo_url: null,
+              is_unlinked: true // Flag to show UI indication
+            };
+          });
+        }
+      }
+
+      const allAthletes = [...existingAthletes, ...unlinkedPlayers];
+
+      res.json({
+        success: true,
+        data: allAthletes,
+        count: allAthletes.length
       });
     } catch (error) {
       console.error('Get athletes error:', error);
@@ -95,7 +152,9 @@ class AthleteController {
       const athleteData = {
         ...req.body,
         created_at: new Date().toISOString(),
-        created_by: req.user.id
+        created_by: req.user.id,
+        // If the creator is a player, link this athlete record to their user account
+        user_id: req.user.role === 'joueur' ? req.user.id : null
       };
 
       // Handle photo upload if provided

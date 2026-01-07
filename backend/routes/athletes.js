@@ -21,6 +21,9 @@ const upload = multer({
   }
 });
 
+// Get athlete profile for current user
+router.get('/me', authenticateToken, AthleteController.getMyProfile);
+
 // Get all athletes with filters
 router.get('/', authenticateToken, AthleteController.getAllAthletes);
 

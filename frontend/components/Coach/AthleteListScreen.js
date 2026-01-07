@@ -12,10 +12,10 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AthleteService from '../../services/athleteService';
+import AuthService from '../../services/authService';
 
 const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
     const [athletes, setAthletes] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState('card'); // 'card' or 'list'
@@ -29,149 +29,200 @@ const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
 
     useEffect(() => {
         fetchAthletes();
-        useEffect(() => {
-            fetchAthletes();
-        }, [filterGroupe, filterSexe, filterPoste, filterBlesse]);
+    }, [filterGroupe, filterSexe, filterPoste, filterBlesse]);
 
-        const fetchAthletes = async () => {
-            try {
-                setLoading(true);
-                const filters = {};
-                const filters = {};
-                if (filterGroupe) filters.groupe = filterGroupe;
-                if (filterSexe) filters.sexe = filterSexe;
-                if (filterPoste) filters.poste = filterPoste;
-                if (filterBlesse) filters.blesse = true;
+    const fetchAthletes = async () => {
+        try {
+            setLoading(true);
+            const filters = {};
+            if (filterGroupe) filters.groupe = filterGroupe;
+            if (filterSexe) filters.sexe = filterSexe;
+            if (filterPoste) filters.poste = filterPoste;
+            if (filterBlesse) filters.blesse = true;
 
-                const response = await AthleteService.getAllAthletes(filters);
-                if (response.success) {
-                    setAthletes(response.data);
+            // 1. Fetch Athletes (Rich Profiles)
+            const athleteRes = await AthleteService.getAllAthletes(filters);
+            let athletesData = athleteRes.success ? athleteRes.data : [];
+
+            // 2. Fetch Users (From Admin Auth Service) - Only if no specific attribute filters are set
+            // (Users don't have group/post/sex attributes to filter by yet)
+            let unlinkedPlayers = [];
+            if (!filterGroupe && !filterSexe && !filterPoste && !filterBlesse) {
+                try {
+                    const userRes = await AuthService.getAllUsers();
+                    if (userRes.success) {
+                        const players = userRes.data.filter(u => u.role === 'joueur');
+
+                        // Filter out players who already match an athlete by Name
+                        // (Normalization: lowercase, trimmed)
+                        const athleteNames = new Set(athletesData.map(a => `${a.prenom} ${a.nom}`.toLowerCase().trim()));
+                        const athleteEmails = new Set(athletesData.map(a => (a.email || '').toLowerCase().trim()));
+
+                        unlinkedPlayers = players.filter(p => {
+                            const fullName = p.name.toLowerCase().trim();
+                            const email = (p.email || '').toLowerCase().trim();
+                            return !athleteNames.has(fullName) && !athleteEmails.has(email);
+                        }).map(p => {
+                            const nameParts = p.name.split(' ');
+                            return {
+                                id: `temp_${p.id}`,
+                                user_id: p.id,
+                                nom: nameParts[0] || p.name,
+                                prenom: nameParts.slice(1).join(' ') || '',
+                                email: p.email,
+                                groupe: 'Non assigné',
+                                poste: null,
+                                photo_url: null,
+                                is_unlinked: true
+                            };
+                        });
+                    }
+                } catch (err) {
+                    console.error('Error fetching auth users:', err);
                 }
-            } catch (error) {
-                console.error('Error fetching athletes:', error);
-                Alert.alert('Erreur', 'Impossible de charger les athlètes');
-            } finally {
-                setLoading(false);
             }
-        };
 
-        const handleDeleteAthlete = (id, name) => {
-            Alert.alert(
-                'Supprimer l\'athlète',
-                `Voulez-vous vraiment supprimer ${name} ?`,
-                [
-                    { text: 'Annuler', style: 'cancel' },
-                    {
-                        text: 'Supprimer',
-                        style: 'destructive',
-                        onPress: async () => {
-                            try {
-                                const response = await AthleteService.deleteAthlete(id);
-                                if (response.success) {
-                                    setAthletes(athletes.filter(a => a.id !== id));
-                                    Alert.alert('Succès', 'Athlète supprimé');
-                                }
-                            } catch (error) {
-                                Alert.alert('Erreur', 'Impossible de supprimer l\'athlète');
+            // 3. Merge Lists
+            setAthletes([...athletesData, ...unlinkedPlayers]);
+
+        } catch (error) {
+            console.error('Error fetching athletes:', error);
+            Alert.alert('Erreur', 'Impossible de charger les athlètes');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteAthlete = (id, name) => {
+        Alert.alert(
+            'Supprimer l\'athlète',
+            `Voulez-vous vraiment supprimer ${name} ?`,
+            [
+                { text: 'Annuler', style: 'cancel' },
+                {
+                    text: 'Supprimer',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const response = await AthleteService.deleteAthlete(id);
+                            if (response.success) {
+                                setAthletes(athletes.filter(a => a.id !== id));
+                                Alert.alert('Succès', 'Athlète supprimé');
                             }
+                        } catch (error) {
+                            Alert.alert('Erreur', 'Impossible de supprimer l\'athlète');
                         }
                     }
-                ]
-            );
-        };
-
-        const filteredAthletes = athletes.filter(a =>
-            `${a.nom} ${a.prenom}`.toLowerCase().includes(searchQuery.toLowerCase())
+                }
+            ]
         );
+    };
 
-        const renderAthleteItem = ({ item }) => {
-            if (viewMode === 'list') {
-                return (
-                    <TouchableOpacity
-                        style={styles.athleteListItem}
-                        onPress={() => onEditAthlete(item)}
-                    >
-                        <View style={styles.listAvatarContainer}>
-                            {item.photo_url ? (
-                                <Image source={{ uri: item.photo_url }} style={styles.listAvatar} />
-                            ) : (
-                                <View style={styles.listAvatarPlaceholder}>
-                                    <Icon name="account" size={20} color="#9ca3af" />
-                                </View>
-                            )}
-                            {item.blesse && (
-                                <View style={styles.listInjuryBadge} />
-                            )}
-                        </View>
-                        <View style={styles.listInfo}>
-                            <Text style={styles.listName}>{item.nom} {item.prenom}</Text>
-                            <Text style={styles.listSubtext}>{item.groupe} • {item.poste || 'N/A'}</Text>
-                        </View>
-                        <View style={styles.listActions}>
-                            <TouchableOpacity style={{ marginRight: 12 }} onPress={() => onViewMedical(item)}>
-                                <Icon name="medical-bag" size={20} color="#f97316" />
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => handleDeleteAthlete(item.id, `${item.prenom} ${item.nom}`)}>
-                                <Icon name="trash-can-outline" size={20} color="#ef4444" />
-                            </TouchableOpacity>
-                        </View>
-                    </TouchableOpacity>
-                );
-            }
+    const filteredAthletes = athletes.filter(a =>
+        `${a.nom} ${a.prenom}`.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
+    const renderAthleteItem = ({ item }) => {
+        if (viewMode === 'list') {
             return (
                 <TouchableOpacity
-                    style={styles.athleteCard}
+                    style={styles.athleteListItem}
                     onPress={() => onEditAthlete(item)}
                 >
-                    <View style={styles.athleteInfo}>
-                        <View style={styles.avatarContainer}>
-                            {item.photo_url ? (
-                                <Image source={{ uri: item.photo_url }} style={styles.avatar} />
-                            ) : (
-                                <View style={styles.avatarPlaceholder}>
-                                    <Icon name="account" size={30} color="#9ca3af" />
-                                </View>
-                            )}
-                            {item.blesse && (
-                                <View style={styles.injuryBadge}>
-                                    <Icon name="plus" size={10} color="white" />
-                                </View>
-                            )}
-                        </View>
-                        <View style={styles.detailsContainer}>
-                            <Text style={styles.athleteName}>{item.nom} {item.prenom}</Text>
-                            <Text style={styles.athleteSubtext}>{item.groupe} • {item.poste}</Text>
-                        </View>
+                    <View style={styles.listAvatarContainer}>
+                        {item.photo_url ? (
+                            <Image source={{ uri: item.photo_url }} style={styles.listAvatar} />
+                        ) : (
+                            <View style={styles.listAvatarPlaceholder}>
+                                <Icon name="account" size={20} color="#9ca3af" />
+                            </View>
+                        )}
+                        {item.blesse && (
+                            <View style={styles.listInjuryBadge} />
+                        )}
                     </View>
-                    <View style={styles.actions}>
-                        <TouchableOpacity
-                            style={styles.actionButton}
-                            onPress={() => onViewMedical(item)}
-                        >
-                            <Icon name="medical-bag" size={22} color="#f97316" />
+                    <View style={styles.listInfo}>
+                        <Text style={styles.athleteName}>{item.nom} {item.prenom}</Text>
+                        <Text style={styles.athleteSubtext}>
+                            {item.is_unlinked ? '⚠️ Compte Joueur (non profilé)' : `${item.groupe} • ${item.poste || '?'}`}
+                        </Text>
+                    </View>
+                    <View style={styles.listActions}>
+                        <TouchableOpacity style={{ marginRight: 12 }} onPress={() => {
+                            if (item.is_unlinked) {
+                                Alert.alert('Information', 'Ce joueur n\'a pas encore rempli son profil.');
+                            } else {
+                                onViewMedical(item);
+                            }
+                        }}>
+                            <Icon name="medical-bag" size={20} color={item.is_unlinked ? "#d1d5db" : "#f97316"} />
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.actionButton}
-                            onPress={() => handleDeleteAthlete(item.id, `${item.prenom} ${item.nom}`)}
-                        >
-                            <Icon name="trash-can-outline" size={22} color="#ef4444" />
+                        <TouchableOpacity onPress={() => handleDeleteAthlete(item.id, `${item.prenom} ${item.nom}`)}>
+                            <Icon name="trash-can-outline" size={20} color="#ef4444" />
                         </TouchableOpacity>
-                        <Icon name="chevron-right" size={24} color="#d1d5db" />
                     </View>
                 </TouchableOpacity>
             );
-        };
+        }
 
+        return (
+            <TouchableOpacity
+                style={styles.athleteCard}
+                onPress={() => onEditAthlete(item)}
+            >
+                <View style={styles.athleteInfo}>
+                    <View style={styles.avatarContainer}>
+                        {item.photo_url ? (
+                            <Image source={{ uri: item.photo_url }} style={styles.avatar} />
+                        ) : (
+                            <View style={styles.avatarPlaceholder}>
+                                <Icon name="account" size={30} color="#9ca3af" />
+                            </View>
+                        )}
+                        {item.blesse && (
+                            <View style={styles.injuryBadge}>
+                                <Icon name="plus" size={10} color="white" />
+                            </View>
+                        )}
+                    </View>
+                    <View style={styles.detailsContainer}>
+                        <Text style={styles.athleteName}>{item.nom} {item.prenom}</Text>
+                        <Text style={styles.athleteSubtext}>
+                            {item.is_unlinked ? '⚠️ Compte Joueur (non profilé)' : `${item.groupe} • ${item.poste || '?'}`}
+                        </Text>
+                    </View>
+                </View>
+                <View style={styles.actions}>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => {
+                            if (item.is_unlinked) {
+                                Alert.alert('Information', 'Ce joueur n\'a pas encore rempli son profil.');
+                            } else {
+                                onViewMedical(item);
+                            }
+                        }}
+                    >
+                        <Icon name="medical-bag" size={22} color={item.is_unlinked ? "#d1d5db" : "#f97316"} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => handleDeleteAthlete(item.id, `${item.prenom} ${item.nom}`)}
+                    >
+                        <Icon name="trash-can-outline" size={22} color="#ef4444" />
+                    </TouchableOpacity>
+                    <Icon name="chevron-right" size={24} color="#d1d5db" />
+                </View>
+            </TouchableOpacity>
+        );
     };
+
+
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Athlètes</Text>
-                <TouchableOpacity style={styles.addButton} onPress={onAddAthlete}>
-                    <Icon name="plus" size={24} color="white" />
-                </TouchableOpacity>
             </View>
 
             <View style={styles.searchContainer}>
@@ -304,6 +355,22 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f8fafc',
     },
+    fab: {
+        position: 'absolute',
+        bottom: 24,
+        right: 24,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#f97316',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#f97316',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -377,7 +444,7 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingHorizontal: 24,
-        paddingBottom: 24,
+        paddingBottom: 100, // Space for FAB
     },
     athleteCard: {
         backgroundColor: 'white',
