@@ -157,6 +157,79 @@ class PlanningController {
       });
     }
   }
+
+  /**
+   * Get participants for a planning event
+   */
+  static async getParticipants(req, res) {
+    try {
+      const { data, error } = await supabase
+        .from('planning_athletes')
+        .select('*, athletes(*)')
+        .eq('planning_id', req.params.id);
+
+      if (error) throw error;
+
+      res.json({
+        success: true,
+        data: data.map(item => item.athletes)
+      });
+    } catch (error) {
+      console.error('Get participants error:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  }
+
+  /**
+   * Add participant to planning
+   */
+  static async addParticipant(req, res) {
+    try {
+      const { athlete_id } = req.body;
+      const { error } = await supabase
+        .from('planning_athletes')
+        .insert({
+          planning_id: req.params.id,
+          athlete_id
+        });
+
+      if (error) {
+        // Ignore duplicate errors (already assigned)
+        if (error.code === '23505') {
+          return res.json({ success: true, message: 'Already assigned' });
+        }
+        throw error;
+      }
+
+      res.json({ success: true, message: 'Athlete assigned' });
+    } catch (error) {
+      console.error('Add participant error:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  }
+
+  /**
+   * Remove participant from planning
+   */
+  static async removeParticipant(req, res) {
+    try {
+      const { athlete_id } = req.params;
+      const { error } = await supabase
+        .from('planning_athletes')
+        .delete()
+        .match({
+          planning_id: req.params.id,
+          athlete_id
+        });
+
+      if (error) throw error;
+
+      res.json({ success: true, message: 'Athlete removed' });
+    } catch (error) {
+      console.error('Remove participant error:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  }
 }
 
 module.exports = PlanningController;

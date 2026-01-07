@@ -76,7 +76,13 @@ class ApiService {
         if (response.status === 401 && endpoint === '/api/auth/me' && !token) {
           // Expected, don't log as error
         } else {
-          console.error(`API Error [${endpoint}]:`, data.message || 'Request failed');
+          // Extract validation errors if present
+          let errorMessage = data.message || 'Request failed';
+          if (data.errors && Array.isArray(data.errors)) {
+            errorMessage = data.errors.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
+          }
+          console.error(`API Error [${endpoint}]:`, errorMessage);
+          throw new Error(errorMessage);
         }
         throw new Error(data.message || 'Request failed');
       }

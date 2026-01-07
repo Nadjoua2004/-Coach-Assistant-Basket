@@ -16,102 +16,154 @@ import AthleteService from '../../services/athleteService';
 const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
     const [athletes, setAthletes] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [viewMode, setViewMode] = useState('card'); // 'card' or 'list'
+
+    // Filters
     const [filterGroupe, setFilterGroupe] = useState(null);
+    const [filterSexe, setFilterSexe] = useState(null);
+    const [filterPoste, setFilterPoste] = useState(null);
+    const [filterBlesse, setFilterBlesse] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
 
     useEffect(() => {
         fetchAthletes();
-    }, [filterGroupe]);
+        useEffect(() => {
+            fetchAthletes();
+        }, [filterGroupe, filterSexe, filterPoste, filterBlesse]);
 
-    const fetchAthletes = async () => {
-        try {
-            setLoading(true);
-            const filters = {};
-            if (filterGroupe) filters.groupe = filterGroupe;
+        const fetchAthletes = async () => {
+            try {
+                setLoading(true);
+                const filters = {};
+                const filters = {};
+                if (filterGroupe) filters.groupe = filterGroupe;
+                if (filterSexe) filters.sexe = filterSexe;
+                if (filterPoste) filters.poste = filterPoste;
+                if (filterBlesse) filters.blesse = true;
 
-            const response = await AthleteService.getAllAthletes(filters);
-            if (response.success) {
-                setAthletes(response.data);
+                const response = await AthleteService.getAllAthletes(filters);
+                if (response.success) {
+                    setAthletes(response.data);
+                }
+            } catch (error) {
+                console.error('Error fetching athletes:', error);
+                Alert.alert('Erreur', 'Impossible de charger les athlètes');
+            } finally {
+                setLoading(false);
             }
-        } catch (error) {
-            console.error('Error fetching athletes:', error);
-            Alert.alert('Erreur', 'Impossible de charger les athlètes');
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
 
-    const handleDeleteAthlete = (id, name) => {
-        Alert.alert(
-            'Supprimer l\'athlète',
-            `Voulez-vous vraiment supprimer ${name} ?`,
-            [
-                { text: 'Annuler', style: 'cancel' },
-                {
-                    text: 'Supprimer',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const response = await AthleteService.deleteAthlete(id);
-                            if (response.success) {
-                                setAthletes(athletes.filter(a => a.id !== id));
-                                Alert.alert('Succès', 'Athlète supprimé');
+        const handleDeleteAthlete = (id, name) => {
+            Alert.alert(
+                'Supprimer l\'athlète',
+                `Voulez-vous vraiment supprimer ${name} ?`,
+                [
+                    { text: 'Annuler', style: 'cancel' },
+                    {
+                        text: 'Supprimer',
+                        style: 'destructive',
+                        onPress: async () => {
+                            try {
+                                const response = await AthleteService.deleteAthlete(id);
+                                if (response.success) {
+                                    setAthletes(athletes.filter(a => a.id !== id));
+                                    Alert.alert('Succès', 'Athlète supprimé');
+                                }
+                            } catch (error) {
+                                Alert.alert('Erreur', 'Impossible de supprimer l\'athlète');
                             }
-                        } catch (error) {
-                            Alert.alert('Erreur', 'Impossible de supprimer l\'athlète');
                         }
                     }
-                }
-            ]
+                ]
+            );
+        };
+
+        const filteredAthletes = athletes.filter(a =>
+            `${a.nom} ${a.prenom}`.toLowerCase().includes(searchQuery.toLowerCase())
         );
+
+        const renderAthleteItem = ({ item }) => {
+            if (viewMode === 'list') {
+                return (
+                    <TouchableOpacity
+                        style={styles.athleteListItem}
+                        onPress={() => onEditAthlete(item)}
+                    >
+                        <View style={styles.listAvatarContainer}>
+                            {item.photo_url ? (
+                                <Image source={{ uri: item.photo_url }} style={styles.listAvatar} />
+                            ) : (
+                                <View style={styles.listAvatarPlaceholder}>
+                                    <Icon name="account" size={20} color="#9ca3af" />
+                                </View>
+                            )}
+                            {item.blesse && (
+                                <View style={styles.listInjuryBadge} />
+                            )}
+                        </View>
+                        <View style={styles.listInfo}>
+                            <Text style={styles.listName}>{item.nom} {item.prenom}</Text>
+                            <Text style={styles.listSubtext}>{item.groupe} • {item.poste || 'N/A'}</Text>
+                        </View>
+                        <View style={styles.listActions}>
+                            <TouchableOpacity style={{ marginRight: 12 }} onPress={() => onViewMedical(item)}>
+                                <Icon name="medical-bag" size={20} color="#f97316" />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => handleDeleteAthlete(item.id, `${item.prenom} ${item.nom}`)}>
+                                <Icon name="trash-can-outline" size={20} color="#ef4444" />
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableOpacity>
+                );
+            }
+
+            return (
+                <TouchableOpacity
+                    style={styles.athleteCard}
+                    onPress={() => onEditAthlete(item)}
+                >
+                    <View style={styles.athleteInfo}>
+                        <View style={styles.avatarContainer}>
+                            {item.photo_url ? (
+                                <Image source={{ uri: item.photo_url }} style={styles.avatar} />
+                            ) : (
+                                <View style={styles.avatarPlaceholder}>
+                                    <Icon name="account" size={30} color="#9ca3af" />
+                                </View>
+                            )}
+                            {item.blesse && (
+                                <View style={styles.injuryBadge}>
+                                    <Icon name="plus" size={10} color="white" />
+                                </View>
+                            )}
+                        </View>
+                        <View style={styles.detailsContainer}>
+                            <Text style={styles.athleteName}>{item.nom} {item.prenom}</Text>
+                            <Text style={styles.athleteSubtext}>{item.groupe} • {item.poste}</Text>
+                        </View>
+                    </View>
+                    <View style={styles.actions}>
+                        <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => onViewMedical(item)}
+                        >
+                            <Icon name="medical-bag" size={22} color="#f97316" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => handleDeleteAthlete(item.id, `${item.prenom} ${item.nom}`)}
+                        >
+                            <Icon name="trash-can-outline" size={22} color="#ef4444" />
+                        </TouchableOpacity>
+                        <Icon name="chevron-right" size={24} color="#d1d5db" />
+                    </View>
+                </TouchableOpacity>
+            );
+        };
+
     };
-
-    const filteredAthletes = athletes.filter(a =>
-        `${a.nom} ${a.prenom}`.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const renderAthleteItem = ({ item }) => (
-        <TouchableOpacity
-            style={styles.athleteCard}
-            onPress={() => onEditAthlete(item)}
-        >
-            <View style={styles.athleteInfo}>
-                <View style={styles.avatarContainer}>
-                    {item.photo_url ? (
-                        <Image source={{ uri: item.photo_url }} style={styles.avatar} />
-                    ) : (
-                        <View style={styles.avatarPlaceholder}>
-                            <Icon name="account" size={30} color="#9ca3af" />
-                        </View>
-                    )}
-                    {item.blesse && (
-                        <View style={styles.injuryBadge}>
-                            <Icon name="plus" size={10} color="white" />
-                        </View>
-                    )}
-                </View>
-                <View style={styles.detailsContainer}>
-                    <Text style={styles.athleteName}>{item.nom} {item.prenom}</Text>
-                    <Text style={styles.athleteSubtext}>{item.groupe} • {item.poste}</Text>
-                </View>
-            </View>
-            <View style={styles.actions}>
-                <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => onViewMedical(item)}
-                >
-                    <Icon name="medical-bag" size={22} color="#f97316" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => handleDeleteAthlete(item.id, `${item.prenom} ${item.nom}`)}
-                >
-                    <Icon name="trash-can-outline" size={22} color="#ef4444" />
-                </TouchableOpacity>
-                <Icon name="chevron-right" size={24} color="#d1d5db" />
-            </View>
-        </TouchableOpacity>
-    );
 
     return (
         <View style={styles.container}>
@@ -133,24 +185,95 @@ const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
                 />
             </View>
 
-            {/* Filter Chips - Simplified for now */}
-            <View style={styles.filterContainer}>
+            {/* Controls Row */}
+            <View style={styles.controlsRow}>
                 <TouchableOpacity
-                    style={[styles.filterChip, !filterGroupe && styles.activeFilterChip]}
-                    onPress={() => setFilterGroupe(null)}
+                    style={styles.filterToggleBtn}
+                    onPress={() => setShowFilters(!showFilters)}
                 >
-                    <Text style={[styles.filterText, !filterGroupe && styles.activeFilterText]}>Tous</Text>
+                    <Icon name="filter-variant" size={20} color={showFilters ? "#f97316" : "#64748b"} />
+                    <Text style={[styles.filterToggleText, showFilters && { color: '#f97316' }]}>Filtres</Text>
                 </TouchableOpacity>
-                {['U13', 'U15', 'U17', 'Seniors'].map(groupe => (
+
+                <View style={styles.viewToggle}>
                     <TouchableOpacity
-                        key={groupe}
-                        style={[styles.filterChip, filterGroupe === groupe && styles.activeFilterChip]}
-                        onPress={() => setFilterGroupe(groupe)}
+                        style={[styles.viewBtn, viewMode === 'card' && styles.activeViewBtn]}
+                        onPress={() => setViewMode('card')}
                     >
-                        <Text style={[styles.filterText, filterGroupe === groupe && styles.activeFilterText]}>{groupe}</Text>
+                        <Icon name="view-grid" size={20} color={viewMode === 'card' ? 'white' : '#64748b'} />
                     </TouchableOpacity>
-                ))}
+                    <TouchableOpacity
+                        style={[styles.viewBtn, viewMode === 'list' && styles.activeViewBtn]}
+                        onPress={() => setViewMode('list')}
+                    >
+                        <Icon name="view-list" size={20} color={viewMode === 'list' ? 'white' : '#64748b'} />
+                    </TouchableOpacity>
+                </View>
             </View>
+
+            {/* Expanded Filters */}
+            {showFilters && (
+                <View style={styles.advancedFilters}>
+                    <View style={styles.filterGroup}>
+                        <Text style={styles.filterLabel}>Groupe:</Text>
+                        <View style={styles.chipsRow}>
+                            <TouchableOpacity
+                                style={[styles.filterChip, !filterGroupe && styles.activeFilterChip]}
+                                onPress={() => setFilterGroupe(null)}
+                            >
+                                <Text style={[styles.filterText, !filterGroupe && styles.activeFilterText]}>Tous</Text>
+                            </TouchableOpacity>
+                            {['U13', 'U15', 'U17', 'Seniors'].map(g => (
+                                <TouchableOpacity
+                                    key={g}
+                                    style={[styles.filterChip, filterGroupe === g && styles.activeFilterChip]}
+                                    onPress={() => setFilterGroupe(g)}
+                                >
+                                    <Text style={[styles.filterText, filterGroupe === g && styles.activeFilterText]}>{g}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+
+                    <View style={styles.filterGroup}>
+                        <Text style={styles.filterLabel}>Sexe:</Text>
+                        <View style={styles.chipsRow}>
+                            {['M', 'F'].map(s => (
+                                <TouchableOpacity
+                                    key={s}
+                                    style={[styles.filterChip, filterSexe === s && styles.activeFilterChip]}
+                                    onPress={() => setFilterSexe(filterSexe === s ? null : s)}
+                                >
+                                    <Text style={[styles.filterText, filterSexe === s && styles.activeFilterText]}>{s === 'M' ? 'Garçons' : 'Filles'}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+
+                    <View style={styles.filterGroup}>
+                        <Text style={styles.filterLabel}>Poste:</Text>
+                        <View style={styles.chipsRow}>
+                            {['Meneur', 'Arrière', 'Ailier', 'Ailier fort', 'Pivot'].map(p => (
+                                <TouchableOpacity
+                                    key={p}
+                                    style={[styles.filterChip, filterPoste === p && styles.activeFilterChip]}
+                                    onPress={() => setFilterPoste(filterPoste === p ? null : p)}
+                                >
+                                    <Text style={[styles.filterText, filterPoste === p && styles.activeFilterText]}>{p}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.filterRowItem, filterBlesse && styles.activeFilterRowItem]}
+                        onPress={() => setFilterBlesse(!filterBlesse)}
+                    >
+                        <Icon name={filterBlesse ? "check-box-outline" : "checkbox-blank-outline"} size={20} color={filterBlesse ? "#f97316" : "#64748b"} />
+                        <Text style={[styles.filterRowText, filterBlesse && { color: "#f97316", fontWeight: 'bold' }]}>Afficher blessés uniquement</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
             {loading ? (
                 <View style={styles.loader}>
@@ -342,6 +465,125 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#94a3b8',
     },
+    controlsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 24,
+        marginBottom: 16,
+        alignItems: 'center',
+    },
+    filterToggleBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        padding: 8,
+    },
+    filterToggleText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#64748b',
+    },
+    viewToggle: {
+        flexDirection: 'row',
+        backgroundColor: '#e2e8f0',
+        borderRadius: 8,
+        padding: 2,
+    },
+    viewBtn: {
+        padding: 6,
+        borderRadius: 6,
+    },
+    activeViewBtn: {
+        backgroundColor: '#f97316',
+    },
+    advancedFilters: {
+        backgroundColor: 'white',
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: '#f1f5f9',
+        padding: 16,
+        marginBottom: 16,
+    },
+    filterGroup: {
+        marginBottom: 12,
+    },
+    filterLabel: {
+        fontSize: 12,
+        color: '#94a3b8',
+        fontWeight: '700',
+        marginBottom: 8,
+        textTransform: 'uppercase',
+    },
+    chipsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    filterRowItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 4,
+    },
+    filterRowText: {
+        fontSize: 14,
+        color: '#64748b',
+    },
+    // List View Styles
+    athleteListItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        padding: 12,
+        marginBottom: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+    },
+    listAvatarContainer: {
+        marginRight: 12,
+        position: 'relative',
+    },
+    listAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+    },
+    listAvatarPlaceholder: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#f1f5f9',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    listInjuryBadge: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#ef4444',
+        borderWidth: 1.5,
+        borderColor: 'white',
+    },
+    listInfo: {
+        flex: 1,
+    },
+    listName: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#1e293b',
+    },
+    listSubtext: {
+        fontSize: 12,
+        color: '#64748b',
+    },
+    listActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    }
 });
 
 export default AthleteListScreen;

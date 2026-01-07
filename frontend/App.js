@@ -736,7 +736,13 @@ const AppContent = () => {
       } else if (activeTab === 'calendar') {
         return <CalendarScreen onTakeAttendance={handleTakeAttendance} />;
       } else if (activeTab === 'athletes') {
-        return <CoachUsersListScreen />;
+        return (
+          <AthleteListScreen
+            onAddAthlete={handleAddAthlete}
+            onEditAthlete={handleEditAthlete}
+            onViewMedical={handleViewMedical}
+          />
+        );
       } else if (activeTab === 'exercises') {
         return <ExerciseManagerScreen />;
       } else if (activeTab === 'attendance') {
