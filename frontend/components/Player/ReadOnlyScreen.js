@@ -152,16 +152,15 @@ const ReadOnlyScreen = () => {
           </View>
         </View>
       </ScrollView>
-      </ScrollView>
 
-      <PlayerProfileModal 
-        visible={showProfileModal} 
+      <PlayerProfileModal
+        visible={showProfileModal}
         onClose={() => setShowProfileModal(false)}
         onSuccess={fetchData}
         userEmail={user?.email}
         userName={user?.name}
       />
-    </SafeAreaView >
+    </SafeAreaView>
   );
 };
 
