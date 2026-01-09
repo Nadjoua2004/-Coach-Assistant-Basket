@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS athletes (
     contact_parent VARCHAR(255),
     groupe VARCHAR(100),
     blesse BOOLEAN DEFAULT FALSE,
+    user_id UUID REFERENCES users(id),
     created_by UUID REFERENCES users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
