@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -9,57 +9,81 @@ import {
     ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    Image
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
 import AthleteService from '../../services/athleteService';
 
 const AthleteFormScreen = ({ athlete, onBack, onSave }) => {
     const isEditing = !!athlete;
     const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        nom: athlete?.nom || '',
+        prenom: athlete?.prenom || '',
+        date_naissance: athlete?.date_naissance || '',
+        sexe: athlete?.sexe || 'M',
+        taille: athlete?.taille?.toString() || '',
+        poids: athlete?.poids?.toString() || '',
+        poste: athlete?.poste?.toString() || '',
+        numero_licence: athlete?.numero_licence || '',
+        contact_parent: athlete?.contact_parent || '',
+        groupe: athlete?.groupe || 'U17'
+    });
+    const [photo, setPhoto] = useState(null);
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(
+        athlete?.date_naissance ? new Date(athlete.date_naissance) : new Date()
+    );
 
-    // Form state
-    const [nom, setNom] = useState(athlete?.nom || '');
-    const [prenom, setPrenom] = useState(athlete?.prenom || '');
-    const [dateNaissance, setDateNaissance] = useState(athlete?.date_naissance || '');
-    const [sexe, setSexe] = useState(athlete?.sexe || 'M');
-    const [groupe, setGroupe] = useState(athlete?.groupe || 'U15');
-    const [poste, setPoste] = useState(athlete?.poste || 'Meneur');
-    const [taille, setTaille] = useState(athlete?.taille?.toString() || '');
-    const [poids, setPoids] = useState(athlete?.poids?.toString() || '');
-    const [numeroLicence, setNumeroLicence] = useState(athlete?.numero_licence || '');
-    const [telephone, setTelephone] = useState(athlete?.telephone || '');
-    const [email, setEmail] = useState(athlete?.email || '');
-    const [adresse, setAdresse] = useState(athlete?.adresse || '');
+    const handleChange = (name, value) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleDateChange = (event, date) => {
+        setShowDatePicker(false);
+        if (date) {
+            setSelectedDate(date);
+            const formattedDate = date.toISOString().split('T')[0];
+            handleChange('date_naissance', formattedDate);
+        }
+    };
+
+    const handlePickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+
+        if (!result.canceled) {
+            setPhoto(result.assets[0]);
+        }
+    };
 
     const handleSave = async () => {
-        if (!nom || !prenom || !groupe) {
-            Alert.alert('Erreur', 'Veuillez remplir les champs obligatoires (Nom, Prénom, Groupe)');
+        if (!formData.nom || !formData.prenom || !formData.date_naissance) {
+            Alert.alert('Erreur', 'Veuillez remplir les champs obligatoires (Nom, Prénom, Date de naissance)');
             return;
         }
 
         const athleteData = {
-            nom,
-            prenom,
-            date_naissance: dateNaissance,
-            sexe,
-            groupe,
-            poste,
-            taille: taille ? parseFloat(taille) : null,
-            poids: poids ? parseFloat(poids) : null,
-            numero_licence: numeroLicence,
-            telephone,
-            email,
-            adresse,
+            ...formData,
+            taille: formData.taille ? parseFloat(formData.taille) : null,
+            poids: formData.poids ? parseFloat(formData.poids) : null,
+            poste: formData.poste ? parseInt(formData.poste) : null,
         };
 
         try {
             setLoading(true);
             let response;
             if (isEditing) {
-                response = await AthleteService.updateAthlete(athlete.id, athleteData);
+                response = await AthleteService.updateAthlete(athlete.id, athleteData, photo);
             } else {
-                response = await AthleteService.createAthlete(athleteData);
+                response = await AthleteService.createAthlete(athleteData, photo);
             }
 
             if (response.success) {
@@ -74,49 +98,11 @@ const AthleteFormScreen = ({ athlete, onBack, onSave }) => {
         }
     };
 
-    const renderInput = (label, value, onChangeText, placeholder, keyboardType = 'default', required = false) => (
-        <View style={styles.inputGroup}>
-            <Text style={styles.label}>{label}{required && ' *'}</Text>
-            <TextInput
-                style={styles.input}
-                value={value}
-                onChangeText={onChangeText}
-                placeholder={placeholder}
-                keyboardType={keyboardType}
-                placeholderTextColor="#94a3b8"
-            />
-        </View>
-    );
-
-    const renderPicker = (label, options, currentValue, onSelect) => (
-        <View style={styles.inputGroup}>
-            <Text style={styles.label}>{label}</Text>
-            <View style={styles.pickerContainer}>
-                {options.map(option => (
-                    <TouchableOpacity
-                        key={option.value}
-                        style={[
-                            styles.pickerOption,
-                            currentValue === option.value && styles.activePickerOption
-                        ]}
-                        onPress={() => onSelect(option.value)}
-                    >
-                        <Text style={[
-                            styles.pickerText,
-                            currentValue === option.value && styles.activePickerText
-                        ]}>
-                            {option.label}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-        </View>
-    );
-
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.container}
+            keyboardVerticalOffset={0}
         >
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -127,63 +113,161 @@ const AthleteFormScreen = ({ athlete, onBack, onSave }) => {
             </View>
 
             <ScrollView contentContainerStyle={styles.formContent}>
+                {/* Photo Upload */}
+                <View style={styles.photoSection}>
+                    <TouchableOpacity onPress={handlePickImage} style={styles.photoContainer}>
+                        {photo ? (
+                            <Image source={{ uri: photo.uri }} style={styles.photo} />
+                        ) : athlete?.photo_url ? (
+                            <Image source={{ uri: athlete.photo_url }} style={styles.photo} />
+                        ) : (
+                            <View style={styles.photoPlaceholder}>
+                                <Icon name="camera" size={32} color="#94a3b8" />
+                                <Text style={styles.photoText}>Ajouter une photo</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                </View>
+
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Informations Personnelles</Text>
                     <View style={styles.row}>
                         <View style={{ flex: 1, marginRight: 8 }}>
-                            {renderInput('Nom', nom, setNom, 'Belaidi', 'default', true)}
+                            <Text style={styles.label}>Nom *</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={formData.nom}
+                                onChangeText={(t) => handleChange('nom', t)}
+                                placeholder="Belaidi"
+                            />
                         </View>
                         <View style={{ flex: 1, marginLeft: 8 }}>
-                            {renderInput('Prénom', prenom, setPrenom, 'Mohamed', 'default', true)}
+                            <Text style={styles.label}>Prénom *</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={formData.prenom}
+                                onChangeText={(t) => handleChange('prenom', t)}
+                                placeholder="Mohamed"
+                            />
                         </View>
                     </View>
 
                     <View style={styles.row}>
                         <View style={{ flex: 1, marginRight: 8 }}>
-                            {renderInput('Date de naissance', dateNaissance, setDateNaissance, 'AAAA-MM-JJ', 'default')}
+                            <Text style={styles.label}>Sexe *</Text>
+                            <View style={styles.radioGroup}>
+                                <TouchableOpacity
+                                    style={[styles.radioBtn, formData.sexe === 'M' && styles.radioBtnActive]}
+                                    onPress={() => handleChange('sexe', 'M')}
+                                >
+                                    <Text style={[styles.radioText, formData.sexe === 'M' && styles.radioTextActive]}>M</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.radioBtn, formData.sexe === 'F' && styles.radioBtnActive]}
+                                    onPress={() => handleChange('sexe', 'F')}
+                                >
+                                    <Text style={[styles.radioText, formData.sexe === 'F' && styles.radioTextActive]}>F</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                         <View style={{ flex: 1, marginLeft: 8 }}>
-                            {renderPicker('Sexe', [
-                                { label: 'H', value: 'M' },
-                                { label: 'F', value: 'F' }
-                            ], sexe, setSexe)}
+                            <Text style={styles.label}>Date de Naissance *</Text>
+                            <TouchableOpacity
+                                style={styles.dateInput}
+                                onPress={() => setShowDatePicker(true)}
+                            >
+                                <Text style={styles.dateText}>
+                                    {formData.date_naissance || 'Sélectionner'}
+                                </Text>
+                                <Icon name="calendar" size={20} color="#64748b" />
+                            </TouchableOpacity>
                         </View>
                     </View>
 
+                    {showDatePicker && (
+                        <DateTimePicker
+                            value={selectedDate}
+                            mode="date"
+                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                            onChange={handleDateChange}
+                            maximumDate={new Date()}
+                        />
+                    )}
+
                     <View style={styles.row}>
                         <View style={{ flex: 1, marginRight: 8 }}>
-                            {renderInput('Taille (cm)', taille, setTaille, '185', 'numeric')}
+                            <Text style={styles.label}>Taille (cm)</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={formData.taille}
+                                onChangeText={(t) => handleChange('taille', t)}
+                                keyboardType="numeric"
+                                placeholder="185"
+                            />
                         </View>
                         <View style={{ flex: 1, marginLeft: 8 }}>
-                            {renderInput('Poids (kg)', poids, setPoids, '75', 'numeric')}
+                            <Text style={styles.label}>Poids (kg)</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={formData.poids}
+                                onChangeText={(t) => handleChange('poids', t)}
+                                keyboardType="numeric"
+                                placeholder="75"
+                            />
                         </View>
                     </View>
                 </View>
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Sportif & Administratif</Text>
-                    {renderPicker('Groupe', [
-                        { label: 'U13', value: 'U13' },
-                        { label: 'U15', value: 'U15' },
-                        { label: 'U17', value: 'U17' },
-                        { label: 'Seniors', value: 'Seniors' }
-                    ], groupe, setGroupe)}
 
-                    {renderPicker('Poste', [
-                        { label: 'Meneur', value: 'Meneur' },
-                        { label: 'Arrière', value: 'Arrière' },
-                        { label: 'Ailier', value: 'Ailier' },
-                        { label: 'Pivot', value: 'Pivot' }
-                    ], poste, setPoste)}
+                    <Text style={styles.label}>Groupe</Text>
+                    <View style={styles.groupContainer}>
+                        {['U13', 'U15', 'U17', 'Seniors'].map(g => (
+                            <TouchableOpacity
+                                key={g}
+                                style={[styles.groupBtn, formData.groupe === g && styles.groupBtnActive]}
+                                onPress={() => handleChange('groupe', g)}
+                            >
+                                <Text style={[styles.groupText, formData.groupe === g && styles.groupTextActive]}>{g}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
 
-                    {renderInput('Numéro de licence', numeroLicence, setNumeroLicence, 'LLL-XXXXX')}
-                </View>
+                    <View style={styles.row}>
+                        <View style={{ flex: 1, marginRight: 8 }}>
+                            <Text style={styles.label}>Poste (1-5)</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={formData.poste}
+                                onChangeText={(t) => {
+                                    if (t === '' || (parseInt(t) >= 1 && parseInt(t) <= 5)) {
+                                        handleChange('poste', t);
+                                    }
+                                }}
+                                keyboardType="numeric"
+                                placeholder="1"
+                            />
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 8 }}>
+                            <Text style={styles.label}>N° Licence</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={formData.numero_licence}
+                                onChangeText={(t) => handleChange('numero_licence', t)}
+                                placeholder="D123456"
+                            />
+                        </View>
+                    </View>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Contact</Text>
-                    {renderInput('Téléphone', telephone, setTelephone, '05XX XX XX XX', 'phone-pad')}
-                    {renderInput('Email', email, setEmail, 'email@exemple.dz', 'email-address')}
-                    {renderInput('Adresse', adresse, setAdresse, 'Quartier, Ville')}
+                    <Text style={styles.label}>Contact Parent / Urgence</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={formData.contact_parent}
+                        onChangeText={(t) => handleChange('contact_parent', t)}
+                        placeholder="Téléphone du tuteur"
+                        keyboardType="phone-pad"
+                    />
                 </View>
 
                 <TouchableOpacity
@@ -195,10 +279,11 @@ const AthleteFormScreen = ({ athlete, onBack, onSave }) => {
                         <ActivityIndicator color="white" />
                     ) : (
                         <Text style={styles.saveButtonText}>
-                            {isEditing ? 'Mettre à jour' : 'Enregistrer'} l'athlète
+                            {isEditing ? 'Mettre à jour' : 'Enregistrer'}
                         </Text>
                     )}
                 </TouchableOpacity>
+                <View style={{ height: 100 }} />
             </ScrollView>
         </KeyboardAvoidingView>
     );
@@ -231,6 +316,34 @@ const styles = StyleSheet.create({
     formContent: {
         padding: 24,
     },
+    photoSection: {
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    photoContainer: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: '#e2e8f0',
+        overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#cbd5e1',
+        borderStyle: 'dashed',
+    },
+    photo: {
+        width: '100%',
+        height: '100%',
+    },
+    photoPlaceholder: {
+        alignItems: 'center',
+    },
+    photoText: {
+        fontSize: 10,
+        color: '#64748b',
+        marginTop: 4,
+    },
     section: {
         marginBottom: 32,
     },
@@ -239,9 +352,6 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#1e293b',
         marginBottom: 20,
-    },
-    inputGroup: {
-        marginBottom: 16,
     },
     label: {
         fontSize: 14,
@@ -257,34 +367,84 @@ const styles = StyleSheet.create({
         padding: 12,
         fontSize: 16,
         color: '#1e293b',
+        marginBottom: 16,
     },
     row: {
         flexDirection: 'row',
     },
-    pickerContainer: {
+    radioGroup: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-    },
-    pickerOption: {
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        marginBottom: 16,
+        backgroundColor: '#e2e8f0',
         borderRadius: 12,
+        padding: 4,
+    },
+    radioBtn: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 8,
+    },
+    radioBtnActive: {
+        backgroundColor: 'white',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    radioText: {
+        fontWeight: '600',
+        color: '#64748b',
+    },
+    radioTextActive: {
+        color: '#f97316',
+    },
+    dateInput: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         backgroundColor: 'white',
         borderWidth: 1,
         borderColor: '#e2e8f0',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 16,
     },
-    activePickerOption: {
-        backgroundColor: '#f97316',
-        borderColor: '#f97316',
+    dateText: {
+        fontSize: 16,
+        color: '#1e293b',
     },
-    pickerText: {
-        fontSize: 14,
-        color: '#64748b',
+    groupContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginBottom: 16,
+        backgroundColor: '#e2e8f0',
+        borderRadius: 12,
+        padding: 4,
+    },
+    groupBtn: {
+        flex: 1,
+        minWidth: '23%',
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 8,
+        margin: 2,
+    },
+    groupBtnActive: {
+        backgroundColor: 'white',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    groupText: {
         fontWeight: '600',
+        color: '#64748b',
     },
-    activePickerText: {
-        color: 'white',
+    groupTextActive: {
+        color: '#f97316',
     },
     saveButton: {
         backgroundColor: '#f97316',

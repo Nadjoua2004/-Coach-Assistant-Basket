@@ -598,7 +598,19 @@ import BottomNav from './components/Common/bottomNav';
 
 const AppContent = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState(user.role === 'joueur' || user.role === 'parent' ? 'calendar' : 'home');
+  const [activeTab, setActiveTab] = useState('home');
+
+  React.useEffect(() => {
+    if (user) {
+      const role = user.role?.toLowerCase();
+      if (role === 'joueur' || role === 'parent') {
+        setActiveTab('calendar');
+      } else {
+        setActiveTab('home');
+      }
+    }
+  }, [user]);
+
   const [currentAdminScreen, setCurrentAdminScreen] = useState('dashboard');
   const [showCreateSession, setShowCreateSession] = useState(false);
   const [showAthleteForm, setShowAthleteForm] = useState(false);
@@ -790,30 +802,36 @@ const AppContent = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
+    >
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
 
-      {/* Logout Button - Only show when not in session creation, athlete form, medical record or attendance */}
-      {!showCreateSession && !showAthleteForm && !showMedicalRecord && !showAttendance && (
-        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-          <Icon name="logout" size={20} color="#4b5563" />
-        </TouchableOpacity>
-      )}
+        {/* Logout Button - Only show when not in session creation, athlete form, medical record or attendance */}
+        {!showCreateSession && !showAthleteForm && !showMedicalRecord && !showAttendance && (
+          <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+            <Icon name="logout" size={20} color="#4b5563" />
+          </TouchableOpacity>
+        )}
 
-      {/* Main Content */}
-      <View style={styles.content}>
-        {renderContent()}
-      </View>
+        {/* Main Content */}
+        <View style={styles.content}>
+          {renderContent()}
+        </View>
 
-      {/* Bottom Navigation - Hide when creating/viewing specific forms */}
-      {!showCreateSession && !showAthleteForm && !showMedicalRecord && !showAttendance && (
-        <BottomNav
-          activeTab={activeTab}
-          setActiveTab={handleTabPress}
-          role={user.role.toLowerCase()}
-        />
-      )}
-    </SafeAreaView>
+        {/* Bottom Navigation - Hide when creating/viewing specific forms */}
+        {!showCreateSession && !showAthleteForm && !showMedicalRecord && !showAttendance && (
+          <BottomNav
+            activeTab={activeTab}
+            setActiveTab={handleTabPress}
+            role={user.role.toLowerCase()}
+          />
+        )}
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 

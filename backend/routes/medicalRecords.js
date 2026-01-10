@@ -22,13 +22,13 @@ const upload = multer({
 });
 
 // Get medical record by athlete ID
-router.get('/athlete/:athleteId', authenticateToken, MedicalRecordController.getMedicalRecord);
+router.get('/:athleteId', authenticateToken, MedicalRecordController.getMedicalRecord);
 
 // Create or update medical record
-router.post('/athlete/:athleteId',
+router.post('/:athleteId',
   authenticateToken,
-  authorizeRole('coach', 'adjoint', 'admin'),
-  upload.single('certificat_pdf'),
+  authorizeRole('coach', 'adjoint', 'admin', 'joueur'),
+  upload.single('certificate'),
   [
     body('allergies').optional().trim(),
     body('blessures_cours').optional().trim(),
@@ -39,7 +39,7 @@ router.post('/athlete/:athleteId',
 );
 
 // Delete medical record
-router.delete('/athlete/:athleteId',
+router.delete('/:athleteId',
   authenticateToken,
   authorizeRole('coach', 'admin'),
   MedicalRecordController.deleteMedicalRecord

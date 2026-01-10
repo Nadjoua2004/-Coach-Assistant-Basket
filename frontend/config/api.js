@@ -1,6 +1,6 @@
 // --- CONFIGURATION IP ---
 // Remplacez cette IP par celle de votre serveur (ex: 192.168.0.105)
-const SERVER_IP = '192.168.0.105';
+const SERVER_IP = '192.168.43.76';
 // -------------------------
 
 const API_URL = __DEV__

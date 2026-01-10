@@ -9,14 +9,18 @@ import {
     TouchableOpacity
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../Common/AuthProvider';
 import AthleteService from '../../services/athleteService';
-import AthleteFormScreen from '../Coach/AthleteFormScreen';
+import PlayerProfileModal from './PlayerProfileModal';
+import PlayerMedicalModal from './PlayerMedicalModal';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const PlayerProfileScreen = () => {
+    const { user, logout } = useAuth();
     const [loading, setLoading] = useState(true);
     const [athlete, setAthlete] = useState(null);
-    const [isEditing, setIsEditing] = useState(false);
+    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [showMedicalModal, setShowMedicalModal] = useState(false);
 
     useEffect(() => {
         fetchProfile();
@@ -28,14 +32,22 @@ const PlayerProfileScreen = () => {
             const response = await AthleteService.getMyProfile();
             if (response.success) {
                 setAthlete(response.data);
-            } else {
-                Alert.alert('Erreur', 'Impossible de charger votre profil');
             }
         } catch (error) {
             console.error('Fetch profile error:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleProfileUpdate = () => {
+        fetchProfile();
+        setShowProfileModal(false);
+    };
+
+    const handleMedicalUpdate = () => {
+        fetchProfile();
+        setShowMedicalModal(false);
     };
 
     if (loading) {
@@ -46,71 +58,106 @@ const PlayerProfileScreen = () => {
         );
     }
 
-    if (isEditing || !athlete) {
-        return (
-            <AthleteFormScreen
-                athlete={athlete}
-                onBack={() => {
-                    if (!athlete) {
-                        // If they don't have a profile yet and cancel editing
-                        // they stay in "profile missing" state which is handled by dashboard
-                        setIsEditing(false);
-                    } else {
-                        setIsEditing(false);
-                    }
-                }}
-                onSave={(updatedAthlete) => {
-                    setAthlete(updatedAthlete);
-                    setIsEditing(false);
-                }}
-            />
-        );
-    }
-
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <View style={styles.header}>
-                <Text style={styles.title}>Mon Profil Athlète</Text>
-                <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.editBtn}>
-                    <Icon name="pencil" size={20} color="white" />
-                    <Text style={styles.editBtnText}>Modifier</Text>
-                </TouchableOpacity>
-            </View>
-
-            <ScrollView contentContainerStyle={styles.content}>
-                {/* Photo & Basic Info */}
-                <View style={styles.profileCard}>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                {/* Header with user name */}
+                <View style={styles.header}>
                     <View style={styles.avatarContainer}>
-                        <Icon name="account" size={60} color="#94a3b8" />
+                        <Icon name="account" size={40} color="#f97316" />
                     </View>
-                    <Text style={styles.name}>{athlete.prenom} {athlete.nom}</Text>
-                    <Text style={styles.role}>Athlète • {athlete.groupe}</Text>
+                    <Text style={styles.userName}>{user?.name}</Text>
+                    <Text style={styles.userRole}>Joueur</Text>
                 </View>
 
-                {/* Details Section */}
-                <View style={styles.detailsGroup}>
-                    <DetailRow icon="basketball" label="Poste" value={athlete.poste} />
-                    <DetailRow icon="human-male-height" label="Taille" value={`${athlete.taille} cm`} />
-                    <DetailRow icon="weight-kilogram" label="Poids" value={`${athlete.poids} kg`} />
-                    <DetailRow icon="card-account-details-outline" label="N° Licence" value={athlete.numero_licence} />
-                    <DetailRow icon="phone" label="Contact Parent" value={athlete.contact_parent || athlete.telephone} />
-                </View>
+                {/* Mon Profil Section */}
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => setShowProfileModal(true)}
+                >
+                    <View style={styles.menuIcon}>
+                        <Icon name="account-edit" size={24} color="#f97316" />
+                    </View>
+                    <View style={styles.menuContent}>
+                        <Text style={styles.menuTitle}>Mon Profil</Text>
+                        <Text style={styles.menuSubtitle}>
+                            {athlete ? 'Informations personnelles et sportives' : 'Complétez votre profil'}
+                        </Text>
+                    </View>
+                    <Icon name="chevron-right" size={24} color="#94a3b8" />
+                </TouchableOpacity>
+
+                {/* Fiche Médicale Section */}
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => setShowMedicalModal(true)}
+                >
+                    <View style={styles.menuIcon}>
+                        <Icon name="medical-bag" size={24} color="#10b981" />
+                    </View>
+                    <View style={styles.menuContent}>
+                        <Text style={styles.menuTitle}>Fiche Médicale</Text>
+                        <Text style={styles.menuSubtitle}>Allergies, certificat médical</Text>
+                    </View>
+                    <Icon name="chevron-right" size={24} color="#94a3b8" />
+                </TouchableOpacity>
+
+                {/* Notifications */}
+                <TouchableOpacity style={styles.menuItem}>
+                    <View style={styles.menuIcon}>
+                        <Icon name="bell-outline" size={24} color="#6366f1" />
+                    </View>
+                    <View style={styles.menuContent}>
+                        <Text style={styles.menuTitle}>Notifications</Text>
+                        <Text style={styles.menuSubtitle}>Gérer vos préférences</Text>
+                    </View>
+                    <Icon name="chevron-right" size={24} color="#94a3b8" />
+                </TouchableOpacity>
+
+                {/* Settings */}
+                <TouchableOpacity style={styles.menuItem}>
+                    <View style={styles.menuIcon}>
+                        <Icon name="cog-outline" size={24} color="#64748b" />
+                    </View>
+                    <View style={styles.menuContent}>
+                        <Text style={styles.menuTitle}>Paramètres</Text>
+                        <Text style={styles.menuSubtitle}>Configuration de l'application</Text>
+                    </View>
+                    <Icon name="chevron-right" size={24} color="#94a3b8" />
+                </TouchableOpacity>
+
+                {/* Logout */}
+                <TouchableOpacity
+                    style={[styles.menuItem, styles.logoutItem]}
+                    onPress={logout}
+                >
+                    <View style={[styles.menuIcon, styles.logoutIcon]}>
+                        <Icon name="logout" size={24} color="#ef4444" />
+                    </View>
+                    <View style={styles.menuContent}>
+                        <Text style={[styles.menuTitle, styles.logoutText]}>Déconnexion</Text>
+                    </View>
+                </TouchableOpacity>
             </ScrollView>
+
+            {/* Profile Modal */}
+            <PlayerProfileModal
+                visible={showProfileModal}
+                onClose={() => setShowProfileModal(false)}
+                onSuccess={handleProfileUpdate}
+                athlete={athlete}
+            />
+
+            {/* Medical Modal */}
+            <PlayerMedicalModal
+                visible={showMedicalModal}
+                onClose={() => setShowMedicalModal(false)}
+                onSuccess={handleMedicalUpdate}
+                athleteId={athlete?.id}
+            />
         </SafeAreaView>
     );
 };
-
-const DetailRow = ({ icon, label, value }) => (
-    <View style={styles.detailRow}>
-        <View style={styles.detailIcon}>
-            <Icon name={icon} size={20} color="#64748b" />
-        </View>
-        <View style={styles.detailText}>
-            <Text style={styles.detailLabel}>{label}</Text>
-            <Text style={styles.detailValue}>{value || 'Non renseigné'}</Text>
-        </View>
-    </View>
-);
 
 const styles = StyleSheet.create({
     container: {
@@ -122,41 +169,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    scrollContent: {
+        padding: 20,
+        paddingBottom: 100,
+    },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 20,
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1e293b',
-    },
-    editBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f97316',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-    },
-    editBtnText: {
-        color: 'white',
-        fontWeight: 'bold',
-        marginLeft: 4,
-    },
-    content: {
-        padding: 20,
-    },
-    profileCard: {
         backgroundColor: 'white',
         borderRadius: 20,
         padding: 24,
-        alignItems: 'center',
         marginBottom: 20,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -165,61 +186,69 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     avatarContainer: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: '#f1f5f9',
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#fff7ed',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 12,
     },
-    name: {
-        fontSize: 22,
+    userName: {
+        fontSize: 24,
         fontWeight: 'bold',
         color: '#1e293b',
     },
-    role: {
+    userRole: {
         fontSize: 14,
         color: '#64748b',
         marginTop: 4,
     },
-    detailsGroup: {
-        backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
-    },
-    detailRow: {
+    menuItem: {
         flexDirection: 'row',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 1,
     },
-    detailIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
+    menuIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
         backgroundColor: '#f8fafc',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
     },
-    detailText: {
+    menuContent: {
         flex: 1,
     },
-    detailLabel: {
-        fontSize: 12,
-        color: '#64748b',
-        marginBottom: 2,
-    },
-    detailValue: {
-        fontSize: 15,
+    menuTitle: {
+        fontSize: 16,
         fontWeight: '600',
         color: '#1e293b',
+        marginBottom: 2,
+    },
+    menuSubtitle: {
+        fontSize: 13,
+        color: '#64748b',
+    },
+    logoutItem: {
+        marginTop: 20,
+        borderColor: '#fee2e2',
+        borderWidth: 1,
+    },
+    logoutIcon: {
+        backgroundColor: '#fef2f2',
+    },
+    logoutText: {
+        color: '#ef4444',
     },
 });
 
