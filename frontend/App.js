@@ -593,11 +593,12 @@ import AdminDashboard from './components/Admin/AdminDashboard';
 import VideoManagerScreen from './components/Admin/VideoManagerScreen';
 import UsersListScreen from './components/Admin/UsersListScreen';
 import ReadOnlyScreen from './components/Player/ReadOnlyScreen';
+import PlayerProfileScreen from './components/Player/PlayerProfileScreen';
 import BottomNav from './components/Common/bottomNav';
 
 const AppContent = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState(user.role === 'joueur' || user.role === 'parent' ? 'calendar' : 'home');
   const [currentAdminScreen, setCurrentAdminScreen] = useState('dashboard');
   const [showCreateSession, setShowCreateSession] = useState(false);
   const [showAthleteForm, setShowAthleteForm] = useState(false);
@@ -774,6 +775,17 @@ const AppContent = () => {
     }
 
     // Player or Parent
+    const userRole = user.role.toLowerCase();
+    if (activeTab === 'profile') {
+      return <PlayerProfileScreen />;
+    }
+    if (activeTab === 'stats') {
+      return (
+        <View style={styles.placeholder}>
+          <Text style={styles.placeholderText}>Statistiques en développement</Text>
+        </View>
+      );
+    }
     return <ReadOnlyScreen />;
   };
 
@@ -798,7 +810,7 @@ const AppContent = () => {
         <BottomNav
           activeTab={activeTab}
           setActiveTab={handleTabPress}
-          role={user.role}
+          role={user.role.toLowerCase()}
         />
       )}
     </SafeAreaView>

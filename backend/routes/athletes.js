@@ -33,7 +33,7 @@ router.get('/:id', authenticateToken, AthleteController.getAthleteById);
 // Create athlete (Coach principal or Admin only)
 router.post('/',
   authenticateToken,
-  authorizeRole('coach', 'admin'),
+  authorizeRole('coach', 'admin', 'joueur'),
   upload.single('photo'),
   [
     body('nom').notEmpty().trim(),
@@ -48,7 +48,7 @@ router.post('/',
 // Update athlete (Coach principal or Admin only, Coach adjoint can edit but not delete)
 router.put('/:id',
   authenticateToken,
-  authorizeRole('coach', 'adjoint', 'admin'),
+  authorizeRole('coach', 'adjoint', 'admin', 'joueur'),
   upload.single('photo'),
   AthleteController.updateAthlete
 );

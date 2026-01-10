@@ -53,9 +53,10 @@ const BottomNav = ({ activeTab, setActiveTab, role }) => {
               <View style={styles.iconContainer}>
                 <Icon
                   name={item.icon}
-                  size={24}
-                  color={isActive ? '#f97316' : '#6b7280'}
+                  size={26} // Slightly larger for active
+                  color={isActive ? '#f97316' : '#94a3b8'}
                 />
+                {isActive && <View style={styles.activeDot} />}
               </View>
               <Text style={[
                 styles.label,
@@ -109,7 +110,15 @@ const styles = StyleSheet.create({
   },
   activeLabel: {
     color: '#f97316',
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#f97316',
+    position: 'absolute',
+    bottom: -8,
   },
 });
 
