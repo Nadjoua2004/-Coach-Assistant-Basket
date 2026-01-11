@@ -132,16 +132,6 @@ const AttendanceScreen = ({ session, onBack }) => {
 
                     <View style={styles.statusGroup}>
                         <TouchableOpacity
-                            style={[styles.statusBtn, currentStatus === 'excuse' && styles.excuseActive]}
-                            onPress={() => handleUpdateStatus(item.id, 'excuse')}
-                        >
-                            <Icon name="account-alert-outline" size={18} color={currentStatus === 'excuse' ? 'white' : '#3b82f6'} />
-                        </TouchableOpacity>
-                        <Text style={styles.statusLabel}>E</Text>
-                    </View>
-
-                    <View style={styles.statusGroup}>
-                        <TouchableOpacity
                             style={[styles.statusBtn, currentStatus === 'absent' && styles.absentActive]}
                             onPress={() => handleUpdateStatus(item.id, 'absent')}
                         >
@@ -186,18 +176,22 @@ const AttendanceScreen = ({ session, onBack }) => {
                             style={styles.bigMarkAllBtn}
                             onPress={handleMarkAllPresent}
                         >
-                            <Icon name="account-check-all" size={28} color="white" />
+                            <Icon name="check-all" size={28} color="white" />
                             <Text style={styles.bigMarkAllText}>MARQUER TOUT LE MONDE PRÉSENT</Text>
                         </TouchableOpacity>
 
                         <View style={styles.summaryCard}>
                             <View style={styles.summaryItem}>
                                 <Text style={styles.summaryVal}>{Object.values(attendance).filter(a => a.status === 'present').length}</Text>
-                                <Text style={styles.summaryLabel}>Présents</Text>
+                                <Text style={styles.summaryLabel}>P</Text>
+                            </View>
+                            <View style={styles.summaryItem}>
+                                <Text style={styles.summaryVal}>{Object.values(attendance).filter(a => a.status === 'retard').length}</Text>
+                                <Text style={styles.summaryLabel}>R</Text>
                             </View>
                             <View style={styles.summaryItem}>
                                 <Text style={styles.summaryVal}>{Object.values(attendance).filter(a => a.status === 'absent').length}</Text>
-                                <Text style={styles.summaryLabel}>Absents</Text>
+                                <Text style={styles.summaryLabel}>A</Text>
                             </View>
                             <View style={styles.summaryItem}>
                                 <Text style={styles.summaryVal}>{athletes.length}</Text>

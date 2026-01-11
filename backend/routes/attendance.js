@@ -15,11 +15,11 @@ router.post('/',
   authenticateToken,
   authorizeRole('coach', 'adjoint', 'admin'),
   [
-    body('athlete_id').notEmpty(),
-    body('status').isIn(['present', 'absent', 'retard', 'excuse']),
-    body('planning_id').optional(),
-    body('session_id').optional(),
-    body('notes').optional()
+    body('athlete_id').isUUID().withMessage('Invalid athlete_id'),
+    body('status').isIn(['present', 'absent', 'retard', 'excuse']).withMessage('Invalid status'),
+    body('planning_id').optional({ nullable: true }).isUUID().withMessage('Invalid planning_id'),
+    body('session_id').optional({ nullable: true }).isUUID().withMessage('Invalid session_id'),
+    body('notes').optional({ nullable: true })
   ],
   AttendanceController.createAttendance
 );
