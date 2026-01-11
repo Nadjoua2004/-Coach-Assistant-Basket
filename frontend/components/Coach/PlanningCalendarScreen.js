@@ -136,7 +136,7 @@ const PlanningCalendarScreen = ({ onBack }) => {
                 resetForm();
                 fetchData();
             } else {
-                Alert.alert('Erreur', response.message || 'Échec de l\'enregistrement');
+                Alert.alert('Erreur', (response.message || 'Échec de l\'enregistrement') + (response.error ? '\n\n' + response.error : ''));
             }
         } catch (error) {
             console.error('Save error:', error);
@@ -308,7 +308,7 @@ const PlanningCalendarScreen = ({ onBack }) => {
                     return (
                         <View key={index} style={styles.dayRow}>
                             <View style={[styles.dayHeader, isToday && styles.todayHeader]}>
-                                <Text style={[styles.day Name, isToday && styles.todayText]}>
+                                <Text style={[styles.dayName, isToday && styles.todayText]}>
                                     {dayNames[index]}
                                 </Text>
                                 <Text style={[styles.dayNumber, isToday && styles.todayText]}>

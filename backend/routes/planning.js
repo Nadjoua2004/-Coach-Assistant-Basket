@@ -35,4 +35,22 @@ router.delete('/:id',
   PlanningController.deletePlanningEvent
 );
 
+// Participants routes
+router.get('/:id/participants',
+  authenticateToken,
+  PlanningController.getParticipants
+);
+
+router.post('/:id/participants',
+  authenticateToken,
+  authorizeRole('coach', 'adjoint', 'admin'),
+  PlanningController.addParticipant
+);
+
+router.delete('/:id/participants/:athlete_id',
+  authenticateToken,
+  authorizeRole('coach', 'adjoint', 'admin'),
+  PlanningController.removeParticipant
+);
+
 module.exports = router;

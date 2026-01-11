@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS planning (
     theme VARCHAR(255) NOT NULL,
     session_id UUID REFERENCES sessions(id),
     published BOOLEAN DEFAULT FALSE,
+    groupe VARCHAR(100),
     created_by UUID REFERENCES users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
