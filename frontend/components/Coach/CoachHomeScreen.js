@@ -61,6 +61,8 @@ const CoachHomeScreen = ({ onCreateSession, onNavigate }) => {
     } else if (item.id === 2 && onNavigate) {
       // Statistiques might go to a different screen later
       Alert.alert('Info', 'Module statistiques en cours de développement');
+    } else if (item.id === 3 && onNavigate) {
+      onNavigate('calendar');
     } else {
       Alert.alert('Info', `${item.title} en cours de développement`);
     }
@@ -157,7 +159,7 @@ const CoachHomeScreen = ({ onCreateSession, onNavigate }) => {
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Prochaines séances</Text>
-            <TouchableOpacity onPress={onCreateSession}>
+            <TouchableOpacity onPress={() => onNavigate('calendar')}>
               <Icon name="plus-circle" size={24} color="#f97316" />
             </TouchableOpacity>
           </View>
@@ -165,7 +167,11 @@ const CoachHomeScreen = ({ onCreateSession, onNavigate }) => {
           {upcomingSessions.length > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sessionsScroll}>
               {upcomingSessions.map((session) => (
-                <TouchableOpacity key={session.id} style={styles.sessionCard}>
+                <TouchableOpacity
+                  key={session.id}
+                  style={styles.sessionCard}
+                  onPress={() => onNavigate('calendar')}
+                >
                   <View style={styles.sessionIcon}>
                     <Icon name={session.type === 'Match' ? 'trophy' : 'basketball'} size={24} color="#f97316" />
                   </View>

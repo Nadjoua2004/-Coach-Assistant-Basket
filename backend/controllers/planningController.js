@@ -54,8 +54,9 @@ class PlanningController {
         });
       }
 
+      const { athletes_assignes, ...restOfData } = req.body;
       const eventData = {
-        ...req.body,
+        ...restOfData,
         created_by: req.user.id,
         created_at: new Date().toISOString()
       };
@@ -72,6 +73,18 @@ class PlanningController {
           message: 'Error creating planning event',
           error: error.message
         });
+      }
+
+      // Handle athlete assignments if provided
+      if (athletes_assignes && Array.isArray(athletes_assignes)) {
+        const assignments = athletes_assignes.map(athlete_id => ({
+          planning_id: event.id,
+          athlete_id
+        }));
+
+        if (assignments.length > 0) {
+          await supabase.from('planning_athletes').insert(assignments);
+        }
       }
 
       res.status(201).json({
@@ -93,8 +106,9 @@ class PlanningController {
    */
   static async updatePlanningEvent(req, res) {
     try {
+      const { athletes_assignes, ...restOfData } = req.body;
       const updateData = {
-        ...req.body,
+        ...restOfData,
         updated_at: new Date().toISOString()
       };
 
@@ -111,6 +125,22 @@ class PlanningController {
           message: 'Error updating planning event',
           error: error.message
         });
+      }
+
+      // Handle athlete assignments if provided (syncing approach)
+      if (athletes_assignes && Array.isArray(athletes_assignes)) {
+        // Delete old assignments
+        await supabase.from('planning_athletes').delete().eq('planning_id', req.params.id);
+
+        // Insert new ones
+        const assignments = athletes_assignes.map(athlete_id => ({
+          planning_id: req.params.id,
+          athlete_id
+        }));
+
+        if (assignments.length > 0) {
+          await supabase.from('planning_athletes').insert(assignments);
+        }
       }
 
       res.json({

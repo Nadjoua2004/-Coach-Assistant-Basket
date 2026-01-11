@@ -572,6 +572,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './components/Common/AuthProvider';
@@ -586,7 +588,7 @@ import CoachUsersListScreen from './components/Coach/CoachUsersListScreen';
 import AthleteListScreen from './components/Coach/AthleteListScreen';
 import AthleteFormScreen from './components/Coach/AthleteFormScreen';
 import MedicalRecordScreen from './components/Coach/MedicalRecordScreen';
-import CalendarScreen from './components/Coach/CalendarScreen';
+import PlanningCalendarScreen from './components/Coach/PlanningCalendarScreen';
 import AttendanceScreen from './components/Coach/AttendanceScreen';
 import ExerciseManagerScreen from './components/Coach/ExerciseManagerScreen';
 import AdminDashboard from './components/Admin/AdminDashboard';
@@ -747,7 +749,7 @@ const AppContent = () => {
       } else if (activeTab === 'sessions') {
         return <SessionsListScreen onCreateSession={handleCreateSession} onReuseSession={handleReuseSession} />;
       } else if (activeTab === 'calendar') {
-        return <CalendarScreen onTakeAttendance={handleTakeAttendance} />;
+        return <PlanningCalendarScreen onBack={() => setActiveTab('home')} />;
       } else if (activeTab === 'athletes') {
         return (
           <AthleteListScreen
@@ -809,13 +811,6 @@ const AppContent = () => {
     >
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
-
-        {/* Logout Button - Only show when not in session creation, athlete form, medical record or attendance */}
-        {!showCreateSession && !showAthleteForm && !showMedicalRecord && !showAttendance && (
-          <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-            <Icon name="logout" size={20} color="#4b5563" />
-          </TouchableOpacity>
-        )}
 
         {/* Main Content */}
         <View style={styles.content}>

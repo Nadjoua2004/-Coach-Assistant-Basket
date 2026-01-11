@@ -32,17 +32,16 @@ const PlayerMedicalModal = ({ visible, onClose, onSuccess, athleteId }) => {
     const [selectedDate, setSelectedDate] = useState(new Date());
 
     useEffect(() => {
-        if (visible && athleteId) {
-            fetchMedicalRecord();
+        if (visible) {
+            if (athleteId) {
+                fetchMedicalRecord();
+            } else {
+                setLoadingData(false);
+            }
         }
     }, [visible, athleteId]);
 
     const fetchMedicalRecord = async () => {
-        if (!athleteId) {
-            setLoadingData(false);
-            return;
-        }
-
         try {
             setLoadingData(true);
             const response = await MedicalRecordService.getRecord(athleteId);

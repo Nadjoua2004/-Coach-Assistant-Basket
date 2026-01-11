@@ -24,6 +24,8 @@ const ReadOnlyScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [hasProfile, setHasProfile] = useState(true); // Assume true initially to avoid flicker
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [athlete, setAthlete] = useState(null);
+  const [displayName, setDisplayName] = useState(user?.name || '');
 
   useEffect(() => {
     fetchData();
@@ -37,7 +39,16 @@ const ReadOnlyScreen = () => {
       try {
         const profileRes = await AthleteService.getMyProfile();
         // If we get a profile, hasProfile = true. If data is null, false.
-        setHasProfile(!!(profileRes.success && profileRes.data));
+        if (profileRes.success && profileRes.data) {
+          setHasProfile(true);
+          setAthlete(profileRes.data);
+          // Update display name from athlete profile
+          if (profileRes.data.prenom && profileRes.data.nom) {
+            setDisplayName(`${profileRes.data.prenom} ${profileRes.data.nom}`);
+          }
+        } else {
+          setHasProfile(false);
+        }
       } catch (e) {
         console.log('Profile check failed (likely no profile yet)', e);
         setHasProfile(false);
@@ -88,7 +99,7 @@ const ReadOnlyScreen = () => {
         }
       >
         <Text style={styles.title}>
-          Bonjour {user?.name?.split(' ')[0]}
+          Bonjour {displayName.split(' ')[0]}
         </Text>
         <Text style={styles.subtitle}>Votre planning et vos statistiques</Text>
 

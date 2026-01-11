@@ -21,6 +21,7 @@ const PlayerProfileScreen = () => {
     const [athlete, setAthlete] = useState(null);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showMedicalModal, setShowMedicalModal] = useState(false);
+    const [displayName, setDisplayName] = useState(user?.name || '');
 
     useEffect(() => {
         fetchProfile();
@@ -30,8 +31,12 @@ const PlayerProfileScreen = () => {
         try {
             setLoading(true);
             const response = await AthleteService.getMyProfile();
-            if (response.success) {
+            if (response.success && response.data) {
                 setAthlete(response.data);
+                // Update display name from athlete profile if it exists
+                if (response.data.prenom && response.data.nom) {
+                    setDisplayName(`${response.data.prenom} ${response.data.nom}`);
+                }
             }
         } catch (error) {
             console.error('Fetch profile error:', error);
@@ -41,13 +46,31 @@ const PlayerProfileScreen = () => {
     };
 
     const handleProfileUpdate = () => {
-        fetchProfile();
+        fetchProfile(); // Refresh profile data and name
         setShowProfileModal(false);
     };
 
     const handleMedicalUpdate = () => {
         fetchProfile();
         setShowMedicalModal(false);
+    };
+
+    const handleLogout = () => {
+        Alert.alert(
+            'Déconnexion',
+            'Êtes-vous sûr de vouloir vous déconnecter ?',
+            [
+                {
+                    text: 'Annuler',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Déconnexion',
+                    style: 'destructive',
+                    onPress: logout
+                }
+            ]
+        );
     };
 
     if (loading) {
@@ -66,7 +89,7 @@ const PlayerProfileScreen = () => {
                     <View style={styles.avatarContainer}>
                         <Icon name="account" size={40} color="#f97316" />
                     </View>
-                    <Text style={styles.userName}>{user?.name}</Text>
+                    <Text style={styles.userName}>{displayName}</Text>
                     <Text style={styles.userRole}>Joueur</Text>
                 </View>
 
@@ -129,7 +152,7 @@ const PlayerProfileScreen = () => {
                 {/* Logout */}
                 <TouchableOpacity
                     style={[styles.menuItem, styles.logoutItem]}
-                    onPress={logout}
+                    onPress={handleLogout}
                 >
                     <View style={[styles.menuIcon, styles.logoutIcon]}>
                         <Icon name="logout" size={24} color="#ef4444" />
