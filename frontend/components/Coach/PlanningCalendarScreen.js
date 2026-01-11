@@ -17,7 +17,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import PlanningService from '../../services/planningService';
 import AthleteService from '../../services/athleteService';
 
-const PlanningCalendarScreen = ({ onBack }) => {
+const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
     const [loading, setLoading] = useState(true);
     const [events, setEvents] = useState([]);
     const [selectedWeek, setSelectedWeek] = useState(new Date());
@@ -351,6 +351,17 @@ const PlanningCalendarScreen = ({ onBack }) => {
                                                     <Text style={styles.eventMetaText}>{event.groupe}</Text>
                                                 </View>
                                             </View>
+
+                                            {/* Attendance Shortcut */}
+                                            <TouchableOpacity
+                                                style={styles.attendanceShortcut}
+                                                onPress={(e) => {
+                                                    e.stopPropagation();
+                                                    if (onTakeAttendance) onTakeAttendance(event);
+                                                }}
+                                            >
+                                                <Icon name="clipboard-check-outline" size={20} color="#f97316" />
+                                            </TouchableOpacity>
                                         </TouchableOpacity>
                                     ))
                                 )}
@@ -657,6 +668,14 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: '#64748b',
         marginLeft: 4,
+    },
+    attendanceShortcut: {
+        position: 'absolute',
+        right: 10,
+        top: 10,
+        padding: 5,
+        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+        borderRadius: 8,
     },
     fab: {
         position: 'absolute',

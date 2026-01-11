@@ -36,8 +36,9 @@ const ReadOnlyScreen = () => {
       setLoading(true);
 
       // 1. Check for Athlete Profile
+      let profileRes;
       try {
-        const profileRes = await AthleteService.getMyProfile();
+        profileRes = await AthleteService.getMyProfile();
         // If we get a profile, hasProfile = true. If data is null, false.
         if (profileRes.success && profileRes.data) {
           setHasProfile(true);
@@ -64,9 +65,16 @@ const ReadOnlyScreen = () => {
       }
 
       // 3. Fetch Stats
-      const statsRes = await AttendanceService.getStats();
-      if (statsRes.success) {
-        setStats(statsRes.data);
+      if (profileRes && profileRes.data) {
+        const statsRes = await AttendanceService.getStats({ athlete_id: profileRes.data.id });
+        if (statsRes.success) {
+          setStats(statsRes.data);
+        }
+      } else {
+        const statsRes = await AttendanceService.getStats();
+        if (statsRes.success) {
+          setStats(statsRes.data);
+        }
       }
     } catch (error) {
       console.error('Error fetching player data:', error);
@@ -154,11 +162,36 @@ const ReadOnlyScreen = () => {
             <View style={styles.statsGrid}>
               <View style={styles.statItem}>
                 <Text style={styles.statNumber}>{stats?.attendanceRate || 0}%</Text>
-                <Text style={styles.statLabel}>Assiduité Équipe</Text>
+                <Text style={styles.statLabel}>Assiduité</Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={styles.statNumber}>{stats?.total || 0}</Text>
                 <Text style={styles.statLabel}>Total Séances</Text>
+              </View>
+            </View>
+
+            <View style={styles.statsDivider} />
+
+            <View style={styles.breakdownGrid}>
+              <View style={styles.breakdownItem}>
+                <View style={[styles.statusDot, { backgroundColor: '#10b981' }]} />
+                <Text style={styles.breakdownLabel}>Présents</Text>
+                <Text style={styles.breakdownValue}>{stats?.present || 0}</Text>
+              </View>
+              <View style={styles.breakdownItem}>
+                <View style={[styles.statusDot, { backgroundColor: '#f59e0b' }]} />
+                <Text style={styles.breakdownLabel}>Retards</Text>
+                <Text style={styles.breakdownValue}>{stats?.retard || 0}</Text>
+              </View>
+              <View style={styles.breakdownItem}>
+                <View style={[styles.statusDot, { backgroundColor: '#3b82f6' }]} />
+                <Text style={styles.breakdownLabel}>Excusés</Text>
+                <Text style={styles.breakdownValue}>{stats?.excuse || 0}</Text>
+              </View>
+              <View style={styles.breakdownItem}>
+                <View style={[styles.statusDot, { backgroundColor: '#ef4444' }]} />
+                <Text style={styles.breakdownLabel}>Absents</Text>
+                <Text style={styles.breakdownValue}>{stats?.absent || 0}</Text>
               </View>
             </View>
           </View>
@@ -329,6 +362,39 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  statsDivider: {
+    height: 1,
+    backgroundColor: '#f1f5f9',
+    marginVertical: 16,
+  },
+  breakdownGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  breakdownItem: {
+    width: '45%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  breakdownLabel: {
+    flex: 1,
+    fontSize: 13,
+    color: '#64748b',
+  },
+  breakdownValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1e293b',
   },
   statItem: {
     alignItems: 'center',

@@ -73,6 +73,14 @@ const AttendanceScreen = ({ session, onBack }) => {
         }));
     };
 
+    const handleMarkAllPresent = () => {
+        const updated = { ...attendance };
+        athletes.forEach(a => {
+            updated[a.id] = { ...updated[a.id], status: 'present' };
+        });
+        setAttendance(updated);
+    };
+
     const handleSaveAll = async () => {
         try {
             setSaving(true);
@@ -106,10 +114,16 @@ const AttendanceScreen = ({ session, onBack }) => {
 
         return (
             <View style={styles.athleteCard}>
-                <View style={styles.athleteInfo}>
+                <TouchableOpacity
+                    style={styles.athleteInfo}
+                    onPress={() => {
+                        const newStatus = currentStatus === 'present' ? 'absent' : 'present';
+                        handleUpdateStatus(item.id, newStatus);
+                    }}
+                >
                     <Text style={styles.athleteName}>{item.prenom} {item.nom}</Text>
                     <Text style={styles.athletePoste}>{item.poste}</Text>
-                </View>
+                </TouchableOpacity>
 
                 <View style={styles.statusContainer}>
                     <TouchableOpacity
@@ -160,9 +174,15 @@ const AttendanceScreen = ({ session, onBack }) => {
                 </TouchableOpacity>
                 <View style={styles.titleContainer}>
                     <Text style={styles.title}>Faire l'appel</Text>
-                    <Text style={styles.subtitle}>{session.title} • {session.groupe}</Text>
+                    <Text style={styles.subtitle}>{session.theme || session.title} • {session.groupe}</Text>
                 </View>
-                <View style={{ width: 44 }} />
+                <TouchableOpacity
+                    style={styles.markAllBtn}
+                    onPress={handleMarkAllPresent}
+                >
+                    <Icon name="check-all" size={24} color="#10b981" />
+                    <Text style={styles.markAllText}>Tout présent</Text>
+                </TouchableOpacity>
             </View>
 
             <FlatList
@@ -238,6 +258,16 @@ const styles = StyleSheet.create({
     subtitle: {
         fontSize: 13,
         color: '#64748b',
+    },
+    markAllBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    markAllText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#10b981',
     },
     listContent: {
         padding: 20,

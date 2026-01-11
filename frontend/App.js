@@ -749,7 +749,7 @@ const AppContent = () => {
       } else if (activeTab === 'sessions') {
         return <SessionsListScreen onCreateSession={handleCreateSession} onReuseSession={handleReuseSession} />;
       } else if (activeTab === 'calendar') {
-        return <PlanningCalendarScreen onBack={() => setActiveTab('home')} />;
+        return <PlanningCalendarScreen onBack={() => setActiveTab('home')} onTakeAttendance={handleTakeAttendance} />;
       } else if (activeTab === 'athletes') {
         return (
           <AthleteListScreen
