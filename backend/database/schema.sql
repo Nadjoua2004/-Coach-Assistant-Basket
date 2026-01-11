@@ -126,10 +126,10 @@ CREATE TABLE IF NOT EXISTS attendance (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id UUID REFERENCES sessions(id),
     athlete_id UUID REFERENCES athletes(id),
+    planning_id UUID REFERENCES planning(id), -- Linked to the specific event
     status VARCHAR(50) NOT NULL CHECK (status IN ('present', 'absent', 'retard', 'excuse')),
+    notes TEXT,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    gps_latitude DECIMAL(10, 8),
-    gps_longitude DECIMAL(11, 8),
     recorded_by UUID REFERENCES users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

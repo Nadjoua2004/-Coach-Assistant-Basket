@@ -9,9 +9,12 @@ class AttendanceController {
     try {
       let query = supabase.from('attendance').select('*');
 
-      // Filter by session
+      // Filter by session or planning
       if (req.query.session_id) {
         query = query.eq('session_id', req.query.session_id);
+      }
+      if (req.query.planning_id) {
+        query = query.eq('planning_id', req.query.planning_id);
       }
 
       // Filter by athlete
@@ -64,7 +67,9 @@ class AttendanceController {
 
       const { data: record, error } = await supabase
         .from('attendance')
-        .insert(attendanceData)
+        .upsert(attendanceData, {
+          onConflict: 'planning_id,athlete_id'
+        })
         .select()
         .single();
 
@@ -101,6 +106,9 @@ class AttendanceController {
 
       if (athlete_id) {
         query = query.eq('athlete_id', athlete_id);
+      }
+      if (req.query.planning_id) {
+        query = query.eq('planning_id', req.query.planning_id);
       }
       if (start_date) {
         query = query.gte('created_at', start_date);

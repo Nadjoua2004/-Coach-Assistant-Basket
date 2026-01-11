@@ -360,7 +360,7 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                                                     if (onTakeAttendance) onTakeAttendance(event);
                                                 }}
                                             >
-                                                <Icon name="clipboard-check-outline" size={20} color="#f97316" />
+                                                <Icon name="account-check" size={20} color="#f97316" />
                                             </TouchableOpacity>
                                         </TouchableOpacity>
                                     ))

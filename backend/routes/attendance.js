@@ -15,9 +15,11 @@ router.post('/',
   authenticateToken,
   authorizeRole('coach', 'adjoint', 'admin'),
   [
-    body('session_id').notEmpty(),
     body('athlete_id').notEmpty(),
-    body('status').isIn(['present', 'absent', 'retard', 'excuse'])
+    body('status').isIn(['present', 'absent', 'retard', 'excuse']),
+    body('planning_id').optional(),
+    body('session_id').optional(),
+    body('notes').optional()
   ],
   AttendanceController.createAttendance
 );
