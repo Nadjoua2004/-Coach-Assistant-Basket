@@ -38,6 +38,7 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
         lieu: 'Salle Principale',
         theme: '',
         groupe: 'U17',
+        session_id: null,
         athletes_assignes: []
     });
 
@@ -236,6 +237,7 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                 lieu: event.lieu,
                 theme: event.theme,
                 groupe: event.groupe || 'U17',
+                session_id: event.session_id || null,
                 athletes_assignes: event.athletes_assignes || []
             });
             setSelectedDate(new Date(event.date));
@@ -252,6 +254,7 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
             lieu: 'Salle Principale',
             theme: '',
             groupe: 'U17',
+            session_id: null,
             athletes_assignes: []
         });
         setSelectedDate(new Date());
@@ -544,7 +547,8 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                                         setEventForm({
                                             ...eventForm,
                                             theme: session.title,
-                                            duree: session.total_duration?.toString() || '90'
+                                            duree: session.total_duration?.toString() || '90',
+                                            session_id: session.id
                                         });
                                         setShowSessionPicker(false);
                                     }}
