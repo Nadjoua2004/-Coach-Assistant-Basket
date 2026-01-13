@@ -589,6 +589,8 @@ import AthleteListScreen from './components/Coach/AthleteListScreen';
 import AthleteFormScreen from './components/Coach/AthleteFormScreen';
 import MedicalRecordScreen from './components/Coach/MedicalRecordScreen';
 import PlanningCalendarScreen from './components/Coach/PlanningCalendarScreen';
+import CoachProfileScreen from './components/Coach/CoachProfileScreen';
+import SessionDetailsScreen from './components/Coach/SessionDetailsScreen';
 import AttendanceScreen from './components/Coach/AttendanceScreen';
 import ExerciseManagerScreen from './components/Coach/ExerciseManagerScreen';
 import AdminDashboard from './components/Admin/AdminDashboard';
@@ -619,6 +621,7 @@ const AppContent = () => {
   const [showMedicalRecord, setShowMedicalRecord] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
   const [editingAthlete, setEditingAthlete] = useState(null);
+  const [showSessionDetails, setShowSessionDetails] = useState(false);
   const [currentSession, setCurrentSession] = useState(null);
   const [reuseData, setReuseData] = useState(null);
 
@@ -672,6 +675,22 @@ const AppContent = () => {
   const handleViewMedical = (athlete) => {
     setEditingAthlete(athlete);
     setShowMedicalRecord(true);
+  };
+
+  const handleViewSession = (session) => {
+    setCurrentSession(session);
+    setShowSessionDetails(true);
+  };
+
+  const handleBackFromDetails = () => {
+    setShowSessionDetails(false);
+    setCurrentSession(null);
+  };
+
+  const handleEditFromDetails = (session) => {
+    setShowSessionDetails(false);
+    setEditSessionData(session);
+    setShowSessionForm(true);
   };
 
   const handleTakeAttendance = (session) => {
@@ -731,15 +750,18 @@ const AppContent = () => {
       );
     }
 
-    // Show Attendance Screen
-    if (showAttendance) {
+    // Show Session Details
+    if (showSessionDetails) {
       return (
-        <AttendanceScreen
+        <SessionDetailsScreen
           session={currentSession}
-          onBack={handleBackFromAttendance}
+          onBack={handleBackFromDetails}
+          onEdit={handleEditFromDetails}
         />
       );
     }
+
+    // Show Attendance Screen
 
     // Regular content based on role and tab
     // Regular content based on role and tab
@@ -747,7 +769,7 @@ const AppContent = () => {
       if (activeTab === 'home') {
         return <CoachHomeScreen onCreateSession={handleCreateSession} onNavigate={handleTabPress} />;
       } else if (activeTab === 'sessions') {
-        return <SessionsListScreen onCreateSession={handleCreateSession} onReuseSession={handleReuseSession} />;
+        return <SessionsListScreen onCreateSession={handleCreateSession} onReuseSession={handleReuseSession} onViewSession={handleViewSession} />;
       } else if (activeTab === 'calendar') {
         return <PlanningCalendarScreen onBack={() => setActiveTab('home')} onTakeAttendance={handleTakeAttendance} />;
       } else if (activeTab === 'athletes') {
@@ -760,6 +782,8 @@ const AppContent = () => {
         );
       } else if (activeTab === 'exercises') {
         return <ExerciseManagerScreen />;
+      } else if (activeTab === 'profile') {
+        return <CoachProfileScreen onLogout={logout} />;
       } else if (activeTab === 'attendance') {
         return <AttendanceScreen />;
       }

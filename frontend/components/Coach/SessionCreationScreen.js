@@ -97,7 +97,7 @@ const SessionCreationScreen = ({ onBack, onSaveSession, initialData }) => {
     }
     const id = sessionId || initialData.id;
     try {
-      const url = `${API_URL}/api/sessions/export/${id}`;
+      const url = `${API_URL}/api/sessions/${id}/export-pdf`;
       await Linking.openURL(url);
     } catch (error) {
       console.error('Export error:', error);

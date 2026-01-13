@@ -16,6 +16,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import PlanningService from '../../services/planningService';
 import AthleteService from '../../services/athleteService';
+import SessionService from '../../services/sessionService';
 
 const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
     const [loading, setLoading] = useState(true);
@@ -26,6 +27,9 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
     const [editingEvent, setEditingEvent] = useState(null);
     const [athletes, setAthletes] = useState([]);
     const [groups, setGroups] = useState(['U13', 'U15', 'U17', 'Seniors']);
+    const [savedSessions, setSavedSessions] = useState([]);
+    const [showSessionPicker, setShowSessionPicker] = useState(false);
+    const [loadingSessions, setLoadingSessions] = useState(false);
 
     const [eventForm, setEventForm] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -42,7 +46,22 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
 
     useEffect(() => {
         fetchData();
+        fetchSavedSessions();
     }, [selectedWeek]);
+
+    const fetchSavedSessions = async () => {
+        try {
+            setLoadingSessions(true);
+            const response = await SessionService.getAllSessions();
+            if (response.success) {
+                setSavedSessions(response.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching sessions:', error);
+        } finally {
+            setLoadingSessions(false);
+        }
+    };
 
     const fetchData = async () => {
         try {
@@ -470,6 +489,17 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                         </View>
 
                         <View style={styles.assignmentSection}>
+                            <Text style={styles.inputLabel}>Session de la bibliothèque</Text>
+                            <TouchableOpacity
+                                style={styles.sessionPickerBtn}
+                                onPress={() => setShowSessionPicker(true)}
+                            >
+                                <Icon name="library-outline" size={20} color="#3b82f6" />
+                                <Text style={styles.sessionPickerBtnText}>Choisir une séance enregistrée</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.assignmentSection}>
                             <Text style={styles.inputLabel}>Assignation manuelle ({eventForm.athletes_assignes?.length || 0} joueurs)</Text>
                             <TouchableOpacity
                                 style={styles.manageAthletesBtn}
@@ -486,6 +516,47 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                             </Text>
                         </TouchableOpacity>
                         <View style={{ height: 40 }} />
+                    </ScrollView>
+                </SafeAreaView>
+            </Modal>
+
+            {/* Session Picker Modal */}
+            <Modal visible={showSessionPicker} animationType="slide" presentationStyle="pageSheet">
+                <SafeAreaView style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>Sélectionner une séance</Text>
+                        <TouchableOpacity onPress={() => setShowSessionPicker(false)}>
+                            <Icon name="close" size={24} color="#64748b" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView style={styles.modalContent}>
+                        {loadingSessions ? (
+                            <ActivityIndicator size="small" color="#f97316" />
+                        ) : savedSessions.length === 0 ? (
+                            <Text style={styles.emptyText}>Aucune séance enregistrée</Text>
+                        ) : (
+                            savedSessions.map(session => (
+                                <TouchableOpacity
+                                    key={session.id}
+                                    style={styles.sessionPickItem}
+                                    onPress={() => {
+                                        setEventForm({
+                                            ...eventForm,
+                                            theme: session.title,
+                                            duree: session.total_duration?.toString() || '90'
+                                        });
+                                        setShowSessionPicker(false);
+                                    }}
+                                >
+                                    <View>
+                                        <Text style={styles.sessionPickTitle}>{session.title}</Text>
+                                        <Text style={styles.sessionPickMeta}>{session.objective}</Text>
+                                    </View>
+                                    <Icon name="chevron-right" size={20} color="#cbd5e1" />
+                                </TouchableOpacity>
+                            ))
+                        )}
                     </ScrollView>
                 </SafeAreaView>
             </Modal>
@@ -792,6 +863,47 @@ const styles = StyleSheet.create({
         marginLeft: 8,
         color: '#f97316',
         fontWeight: '600',
+    },
+    sessionPickerBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#eff6ff',
+        borderWidth: 1,
+        borderColor: '#bfdbfe',
+        borderRadius: 12,
+        padding: 14,
+    },
+    sessionPickerBtnText: {
+        marginLeft: 8,
+        color: '#3b82f6',
+        fontWeight: '600',
+    },
+    sessionPickItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        backgroundColor: 'white',
+        borderRadius: 12,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+    },
+    sessionPickTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1e293b',
+    },
+    sessionPickMeta: {
+        fontSize: 12,
+        color: '#64748b',
+        marginTop: 4,
+    },
+    emptyText: {
+        textAlign: 'center',
+        color: '#94a3b8',
+        marginTop: 40,
     },
     saveBtn: {
         backgroundColor: '#f97316',

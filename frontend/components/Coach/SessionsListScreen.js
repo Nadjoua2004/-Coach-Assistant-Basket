@@ -62,9 +62,7 @@ const SessionsListScreen = ({ onCreateSession }) => {
   const renderSessionItem = ({ item }) => (
     <TouchableOpacity
       style={styles.sessionCard}
-      onPress={() => {
-        console.log('View session details:', item.id);
-      }}
+      onPress={() => onViewSession && onViewSession(item)}
     >
       <View style={styles.sessionHeader}>
         <View style={styles.sessionTitleContainer}>

@@ -98,6 +98,8 @@ class ExerciseController {
           videoUrl = uploadResult.url;
           storageKey = uploadResult.key;
         }
+      } else {
+        console.log('No video file provided for exercise, proceeding without video.');
       }
 
       const exerciseData = {

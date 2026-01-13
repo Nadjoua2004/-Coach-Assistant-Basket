@@ -12,15 +12,21 @@ const BottomNav = ({ activeTab, setActiveTab, role }) => {
   const getNavItems = () => {
     if (role === 'coach' || role === 'adjoint') {
       return [
-        { id: 'home', icon: 'home', label: 'Accueil' },
-        { id: 'athletes', icon: 'account-group', label: 'Athlètes' },
-        { id: 'calendar', icon: 'calendar', label: 'Planning' },
-        { id: 'sessions', icon: 'clipboard-list', label: 'Séances' },
-        { id: 'exercises', icon: 'dumbbell', label: 'Exercices' }
+        { id: 'home', icon: 'home-outline', label: 'Accueil' },
+        { id: 'calendar', icon: 'calendar-outline', label: 'Planning' },
+        { id: 'sessions', icon: 'clipboard-text-outline', label: 'Séances' },
+        { id: 'athletes', icon: 'account-group-outline', label: 'Athlètes' },
+        { id: 'exercises', icon: 'dumbbell', label: 'Exercices' },
+        { id: 'profile', icon: 'account-outline', label: 'Compte' }
       ];
-    }
-
-    if (role === 'admin') {
+    } else if (role === 'admin') {
+      return [
+        { id: 'dashboard', icon: 'view-dashboard', label: 'Dashboard' },
+        { id: 'users', icon: 'account-group', label: 'Utilisateurs' },
+        { id: 'reports', icon: 'file-document', label: 'Rapports' },
+        { id: 'profile', icon: 'account', label: 'Profil' }
+      ];
+    } else if (role === 'parent') {
       return [
         { id: 'dashboard', icon: 'view-dashboard', label: 'Dashboard' },
         { id: 'users', icon: 'account-group', label: 'Utilisateurs' },

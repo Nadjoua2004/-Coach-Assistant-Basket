@@ -32,10 +32,10 @@ class DashboardController {
       endOfWeek.setDate(endOfWeek.getDate() + 7);
 
       const { count: sessionsThisWeek } = await supabase
-        .from('sessions')
+        .from('planning')
         .select('*', { count: 'exact', head: true })
-        .gte('created_at', startOfWeek.toISOString())
-        .lte('created_at', endOfWeek.toISOString());
+        .gte('date', startOfWeek.toISOString().split('T')[0])
+        .lte('date', endOfWeek.toISOString().split('T')[0]);
 
       // Get attendance rate (simplified)
       const { data: attendanceRecords } = await supabase

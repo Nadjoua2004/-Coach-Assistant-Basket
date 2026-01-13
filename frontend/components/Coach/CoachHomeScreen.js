@@ -68,12 +68,7 @@ const CoachHomeScreen = ({ onCreateSession, onNavigate }) => {
     }
   };
 
-  const menuItems = [
-    { id: 1, title: 'Exercices', icon: 'dumbbell', color: '#3b82f6' },
-    { id: 2, title: 'Statistiques', icon: 'chart-bar', color: '#10b981' },
-    { id: 3, title: 'Historique', icon: 'history', color: '#f59e0b' },
-    { id: 4, title: 'Paramètres', icon: 'cog', color: '#8b5cf6' },
-  ];
+  const menuItems = [];
 
   if (loading && !refreshing) {
     return (
@@ -194,25 +189,6 @@ const CoachHomeScreen = ({ onCreateSession, onNavigate }) => {
               <Text style={styles.emptyText}>Aucune séance programmée</Text>
             </View>
           )}
-        </View>
-
-        {/* Quick Actions Grid */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Actions rapides</Text>
-          <View style={styles.menuGrid}>
-            {menuItems.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.menuItem}
-                onPress={() => handleMenuPress(item)}
-              >
-                <View style={[styles.menuIcon, { backgroundColor: `${item.color}20` }]}>
-                  <Icon name={item.icon} size={24} color={item.color} />
-                </View>
-                <Text style={styles.menuText}>{item.title}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
         </View>
 
         {/* Attendance Summary */}
