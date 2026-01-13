@@ -30,19 +30,34 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
             if (!session) return;
             setLoading(true);
 
-            // If it's a planning event, it might have session_id pointing to the template
-            const targetId = session.session_id || session.id;
+            // Logic: 
+            // 1. If we have a session_id, it's a link to a template. Fetch it.
+            // 2. If no session_id, but the object itself has exercises, it might already be a template.
+            // 3. Otherwise, it's a planning record without a template link. Skip fetch.
 
-            if (!targetId) {
+            let targetId = null;
+            if (session.session_id) {
+                targetId = session.session_id;
+            } else if (session.exercises && Array.isArray(session.exercises)) {
+                // It's probably already a template object
+                targetId = session.id;
+            } else {
+                // It's a planning record without a linked template
+                setFullSession(session);
                 setLoading(false);
                 return;
             }
 
             const response = await SessionService.getSessionById(targetId);
             if (response.success) {
-                setFullSession(response.data);
+                // Merge planning data (date, time, lieu) with template data (exercises, objective)
+                setFullSession({
+                    ...response.data,
+                    ...session, // Keep planning specific data
+                    id: response.data.id || session.id // Ensure we have an ID for PDF export
+                });
 
-                // Fetch exercise details if needed
+                // Fetch exercise details
                 if (response.data.exercises && response.data.exercises.length > 0) {
                     const exercisePromises = response.data.exercises.map(id =>
                         ExerciseService.getExerciseById(id)
@@ -51,12 +66,10 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
                     setExercises(results.map(r => r.data).filter(Boolean));
                 }
             } else {
-                // Fallback: if no template found, use planning data as session info
                 setFullSession(session);
             }
         } catch (error) {
             console.error('Error fetching session details:', error);
-            // Don't alert if it's just that the session template is missing
             setFullSession(session);
         } finally {
             setLoading(false);
