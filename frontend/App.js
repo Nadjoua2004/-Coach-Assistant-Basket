@@ -578,6 +578,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './components/Common/AuthProvider';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Import screens
 import LoginScreen from './components/Auth/LoginScreen';
@@ -645,6 +646,7 @@ const AppContent = () => {
     if (user.role === 'admin') {
       setCurrentAdminScreen('dashboard'); // Reset admin sub-screen when changing main tabs
     }
+    setShowSessionDetails(false);
     setActiveTab(tabId);
   };
 
@@ -689,8 +691,8 @@ const AppContent = () => {
 
   const handleEditFromDetails = (session) => {
     setShowSessionDetails(false);
-    setEditSessionData(session);
-    setShowSessionForm(true);
+    setReuseData(session);
+    setShowCreateSession(true);
   };
 
   const handleTakeAttendance = (session) => {
@@ -751,7 +753,7 @@ const AppContent = () => {
     }
 
     // Show Session Details
-    if (showSessionDetails) {
+    if (showSessionDetails && currentSession) {
       return (
         <SessionDetailsScreen
           session={currentSession}
@@ -759,6 +761,9 @@ const AppContent = () => {
           onEdit={handleEditFromDetails}
         />
       );
+    } else if (showSessionDetails) {
+      setShowSessionDetails(false);
+      return null;
     }
 
     // Show Attendance Screen
@@ -856,11 +861,13 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 };
 

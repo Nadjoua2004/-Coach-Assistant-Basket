@@ -20,13 +20,25 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
     const [fullSession, setFullSession] = useState(session);
 
     useEffect(() => {
-        fetchDetails();
-    }, [session.id]);
+        if (session && (session.id || session.session_id)) {
+            fetchDetails();
+        }
+    }, [session?.id, session?.session_id]);
 
     const fetchDetails = async () => {
         try {
+            if (!session) return;
             setLoading(true);
-            const response = await SessionService.getSessionById(session.id);
+
+            // If it's a planning event, it might have session_id pointing to the template
+            const targetId = session.session_id || session.id;
+
+            if (!targetId) {
+                setLoading(false);
+                return;
+            }
+
+            const response = await SessionService.getSessionById(targetId);
             if (response.success) {
                 setFullSession(response.data);
 
@@ -38,10 +50,14 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
                     const results = await Promise.all(exercisePromises);
                     setExercises(results.map(r => r.data).filter(Boolean));
                 }
+            } else {
+                // Fallback: if no template found, use planning data as session info
+                setFullSession(session);
             }
         } catch (error) {
             console.error('Error fetching session details:', error);
-            Alert.alert('Erreur', 'Impossible de charger les détails de la séance');
+            // Don't alert if it's just that the session template is missing
+            setFullSession(session);
         } finally {
             setLoading(false);
         }
@@ -65,6 +81,17 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
         );
     }
 
+    if (!fullSession) {
+        return (
+            <View style={styles.center}>
+                <Text>Détails non disponibles</Text>
+                <TouchableOpacity onPress={onBack} style={{ marginTop: 20 }}>
+                    <Text style={{ color: '#f97316' }}>Retour</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -81,7 +108,7 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Session Card */}
                 <View style={styles.sessionOverview}>
-                    <Text style={styles.title}>{fullSession.title}</Text>
+                    <Text style={styles.title}>{fullSession.title || fullSession.theme}</Text>
                     <View style={styles.metaContainer}>
                         <View style={styles.metaItem}>
                             <Icon name="calendar" size={16} color="#64748b" />
@@ -93,7 +120,7 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
                         </View>
                         <View style={styles.metaItem}>
                             <Icon name="timer-outline" size={16} color="#64748b" />
-                            <Text style={styles.metaText}>{fullSession.total_duration} min</Text>
+                            <Text style={styles.metaText}>{fullSession.total_duration || fullSession.duree || 0} min</Text>
                         </View>
                     </View>
                 </View>
@@ -102,7 +129,7 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Objectif</Text>
                     <View style={styles.card}>
-                        <Text style={styles.sectionContent}>{fullSession.objective}</Text>
+                        <Text style={styles.sectionContent}>{fullSession.objective || 'Aucun objectif défini'}</Text>
                     </View>
                 </View>
 
