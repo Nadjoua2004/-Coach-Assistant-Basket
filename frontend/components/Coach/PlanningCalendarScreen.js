@@ -242,6 +242,7 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
             });
             setSelectedDate(new Date(event.date));
         }
+        fetchSavedSessions(); // Ensure sessions are fresh when opening
         setShowEventModal(true);
     };
 
@@ -495,9 +496,11 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                             <Text style={styles.inputLabel}>Session de la bibliothèque</Text>
                             <TouchableOpacity
                                 style={styles.sessionPickerBtn}
-                                onPress={() => setShowSessionPicker(true)}
+                                onPress={() => {
+                                    fetchSavedSessions();
+                                    setShowSessionPicker(true);
+                                }}
                             >
-                                <Icon name="library-outline" size={20} color="#3b82f6" />
                                 <Text style={styles.sessionPickerBtnText}>Choisir une séance enregistrée</Text>
                             </TouchableOpacity>
                         </View>

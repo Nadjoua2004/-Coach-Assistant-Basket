@@ -198,7 +198,7 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
                 duration: formData.duration ? parseInt(formData.duration) : null,
                 players_min: parseInt(formData.players_min),
                 players_max: parseInt(formData.players_max),
-                video_url: videoMode === 'library' && selectedVideoUrl ? selectedVideoUrl : null
+                video_url: (videoMode === 'library' && selectedVideoUrl) ? selectedVideoUrl : (exercise?.video_url || null)
             };
 
             let response;
