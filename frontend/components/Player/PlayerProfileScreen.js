@@ -14,6 +14,8 @@ import AthleteService from '../../services/athleteService';
 import PlayerProfileModal from './PlayerProfileModal';
 import PlayerMedicalModal from './PlayerMedicalModal';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import AttendanceService from '../../services/attendanceService';
+import PlanningService from '../../services/planningService';
 
 const PlayerProfileScreen = () => {
     const { user, logout } = useAuth();
@@ -22,6 +24,8 @@ const PlayerProfileScreen = () => {
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showMedicalModal, setShowMedicalModal] = useState(false);
     const [displayName, setDisplayName] = useState(user?.name || '');
+    const [attendanceStats, setAttendanceStats] = useState(null);
+    const [upcomingSessions, setUpcomingSessions] = useState([]);
 
     useEffect(() => {
         fetchProfile();
@@ -32,10 +36,25 @@ const PlayerProfileScreen = () => {
             setLoading(true);
             const response = await AthleteService.getMyProfile();
             if (response.success && response.data) {
-                setAthlete(response.data);
-                // Update display name from athlete profile if it exists
-                if (response.data.prenom && response.data.nom) {
-                    setDisplayName(`${response.data.prenom} ${response.data.nom}`);
+                const athleteData = response.data;
+                setAthlete(athleteData);
+                if (athleteData.prenom && athleteData.nom) {
+                    setDisplayName(`${athleteData.prenom} ${athleteData.nom}`);
+                }
+
+                // Fetch stats and sessions
+                const [statsRes, planningRes] = await Promise.all([
+                    AttendanceService.getStats({ athlete_id: athleteData.id }),
+                    PlanningService.getAllPlanning({ start_date: new Date().toISOString().split('T')[0] })
+                ]);
+
+                if (statsRes.success) setAttendanceStats(statsRes.data);
+                if (planningRes.success) {
+                    // Filter sessions where athlete is assigned
+                    const mySessions = (planningRes.data || []).filter(s =>
+                        (s.athletes_assignes || []).includes(athleteData.id)
+                    );
+                    setUpcomingSessions(mySessions);
                 }
             }
         } catch (error) {
@@ -90,7 +109,56 @@ const PlayerProfileScreen = () => {
                         <Icon name="account" size={40} color="#f97316" />
                     </View>
                     <Text style={styles.userName}>{displayName}</Text>
-                    <Text style={styles.userRole}>Joueur</Text>
+                    <Text style={styles.userRole}>Joueur • {athlete?.groupe || 'U17'}</Text>
+                </View>
+
+                {/* Stats Section */}
+                {attendanceStats && (
+                    <View style={styles.statsContainer}>
+                        <View style={styles.statBox}>
+                            <Text style={styles.statValue}>{attendanceStats.attendanceRate}%</Text>
+                            <Text style={styles.statLabel}>Présence</Text>
+                        </View>
+                        <View style={styles.statDivider} />
+                        <View style={styles.statBox}>
+                            <Text style={styles.statValue}>{attendanceStats.present}</Text>
+                            <Text style={styles.statLabel}>Séances</Text>
+                        </View>
+                        <View style={styles.statDivider} />
+                        <View style={styles.statBox}>
+                            <Text style={styles.statValue}>{attendanceStats.absent}</Text>
+                            <Text style={styles.statLabel}>Absences</Text>
+                        </View>
+                    </View>
+                )}
+
+                {/* Upcoming Sessions */}
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Mes prochaines séances</Text>
+                </View>
+                {upcomingSessions.length > 0 ? (
+                    upcomingSessions.map(session => (
+                        <View key={session.id} style={styles.sessionItem}>
+                            <View style={styles.sessionDate}>
+                                <Text style={styles.sessionDay}>{new Date(session.date).getDate()}</Text>
+                                <Text style={styles.sessionMonth}>
+                                    {new Date(session.date).toLocaleDateString('fr-FR', { month: 'short' })}
+                                </Text>
+                            </View>
+                            <View style={styles.sessionInfo}>
+                                <Text style={styles.sessionTheme}>{session.theme}</Text>
+                                <Text style={styles.sessionMeta}>{session.heure} • {session.lieu}</Text>
+                            </View>
+                        </View>
+                    ))
+                ) : (
+                    <View style={styles.emptySessions}>
+                        <Text style={styles.emptyText}>Aucune séance prévue</Text>
+                    </View>
+                )}
+
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Options</Text>
                 </View>
 
                 {/* Mon Profil Section */}
@@ -272,6 +340,103 @@ const styles = StyleSheet.create({
     },
     logoutText: {
         color: '#ef4444',
+    },
+    statsContainer: {
+        flexDirection: 'row',
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 24,
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
+    },
+    statBox: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    statValue: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#1e293b',
+    },
+    statLabel: {
+        fontSize: 12,
+        color: '#64748b',
+        marginTop: 4,
+    },
+    statDivider: {
+        width: 1,
+        height: 30,
+        backgroundColor: '#f1f5f9',
+    },
+    sectionHeader: {
+        marginBottom: 12,
+        paddingHorizontal: 4,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#475569',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    sessionItem: {
+        flexDirection: 'row',
+        backgroundColor: 'white',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        alignItems: 'center',
+    },
+    sessionDate: {
+        width: 50,
+        alignItems: 'center',
+        borderRightWidth: 1,
+        borderRightColor: '#f1f5f9',
+        marginRight: 16,
+        paddingRight: 12,
+    },
+    sessionDay: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#f97316',
+    },
+    sessionMonth: {
+        fontSize: 12,
+        color: '#94a3b8',
+        textTransform: 'uppercase',
+    },
+    sessionInfo: {
+        flex: 1,
+    },
+    sessionTheme: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1e293b',
+    },
+    sessionMeta: {
+        fontSize: 13,
+        color: '#64748b',
+        marginTop: 2,
+    },
+    emptySessions: {
+        padding: 20,
+        alignItems: 'center',
+        backgroundColor: '#f1f5f9',
+        borderRadius: 16,
+        marginBottom: 20,
+        borderStyle: 'dashed',
+        borderWidth: 1,
+        borderColor: '#cbd5e1',
+    },
+    emptyText: {
+        color: '#94a3b8',
+        fontSize: 14,
     },
 });
 

@@ -10,10 +10,13 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import SessionService from '../../services/sessionService';
+import PlanningService from '../../services/planningService';
+import { TextInput } from 'react-native-gesture-handler';
 
-const SessionsListScreen = ({ onCreateSession }) => {
+const SessionsListScreen = ({ onViewSession }) => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchSessions();
@@ -22,7 +25,7 @@ const SessionsListScreen = ({ onCreateSession }) => {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      const response = await SessionService.getAllSessions();
+      const response = await PlanningService.getAllPlanning();
       if (response.success) {
         setSessions(response.data);
       }
@@ -34,10 +37,15 @@ const SessionsListScreen = ({ onCreateSession }) => {
     }
   };
 
+  const filteredSessions = sessions.filter(s =>
+    (s.theme || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.lieu || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const handleDeleteSession = (sessionId) => {
     Alert.alert(
       'Supprimer la séance',
-      'Êtes-vous sûr de vouloir supprimer cette séance ?',
+      'Voulez-vous vraiment supprimer cette séance du planning ?',
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -45,7 +53,7 @@ const SessionsListScreen = ({ onCreateSession }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await SessionService.deleteSession(sessionId);
+              const response = await PlanningService.deletePlanning(sessionId);
               if (response.success) {
                 setSessions(prev => prev.filter(session => session.id !== sessionId));
               }
@@ -68,17 +76,11 @@ const SessionsListScreen = ({ onCreateSession }) => {
         <View style={styles.sessionTitleContainer}>
           <View style={[
             styles.statusIndicator,
-            { backgroundColor: item.status === 'terminée' ? '#10b981' : '#f97316' }
+            { backgroundColor: '#f97316' }
           ]} />
-          <Text style={styles.sessionTitle}>{item.title}</Text>
+          <Text style={styles.sessionTitle}>{item.theme}</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.reuseButton}
-            onPress={() => onReuseSession && onReuseSession(item)}
-          >
-            <Icon name="content-copy" size={20} color="#3b82f6" />
-          </TouchableOpacity>
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={() => handleDeleteSession(item.id)}
@@ -88,19 +90,17 @@ const SessionsListScreen = ({ onCreateSession }) => {
         </View>
       </View>
 
-      <Text style={styles.sessionObjective} numberOfLines={2}>{item.objective}</Text>
-
       <View style={styles.sessionDetails}>
         <View style={styles.detailRow}>
           <View style={styles.detailItem}>
             <Icon name="calendar" size={16} color="#6b7280" />
             <Text style={styles.detailText}>
-              {new Date(item.date).toLocaleDateString()} • {item.heure || item.time}
+              {new Date(item.date).toLocaleDateString()} • {item.heure}
             </Text>
           </View>
           <View style={styles.detailItem}>
             <Icon name="clock-outline" size={16} color="#6b7280" />
-            <Text style={styles.detailText}>{item.total_duration || item.duration} min</Text>
+            <Text style={styles.detailText}>{item.duree} min</Text>
           </View>
         </View>
 
@@ -109,16 +109,9 @@ const SessionsListScreen = ({ onCreateSession }) => {
             <Icon name="map-marker-outline" size={16} color="#6b7280" />
             <Text style={styles.detailText}>{item.lieu || 'Salle'}</Text>
           </View>
-          <View style={[
-            styles.statusBadge,
-            { backgroundColor: item.status === 'terminée' ? '#10b98120' : '#f9731620' }
-          ]}>
-            <Text style={[
-              styles.statusText,
-              { color: item.status === 'terminée' ? '#10b981' : '#f97316' }
-            ]}>
-              {item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Inconnu'}
-            </Text>
+          <View style={styles.detailItem}>
+            <Icon name="account-group-outline" size={16} color="#6b7280" />
+            <Text style={styles.detailText}>{item.groupe || 'U17'}</Text>
           </View>
         </View>
       </View>
@@ -128,7 +121,16 @@ const SessionsListScreen = ({ onCreateSession }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mes séances</Text>
+        <Text style={styles.headerTitle}>Séances planifiées</Text>
+        <View style={styles.searchBar}>
+          <Icon name="magnify" size={20} color="#94a3b8" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Rechercher une séance..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
       </View>
 
       {loading ? (
@@ -136,30 +138,25 @@ const SessionsListScreen = ({ onCreateSession }) => {
           <ActivityIndicator size="large" color="#f97316" />
           <Text style={styles.loadingText}>Chargement des séances...</Text>
         </View>
-      ) : sessions.length === 0 ? (
+      ) : filteredSessions.length === 0 ? (
         <View style={styles.emptyState}>
           <Icon name="clipboard-text-outline" size={64} color="#d1d5db" />
-          <Text style={styles.emptyStateTitle}>Aucune séance créée</Text>
+          <Text style={styles.emptyStateTitle}>Aucune séance trouvée</Text>
           <Text style={styles.emptyStateText}>
-            Créez votre première séance d'entraînement
+            Les séances s'affichent ici une fois créées dans le planning
           </Text>
         </View>
       ) : (
         <FlatList
-          data={sessions}
+          data={filteredSessions}
           renderItem={renderSessionItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          onRefresh={fetchSessions}
+          refreshing={loading}
         />
       )}
-
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={onCreateSession}
-      >
-        <Icon name="plus" size={24} color="white" />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -180,7 +177,21 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginTop: 20,
+    marginBottom: 16,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#1f2937',
   },
   listContainer: {
     padding: 20,

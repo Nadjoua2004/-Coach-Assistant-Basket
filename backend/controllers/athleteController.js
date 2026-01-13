@@ -291,6 +291,23 @@ class AthleteController {
         }
       }
 
+      // 1. Delete associated medical records
+      const { error: medError } = await supabase
+        .from('medical_records')
+        .delete()
+        .eq('athlete_id', req.params.id);
+
+      if (medError) console.error('Error deleting medical records:', medError);
+
+      // 2. Delete associated attendance
+      const { error: attError } = await supabase
+        .from('attendance')
+        .delete()
+        .eq('athlete_id', req.params.id);
+
+      if (attError) console.error('Error deleting attendance:', attError);
+
+      // 3. Delete the athlete
       const { error } = await supabase
         .from('athletes')
         .delete()

@@ -17,7 +17,7 @@ const BottomNav = ({ activeTab, setActiveTab, role }) => {
         { id: 'sessions', icon: 'clipboard-text-outline', label: 'Séances' },
         { id: 'athletes', icon: 'account-group-outline', label: 'Athlètes' },
         { id: 'exercises', icon: 'dumbbell', label: 'Exercices' },
-        { id: 'profile', icon: 'account-outline', label: 'Compte' }
+        { id: 'profile', icon: 'account-outline', label: 'Profil' }
       ];
     } else if (role === 'admin') {
       return [
@@ -59,7 +59,7 @@ const BottomNav = ({ activeTab, setActiveTab, role }) => {
               <View style={styles.iconContainer}>
                 <Icon
                   name={item.icon}
-                  size={26} // Slightly larger for active
+                  size={22}
                   color={isActive ? '#f97316' : '#94a3b8'}
                 />
                 {isActive && <View style={styles.activeDot} />}
@@ -94,9 +94,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    height: 70,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    height: 60,
   },
   navItem: {
     alignItems: 'center',
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#6b7280',
     fontWeight: '400',
   },
