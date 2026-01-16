@@ -33,7 +33,7 @@ const MedicalRecordScreen = ({ athlete, onBack }) => {
     const fetchMedicalRecord = async () => {
         try {
             setLoading(true);
-            const response = await MedicalRecordService.getMedicalRecord(athlete.id);
+            const response = await MedicalRecordService.getRecord(athlete.id);
             if (response.success && response.data) {
                 const data = response.data;
                 setRecord(data);
@@ -64,7 +64,7 @@ const MedicalRecordScreen = ({ athlete, onBack }) => {
                 notes_coach: notesCoach
             };
 
-            const response = await MedicalRecordService.upsertMedicalRecord(athlete.id, recordData);
+            const response = await MedicalRecordService.updateRecord(athlete.id, recordData);
             if (response.success) {
                 Alert.alert('Succès', 'Dossier médical mis à jour');
                 setRecord(response.data);

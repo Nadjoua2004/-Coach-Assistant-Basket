@@ -9,7 +9,7 @@ class VideoService {
             const response = await api.get('/api/videos');
             return response.data;
         } catch (error) {
-            throw error.response?.data || { success: false, message: 'Network error' };
+            throw error.response?.data || { success: false, message: error.message || 'Network error' };
         }
     }
 
@@ -22,7 +22,7 @@ class VideoService {
             const response = await api.postFormData('/api/videos', formData);
             return response.data;
         } catch (error) {
-            throw error.response?.data || { success: false, message: 'Network error' };
+            throw error.response?.data || { success: false, message: error.message || 'Network error' };
         }
     }
 
@@ -35,7 +35,7 @@ class VideoService {
             const response = await api.delete(`/api/videos/${id}`);
             return response.data;
         } catch (error) {
-            throw error.response?.data || { success: false, message: 'Network error' };
+            throw error.response?.data || { success: false, message: error.message || 'Network error' };
         }
     }
 }

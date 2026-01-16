@@ -8,10 +8,7 @@ class AthleteService {
         try {
             return await ApiService.get('/api/athletes/me');
         } catch (error) {
-            // If 404/not found, it might return null or error depending on backend implementation
-            // Assuming backend returns success: true, data: null or similar
-            console.error('Error in AthleteService.getMyProfile:', error);
-            return { success: false, message: error.message };
+            throw error.response?.data || { success: false, message: error.message || 'Network error' };
         }
     }
 

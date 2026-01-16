@@ -299,416 +299,416 @@ const CalendarScreen = ({ onTakeAttendance }) => {
                 groupe,
                 exercises: selectedExercises.map(e => e.id) // Send exercise IDs
             };
-        };
 
-        const response = await PlanningService.createEvent(eventData);
-        if (response.success) {
-            Alert.alert('Succès', 'Événement ajouté au planning');
-            setShowForm(false);
-            fetchPlanning();
-            // Reset form
-            setTitle('');
-            setDate('');
-            setHeure('');
-            setDuree('90');
-            setLieu('');
-            setLieu('');
-            setSessionId(null);
-            setSelectedExercises([]);
+            const response = await PlanningService.createEvent(eventData);
+
+            if (response.success) {
+                Alert.alert('Succès', 'Événement ajouté au planning');
+                setShowForm(false);
+                fetchPlanning();
+                // Reset form
+                setTitle('');
+                setDate('');
+                setHeure('');
+                setDuree('90');
+                setLieu('');
+                setSessionId(null);
+                setSelectedExercises([]);
+            }
+        } catch (error) {
+            console.error('Create event error:', error);
+            Alert.alert('Erreur', 'Impossible de créer l\'événement');
         }
-    } catch (error) {
-        Alert.alert('Erreur', 'Impossible de créer l\'événement');
-    }
-};
+    };
 
-const handleDeleteEvent = (id) => {
-    Alert.alert('Supprimer', 'Voulez-vous supprimer cet événement ?', [
-        { text: 'Annuler', style: 'cancel' },
-        {
-            text: 'Supprimer',
-            style: 'destructive',
-            onPress: async () => {
-                try {
-                    await PlanningService.deleteEvent(id);
-                    setEvents(events.filter(e => e.id !== id));
-                } catch (error) {
-                    Alert.alert('Erreur', 'Impossible de supprimer l\'événement');
+    const handleDeleteEvent = (id) => {
+        Alert.alert('Supprimer', 'Voulez-vous supprimer cet événement ?', [
+            { text: 'Annuler', style: 'cancel' },
+            {
+                text: 'Supprimer',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        await PlanningService.deleteEvent(id);
+                        setEvents(events.filter(e => e.id !== id));
+                    } catch (error) {
+                        Alert.alert('Erreur', 'Impossible de supprimer l\'événement');
+                    }
                 }
             }
+        ]);
+    };
+
+    const getEventIcon = (type) => {
+        switch (type) {
+            case 'Entraînement': return 'basketball';
+            case 'Match': return 'trophy';
+            case 'Réunion': return 'account-group';
+            default: return 'calendar-star';
         }
-    ]);
-};
+    };
 
-const getEventIcon = (type) => {
-    switch (type) {
-        case 'Entraînement': return 'basketball';
-        case 'Match': return 'trophy';
-        case 'Réunion': return 'account-group';
-        default: return 'calendar-star';
-    }
-};
-
-const renderEventItem = ({ item }) => (
-    <View style={styles.eventCard}>
-        <View style={styles.eventTimeContainer}>
-            <Text style={styles.eventTime}>{item.heure}</Text>
-            <View style={styles.timeLine} />
-        </View>
-        <View style={styles.eventMain}>
-            <View style={styles.eventHeader}>
-                <View style={[styles.typeBadge, { backgroundColor: item.type === 'Match' ? '#fee2e2' : '#fef3c7' }]}>
-                    <Icon name={getEventIcon(item.type)} size={14} color={item.type === 'Match' ? '#ef4444' : '#f59e0b'} />
-                    <Text style={[styles.typeText, { color: item.type === 'Match' ? '#b91c1c' : '#b45309' }]}>{item.type}</Text>
+    const renderEventItem = ({ item }) => (
+        <View style={styles.eventCard}>
+            <View style={styles.eventTimeContainer}>
+                <Text style={styles.eventTime}>{item.heure}</Text>
+                <View style={styles.timeLine} />
+            </View>
+            <View style={styles.eventMain}>
+                <View style={styles.eventHeader}>
+                    <View style={[styles.typeBadge, { backgroundColor: item.type === 'Match' ? '#fee2e2' : '#fef3c7' }]}>
+                        <Icon name={getEventIcon(item.type)} size={14} color={item.type === 'Match' ? '#ef4444' : '#f59e0b'} />
+                        <Text style={[styles.typeText, { color: item.type === 'Match' ? '#b91c1c' : '#b45309' }]}>{item.type}</Text>
+                    </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <TouchableOpacity onPress={() => openParticipantsModal(item)}>
+                        <Icon name="account-multiple-plus" size={20} color="#0ea5e9" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => onTakeAttendance(item)}>
+                        <Icon name="clipboard-check-outline" size={20} color="#f97316" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteEvent(item.id)}>
+                        <Icon name="dots-vertical" size={20} color="#94a3b8" />
+                    </TouchableOpacity>
                 </View>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <TouchableOpacity onPress={() => openParticipantsModal(item)}>
-                    <Icon name="account-multiple-plus" size={20} color="#0ea5e9" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => onTakeAttendance(item)}>
-                    <Icon name="clipboard-check-outline" size={20} color="#f97316" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDeleteEvent(item.id)}>
-                    <Icon name="dots-vertical" size={20} color="#94a3b8" />
-                </TouchableOpacity>
-            </View>
-        </View>
-        <TouchableOpacity onPress={() => handleEventPress(item)}>
-            <Text style={styles.eventTitle}>{item.title}</Text>
-            <View style={styles.eventFooter}>
-                <View style={styles.infoRow}>
-                    <Icon name="map-marker" size={14} color="#64748b" />
-                    <Text style={styles.infoText}>{item.lieu || 'Non spécifié'}</Text>
+            <TouchableOpacity onPress={() => handleEventPress(item)}>
+                <Text style={styles.eventTitle}>{item.title}</Text>
+                <View style={styles.eventFooter}>
+                    <View style={styles.infoRow}>
+                        <Icon name="map-marker" size={14} color="#64748b" />
+                        <Text style={styles.infoText}>{item.lieu || 'Non spécifié'}</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                        <Icon name="account-group" size={14} color="#64748b" />
+                        <Text style={styles.infoText}>{item.groupe}</Text>
+                    </View>
                 </View>
-                <View style={styles.infoRow}>
-                    <Icon name="account-group" size={14} color="#64748b" />
-                    <Text style={styles.infoText}>{item.groupe}</Text>
-                </View>
-            </View>
-        </TouchableOpacity>
-    </View>
-);
-
-
-// Group events by date
-const groupedEvents = events.reduce((groups, event) => {
-    const date = event.date;
-    if (!groups[date]) {
-        groups[date] = [];
-    }
-    groups[date].push(event);
-    return groups; // Group sessions by date for display
-}, {});
-
-const sections = Object.keys(groupedEvents).map(date => ({
-    date,
-    data: groupedEvents[date]
-})).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-return (
-    <View style={styles.container}>
-        <View style={styles.header}>
-            <View>
-                <Text style={styles.headerTitle}>Planning</Text>
-                <Text style={styles.headerSubtitle}>
-                    {getWeekRange(currentDate).start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - {getWeekRange(currentDate).end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </Text>
-            </View>
-            <View style={styles.headerActions}>
-                <TouchableOpacity style={styles.iconBtn} onPress={duplicateWeek}>
-                    <Icon name="content-copy" size={24} color="#64748b" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(true)}>
-                    <Icon name="calendar-plus" size={24} color="white" />
-                </TouchableOpacity>
-            </View>
-        </View>
-
-        {/* Week Navigation Bar */}
-        <View style={styles.weekNavBar}>
-            <TouchableOpacity onPress={goToPreviousWeek} style={styles.navBtn}>
-                <Icon name="chevron-left" size={28} color="#64748b" />
-            </TouchableOpacity>
-            <Text style={styles.weekNavText}>Semaine {getWeekNumber(currentDate)}</Text>
-            <TouchableOpacity onPress={goToNextWeek} style={styles.navBtn}>
-                <Icon name="chevron-right" size={28} color="#64748b" />
             </TouchableOpacity>
         </View>
+    );
 
-        {loading ? (
-            <View style={styles.loader}>
-                <ActivityIndicator size="large" color="#f97316" />
+
+    // Group events by date
+    const groupedEvents = events.reduce((groups, event) => {
+        const date = event.date;
+        if (!groups[date]) {
+            groups[date] = [];
+        }
+        groups[date].push(event);
+        return groups; // Group sessions by date for display
+    }, {});
+
+    const sections = Object.keys(groupedEvents).map(date => ({
+        date,
+        data: groupedEvents[date]
+    })).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <View>
+                    <Text style={styles.headerTitle}>Planning</Text>
+                    <Text style={styles.headerSubtitle}>
+                        {getWeekRange(currentDate).start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - {getWeekRange(currentDate).end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </Text>
+                </View>
+                <View style={styles.headerActions}>
+                    <TouchableOpacity style={styles.iconBtn} onPress={duplicateWeek}>
+                        <Icon name="content-copy" size={24} color="#64748b" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(true)}>
+                        <Icon name="calendar-plus" size={24} color="white" />
+                    </TouchableOpacity>
+                </View>
             </View>
-        ) : (
-            <FlatList
-                data={sections}
-                keyExtractor={(item) => item.date}
-                renderItem={({ item }) => (
-                    <View style={styles.dateSection}>
-                        <Text style={styles.dateHeader}>{new Date(item.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
-                        {item.data.map(event => (
-                            <View key={event.id}>
-                                {renderEventItem({ item: event })}
-                            </View>
-                        ))}
-                    </View>
-                )}
-                contentContainerStyle={styles.listContent}
-                ListEmptyComponent={
-                    <View style={styles.emptyState}>
-                        <Icon name="calendar-blank" size={64} color="#cbd5e1" />
-                        <Text style={styles.emptyText}>Aucun événement programmé</Text>
-                    </View>
-                }
-                onRefresh={fetchPlanning}
-                refreshing={loading}
-            />
-        )}
 
-        {/* Participants Management Modal */}
-        <Modal visible={showParticipantsModal} animationType="slide" transparent>
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                    <View style={styles.modalHeader}>
-                        <View>
-                            <Text style={styles.modalTitle}>Participants</Text>
-                            <Text style={styles.modalSubtitle}>{selectedEvent?.theme}</Text>
-                        </View>
-                        <TouchableOpacity onPress={() => setShowParticipantsModal(false)}>
-                            <Icon name="close" size={24} color="#64748b" />
-                        </TouchableOpacity>
-                    </View>
+            {/* Week Navigation Bar */}
+            <View style={styles.weekNavBar}>
+                <TouchableOpacity onPress={goToPreviousWeek} style={styles.navBtn}>
+                    <Icon name="chevron-left" size={28} color="#64748b" />
+                </TouchableOpacity>
+                <Text style={styles.weekNavText}>Semaine {getWeekNumber(currentDate)}</Text>
+                <TouchableOpacity onPress={goToNextWeek} style={styles.navBtn}>
+                    <Icon name="chevron-right" size={28} color="#64748b" />
+                </TouchableOpacity>
+            </View>
 
-                    {participantsLoading ? (
-                        <ActivityIndicator size="large" color="#f97316" style={{ marginVertical: 20 }} />
-                    ) : (
-                        <ScrollView style={styles.participantsList}>
-                            <Text style={styles.sectionTitle}>Assignés ({participants.length})</Text>
-                            {participants.length === 0 ? (
-                                <Text style={styles.emptyText}>Aucun participant assigné</Text>
-                            ) : (
-                                participants.map(p => (
-                                    <View key={p.id} style={styles.participantRow}>
-                                        <Text style={styles.participantName}>{p.prenom} {p.nom}</Text>
-                                        <TouchableOpacity onPress={() => handleRemoveParticipant(p.id)}>
-                                            <Icon name="minus-circle-outline" size={24} color="#ef4444" />
-                                        </TouchableOpacity>
-                                    </View>
-                                ))
-                            )}
-
-                            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Disponibles</Text>
-                            {availableAthletes.filter(a => !participants.find(p => p.id === a.id)).map(a => (
-                                <View key={a.id} style={styles.participantRow}>
-                                    <View>
-                                        <Text style={styles.participantName}>{a.prenom} {a.nom}</Text>
-                                        <Text style={styles.participantGroup}>{a.groupe}</Text>
-                                    </View>
-                                    <TouchableOpacity onPress={() => handleAddParticipant(a.id)}>
-                                        <Icon name="plus-circle-outline" size={24} color="#22c55e" />
-                                    </TouchableOpacity>
+            {loading ? (
+                <View style={styles.loader}>
+                    <ActivityIndicator size="large" color="#f97316" />
+                </View>
+            ) : (
+                <FlatList
+                    data={sections}
+                    keyExtractor={(item) => item.date}
+                    renderItem={({ item }) => (
+                        <View style={styles.dateSection}>
+                            <Text style={styles.dateHeader}>{new Date(item.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
+                            {item.data.map(event => (
+                                <View key={event.id}>
+                                    {renderEventItem({ item: event })}
                                 </View>
                             ))}
-                        </ScrollView>
+                        </View>
                     )}
-                </View>
-            </View>
-        </Modal>
+                    contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={
+                        <View style={styles.emptyState}>
+                            <Icon name="calendar-blank" size={64} color="#cbd5e1" />
+                            <Text style={styles.emptyText}>Aucun événement programmé</Text>
+                        </View>
+                    }
+                    onRefresh={fetchPlanning}
+                    refreshing={loading}
+                />
+            )}
 
-        {/* Quick Add Modal */}
-        <Modal visible={showForm} animationType="slide" transparent>
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Programmer une séance</Text>
-                        <TouchableOpacity onPress={() => setShowForm(false)}>
-                            <Icon name="close" size={24} color="#64748b" />
-                        </TouchableOpacity>
-                    </View>
-
-                    <ScrollView style={styles.modalForm}>
-                        <Text style={styles.label}>Titre *</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={title}
-                            onChangeText={setTitle}
-                            placeholder="Ex: Entraînement Tactique"
-                        />
-
-                        <View style={styles.row}>
-                            <View style={{ flex: 1, marginRight: 8 }}>
-                                <Text style={styles.label}>Date (AAAA-MM-JJ) *</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={date}
-                                    onChangeText={setDate}
-                                    placeholder="2024-12-26"
-                                />
+            {/* Participants Management Modal */}
+            <Modal visible={showParticipantsModal} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <View>
+                                <Text style={styles.modalTitle}>Participants</Text>
+                                <Text style={styles.modalSubtitle}>{selectedEvent?.theme}</Text>
                             </View>
-                            <View style={{ flex: 1, marginLeft: 8 }}>
-                                <Text style={styles.label}>Heure (HH:MM) *</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={heure}
-                                    onChangeText={setHeure}
-                                    placeholder="18:00"
-                                />
-                            </View>
+                            <TouchableOpacity onPress={() => setShowParticipantsModal(false)}>
+                                <Icon name="close" size={24} color="#64748b" />
+                            </TouchableOpacity>
                         </View>
 
-                        <View style={styles.row}>
-                            <View style={{ flex: 1, marginRight: 8 }}>
-                                <Text style={styles.label}>Durée (min)</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={duree}
-                                    onChangeText={setDuree}
-                                    keyboardType="numeric"
-                                    placeholder="90"
-                                />
-                            </View>
-                            <View style={{ flex: 1, marginLeft: 8 }}>
-                                {/* Spacer/Placeholder if needed or another field */}
-                            </View>
-                        </View>
-
-                        <Text style={styles.label}>Lieu</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={lieu}
-                            onChangeText={setLieu}
-                            placeholder="Salle des sports..."
-                        />
-
-                        <Text style={styles.label}>Type</Text>
-                        <View style={styles.typeSelector}>
-                            {['Entraînement', 'Match', 'Réunion'].map(t => (
-                                <TouchableOpacity
-                                    key={t}
-                                    style={[styles.typeBtn, type === t && styles.activeTypeBtn]}
-                                    onPress={() => setType(t)}
-                                >
-                                    <Text style={[styles.typeBtnText, type === t && styles.activeTypeBtnText]}>{t}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        {type === 'Entraînement' && (
-                            <>
-                                {!sessionId && (
-                                    <View style={{ marginBottom: 16 }}>
-                                        <Text style={styles.label}>Exercices de la séance</Text>
-                                        {selectedExercises.map(ex => (
-                                            <View key={ex.id} style={styles.exerciseRow}>
-                                                <Text style={{ flex: 1 }}>{ex.name}</Text>
-                                                <TouchableOpacity onPress={() => handleRemoveExercise(ex.id)}>
-                                                    <Icon name="close-circle" size={20} color="#ef4444" />
-                                                </TouchableOpacity>
-                                            </View>
-                                        ))}
-                                        <TouchableOpacity
-                                            style={styles.addExerciseBtn}
-                                            onPress={() => setShowExerciseModal(true)}
-                                        >
-                                            <Icon name="plus" size={20} color="#f97316" />
-                                            <Text style={styles.addExerciseBtnText}>Ajouter un exercice</Text>
-                                        </TouchableOpacity>
-                                    </View>
+                        {participantsLoading ? (
+                            <ActivityIndicator size="large" color="#f97316" style={{ marginVertical: 20 }} />
+                        ) : (
+                            <ScrollView style={styles.participantsList}>
+                                <Text style={styles.sectionTitle}>Assignés ({participants.length})</Text>
+                                {participants.length === 0 ? (
+                                    <Text style={styles.emptyText}>Aucun participant assigné</Text>
+                                ) : (
+                                    participants.map(p => (
+                                        <View key={p.id} style={styles.participantRow}>
+                                            <Text style={styles.participantName}>{p.prenom} {p.nom}</Text>
+                                            <TouchableOpacity onPress={() => handleRemoveParticipant(p.id)}>
+                                                <Icon name="minus-circle-outline" size={24} color="#ef4444" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))
                                 )}
 
-                                <Text style={styles.label}>OU Sélectionner une séance type</Text>
-                                <View style={styles.sessionPicker}>
-                                    {sessions.map(s => (
-                                        <TouchableOpacity
-                                            key={s.id}
-                                            style={[styles.sessionOption, sessionId === s.id && styles.activeSessionOption]}
-                                            onPress={() => {
-                                                setSessionId(s.id);
-                                                if (s.id) setSelectedExercises([]); // Clear manual exercises if session selected
-                                            }}
-                                        >
-                                            <Text style={[styles.sessionOptionText, sessionId === s.id && styles.activeSessionOptionText]}>{s.title}</Text>
+                                <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Disponibles</Text>
+                                {availableAthletes.filter(a => !participants.find(p => p.id === a.id)).map(a => (
+                                    <View key={a.id} style={styles.participantRow}>
+                                        <View>
+                                            <Text style={styles.participantName}>{a.prenom} {a.nom}</Text>
+                                            <Text style={styles.participantGroup}>{a.groupe}</Text>
+                                        </View>
+                                        <TouchableOpacity onPress={() => handleAddParticipant(a.id)}>
+                                            <Icon name="plus-circle-outline" size={24} color="#22c55e" />
                                         </TouchableOpacity>
-                                    ))}
-                                </View>
-                            </>
-                        )}
-
-                        <TouchableOpacity style={styles.submitBtn} onPress={handleCreateEvent}>
-                            <Text style={styles.submitBtnText}>Confirmer la programmation</Text>
-                        </TouchableOpacity>
-                    </ScrollView>
-                </View>
-            </View>
-        </Modal>
-
-        {/* Event Details Modal */}
-        <Modal visible={!!viewEvent} animationType="slide" transparent>
-            <View style={styles.modalOverlay}>
-                <View style={[styles.modalContent, { height: '80%' }]}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Détails de la séance</Text>
-                        <TouchableOpacity onPress={() => { setViewEvent(null); setViewEventDetails(null); }}>
-                            <Icon name="close" size={24} color="#64748b" />
-                        </TouchableOpacity>
-                    </View>
-
-                    {detailsLoading ? (
-                        <ActivityIndicator size="large" color="#f97316" style={{ marginTop: 20 }} />
-                    ) : viewEventDetails ? (
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            <Text style={styles.detailTheme}>{viewEventDetails.theme || viewEventDetails.title}</Text>
-
-                            <View style={styles.detailRow}>
-                                <Icon name="calendar" size={20} color="#64748b" />
-                                <Text style={styles.detailText}>{new Date(viewEventDetails.date).toLocaleDateString()}</Text>
-                            </View>
-                            <View style={styles.detailRow}>
-                                <Icon name="clock-outline" size={20} color="#64748b" />
-                                <Text style={styles.detailText}>{viewEventDetails.heure} ({viewEventDetails.duree} min)</Text>
-                            </View>
-                            <View style={styles.detailRow}>
-                                <Icon name="map-marker" size={20} color="#64748b" />
-                                <Text style={styles.detailText}>{viewEventDetails.lieu}</Text>
-                            </View>
-                            <View style={styles.detailRow}>
-                                <Icon name="account-group" size={20} color="#64748b" />
-                                <Text style={styles.detailText}>{viewEventDetails.groupe}</Text>
-                            </View>
-
-                            <Text style={styles.sectionTitle}>Contenu de la séance</Text>
-                            {viewEventDetails.exercises && viewEventDetails.exercises.length > 0 ? (
-                                viewEventDetails.exercises.map((ex, index) => (
-                                    <View key={index} style={styles.exerciseCard}>
-                                        <View style={styles.exerciseHeader}>
-                                            <Icon name="basketball" size={20} color="#f97316" />
-                                            <Text style={styles.exerciseName}>{ex.name}</Text>
-                                        </View>
-                                        <Text style={styles.exerciseDesc} numberOfLines={2}>{ex.description}</Text>
-                                        <View style={styles.exerciseMeta}>
-                                            <Text style={styles.metaText}>{ex.duration} min</Text>
-                                            <Text style={styles.metaText}>•</Text>
-                                            <Text style={styles.metaText}>{ex.category}</Text>
-                                        </View>
                                     </View>
-                                ))
-                            ) : (
-                                <Text style={styles.emptyText}>Aucun exercice listé pour cette séance.</Text>
-                            )}
-                            <View style={{ height: 40 }} />
-                        </ScrollView>
-                    ) : null}
+                                ))}
+                            </ScrollView>
+                        )}
+                    </View>
                 </View>
-            </View>
-        </Modal>
+            </Modal>
 
-        <ExerciseSelectionModal
-            visible={showExerciseModal}
-            onClose={() => setShowExerciseModal(false)}
-            onSelectExercise={handleAddExercise}
-        />
-    </View >
-);
+            {/* Quick Add Modal */}
+            <Modal visible={showForm} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Programmer une séance</Text>
+                            <TouchableOpacity onPress={() => setShowForm(false)}>
+                                <Icon name="close" size={24} color="#64748b" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={styles.modalForm}>
+                            <Text style={styles.label}>Titre *</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={title}
+                                onChangeText={setTitle}
+                                placeholder="Ex: Entraînement Tactique"
+                            />
+
+                            <View style={styles.row}>
+                                <View style={{ flex: 1, marginRight: 8 }}>
+                                    <Text style={styles.label}>Date (AAAA-MM-JJ) *</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={date}
+                                        onChangeText={setDate}
+                                        placeholder="2024-12-26"
+                                    />
+                                </View>
+                                <View style={{ flex: 1, marginLeft: 8 }}>
+                                    <Text style={styles.label}>Heure (HH:MM) *</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={heure}
+                                        onChangeText={setHeure}
+                                        placeholder="18:00"
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.row}>
+                                <View style={{ flex: 1, marginRight: 8 }}>
+                                    <Text style={styles.label}>Durée (min)</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={duree}
+                                        onChangeText={setDuree}
+                                        keyboardType="numeric"
+                                        placeholder="90"
+                                    />
+                                </View>
+                                <View style={{ flex: 1, marginLeft: 8 }}>
+                                    {/* Spacer/Placeholder if needed or another field */}
+                                </View>
+                            </View>
+
+                            <Text style={styles.label}>Lieu</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={lieu}
+                                onChangeText={setLieu}
+                                placeholder="Salle des sports..."
+                            />
+
+                            <Text style={styles.label}>Type</Text>
+                            <View style={styles.typeSelector}>
+                                {['Entraînement', 'Match', 'Réunion'].map(t => (
+                                    <TouchableOpacity
+                                        key={t}
+                                        style={[styles.typeBtn, type === t && styles.activeTypeBtn]}
+                                        onPress={() => setType(t)}
+                                    >
+                                        <Text style={[styles.typeBtnText, type === t && styles.activeTypeBtnText]}>{t}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            {type === 'Entraînement' && (
+                                <>
+                                    {!sessionId && (
+                                        <View style={{ marginBottom: 16 }}>
+                                            <Text style={styles.label}>Exercices de la séance</Text>
+                                            {selectedExercises.map(ex => (
+                                                <View key={ex.id} style={styles.exerciseRow}>
+                                                    <Text style={{ flex: 1 }}>{ex.name}</Text>
+                                                    <TouchableOpacity onPress={() => handleRemoveExercise(ex.id)}>
+                                                        <Icon name="close-circle" size={20} color="#ef4444" />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            ))}
+                                            <TouchableOpacity
+                                                style={styles.addExerciseBtn}
+                                                onPress={() => setShowExerciseModal(true)}
+                                            >
+                                                <Icon name="plus" size={20} color="#f97316" />
+                                                <Text style={styles.addExerciseBtnText}>Ajouter un exercice</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+
+                                    <Text style={styles.label}>OU Sélectionner une séance type</Text>
+                                    <View style={styles.sessionPicker}>
+                                        {sessions.map(s => (
+                                            <TouchableOpacity
+                                                key={s.id}
+                                                style={[styles.sessionOption, sessionId === s.id && styles.activeSessionOption]}
+                                                onPress={() => {
+                                                    setSessionId(s.id);
+                                                    if (s.id) setSelectedExercises([]); // Clear manual exercises if session selected
+                                                }}
+                                            >
+                                                <Text style={[styles.sessionOptionText, sessionId === s.id && styles.activeSessionOptionText]}>{s.title}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </>
+                            )}
+
+                            <TouchableOpacity style={styles.submitBtn} onPress={handleCreateEvent}>
+                                <Text style={styles.submitBtnText}>Confirmer la programmation</Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Event Details Modal */}
+            <Modal visible={!!viewEvent} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { height: '80%' }]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Détails de la séance</Text>
+                            <TouchableOpacity onPress={() => { setViewEvent(null); setViewEventDetails(null); }}>
+                                <Icon name="close" size={24} color="#64748b" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {detailsLoading ? (
+                            <ActivityIndicator size="large" color="#f97316" style={{ marginTop: 20 }} />
+                        ) : viewEventDetails ? (
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                <Text style={styles.detailTheme}>{viewEventDetails.theme || viewEventDetails.title}</Text>
+
+                                <View style={styles.detailRow}>
+                                    <Icon name="calendar" size={20} color="#64748b" />
+                                    <Text style={styles.detailText}>{new Date(viewEventDetails.date).toLocaleDateString()}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Icon name="clock-outline" size={20} color="#64748b" />
+                                    <Text style={styles.detailText}>{viewEventDetails.heure} ({viewEventDetails.duree} min)</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Icon name="map-marker" size={20} color="#64748b" />
+                                    <Text style={styles.detailText}>{viewEventDetails.lieu}</Text>
+                                </View>
+                                <View style={styles.detailRow}>
+                                    <Icon name="account-group" size={20} color="#64748b" />
+                                    <Text style={styles.detailText}>{viewEventDetails.groupe}</Text>
+                                </View>
+
+                                <Text style={styles.sectionTitle}>Contenu de la séance</Text>
+                                {viewEventDetails.exercises && viewEventDetails.exercises.length > 0 ? (
+                                    viewEventDetails.exercises.map((ex, index) => (
+                                        <View key={index} style={styles.exerciseCard}>
+                                            <View style={styles.exerciseHeader}>
+                                                <Icon name="basketball" size={20} color="#f97316" />
+                                                <Text style={styles.exerciseName}>{ex.name}</Text>
+                                            </View>
+                                            <Text style={styles.exerciseDesc} numberOfLines={2}>{ex.description}</Text>
+                                            <View style={styles.exerciseMeta}>
+                                                <Text style={styles.metaText}>{ex.duration} min</Text>
+                                                <Text style={styles.metaText}>•</Text>
+                                                <Text style={styles.metaText}>{ex.category}</Text>
+                                            </View>
+                                        </View>
+                                    ))
+                                ) : (
+                                    <Text style={styles.emptyText}>Aucun exercice listé pour cette séance.</Text>
+                                )}
+                                <View style={{ height: 40 }} />
+                            </ScrollView>
+                        ) : null}
+                    </View>
+                </View>
+            </Modal>
+
+            <ExerciseSelectionModal
+                visible={showExerciseModal}
+                onClose={() => setShowExerciseModal(false)}
+                onSelectExercise={handleAddExercise}
+            />
+        </View >
+    );
 };
 
 const styles = StyleSheet.create({
