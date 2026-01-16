@@ -137,7 +137,8 @@ class ExerciseController {
       console.error('Create exercise error:', error);
       res.status(500).json({
         success: false,
-        message: 'Server error'
+        message: error.message || 'Server error',
+        details: error
       });
     }
   }
