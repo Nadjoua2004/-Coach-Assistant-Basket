@@ -9,6 +9,7 @@ import {
   RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../Common/AuthProvider';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DashboardService from '../../services/dashboardService';
@@ -21,26 +22,33 @@ const CoachHomeScreen = ({ onCreateSession, onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, planningRes] = await Promise.all([
+      const [statsResult, planningResult] = await Promise.allSettled([
         DashboardService.getStats(),
         PlanningService.getAllPlanning({
           start_date: new Date().toISOString().split('T')[0]
         })
       ]);
 
-      if (statsRes.success) {
-        setStats(statsRes.data);
+      if (statsResult.status === 'fulfilled' && statsResult.value.success) {
+        setStats(statsResult.value.data);
+      } else {
+        console.warn('Stats fetch failed or returned error');
       }
 
-      if (planningRes.success) {
-        setUpcomingSessions(planningRes.data.slice(0, 5));
+      if (planningResult.status === 'fulfilled' && planningResult.value.success) {
+        setUpcomingSessions(planningResult.value.data.slice(0, 5));
+      } else {
+        console.warn('Planning fetch failed or returned error');
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
