@@ -198,7 +198,7 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
                 duration: formData.duration ? parseInt(formData.duration) : null,
                 players_min: parseInt(formData.players_min),
                 players_max: parseInt(formData.players_max),
-                video_url: (videoMode === 'library' && selectedVideoUrl) ? selectedVideoUrl : (exercise?.video_url || null)
+                video_url: videoMode === 'library' ? selectedVideoUrl : (exercise?.video_url || null)
             };
 
             let response;
@@ -421,7 +421,9 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
 
                     {/* Video Selection */}
                     <View style={styles.formGroup}>
-                        <Text style={styles.label}>Vidéo de démonstration</Text>
+                        <Text style={styles.label}>
+                            Vidéo de démonstration <Text style={styles.optional}>(optionnel)</Text>
+                        </Text>
                         <View style={styles.videoTabs}>
                             <TouchableOpacity
                                 style={[styles.videoTab, videoMode === 'library' && styles.videoTabActive]}
@@ -721,6 +723,11 @@ const styles = StyleSheet.create({
         color: '#FF6B35',
         marginLeft: 4,
         fontWeight: '600'
+    },
+    optional: {
+        fontSize: 12,
+        color: '#999',
+        fontWeight: 'normal'
     }
 });
 

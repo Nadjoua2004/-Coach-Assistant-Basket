@@ -134,11 +134,17 @@ class ExerciseController {
         data: exercise
       });
     } catch (error) {
-      console.error('Create exercise error:', error);
+
+      console.error('Create exercise FAILED. Details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        stack: error.stack
+      });
       res.status(500).json({
         success: false,
         message: error.message || 'Server error',
-        details: error
+        error_code: error.code
       });
     }
   }
