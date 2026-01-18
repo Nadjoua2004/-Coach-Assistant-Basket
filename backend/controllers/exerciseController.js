@@ -103,12 +103,26 @@ class ExerciseController {
       }
 
       const exerciseData = {
-        ...req.body,
+        name: req.body.name,
+        description: req.body.description,
+        category: req.body.category,
+        subcategory: req.body.subcategory,
+        duration: req.body.duration,
+        players_min: req.body.players_min,
+        players_max: req.body.players_max,
+        equipment: req.body.equipment,
         video_url: videoUrl,
-        storage_key: storageKey,
+        video_id: req.body.video_id,
         created_by: req.user.id,
         created_at: new Date().toISOString()
       };
+
+      // Only add storage_key if it's actually provided (migration might be missing)
+      if (storageKey) {
+        exerciseData.storage_key = storageKey;
+      }
+
+      console.log('Inserting exercise with data:', JSON.stringify(exerciseData, null, 2));
 
       const { data: exercise, error } = await supabase
         .from('exercises')
@@ -117,6 +131,7 @@ class ExerciseController {
         .single();
 
       if (error) {
+        console.error('Supabase insert error for exercise:', error);
         // Rollback: delete from R2 if DB insert fails
         if (storageKey) {
           await deleteFromR2(storageKey);
@@ -124,7 +139,9 @@ class ExerciseController {
         return res.status(500).json({
           success: false,
           message: 'Error creating exercise',
-          error: error.message
+          error: error.message,
+          details: error.details,
+          hint: error.hint
         });
       }
 
@@ -134,13 +151,7 @@ class ExerciseController {
         data: exercise
       });
     } catch (error) {
-
-      console.error('Create exercise FAILED. Details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        stack: error.stack
-      });
+      console.error('Create exercise FATAL error:', error);
       res.status(500).json({
         success: false,
         message: error.message || 'Server error',

@@ -195,9 +195,9 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
 
             const submitData = {
                 ...formData,
-                duration: formData.duration ? parseInt(formData.duration) : null,
-                players_min: parseInt(formData.players_min),
-                players_max: parseInt(formData.players_max),
+                duration: formData.duration && !isNaN(parseInt(formData.duration)) ? parseInt(formData.duration) : null,
+                players_min: formData.players_min && !isNaN(parseInt(formData.players_min)) ? parseInt(formData.players_min) : null,
+                players_max: formData.players_max && !isNaN(parseInt(formData.players_max)) ? parseInt(formData.players_max) : null,
                 video_url: videoMode === 'library' ? selectedVideoUrl : (exercise?.video_url || null)
             };
 
