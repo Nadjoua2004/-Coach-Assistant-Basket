@@ -11,10 +11,8 @@ import {
     ActivityIndicator,
     Platform
 } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import ExerciseService from '../../services/exerciseService';
-import VideoService from '../../services/videoService';
 
 const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) => {
     const [loading, setLoading] = useState(false);
@@ -28,11 +26,6 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
         players_max: '12',
         equipment: ''
     });
-    const [videoLibrary, setVideoLibrary] = useState([]);
-    const [loadingLibrary, setLoadingLibrary] = useState(false);
-    const [selectedVideoUrl, setSelectedVideoUrl] = useState(null);
-    const [videoMode, setVideoMode] = useState('library'); // 'library' or 'upload'
-    const [videoFile, setVideoFile] = useState(null);
     const [errors, setErrors] = useState({});
 
     const categories = [
@@ -78,26 +71,10 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
                 players_max: exercise.players_max?.toString() || '12',
                 equipment: exercise.equipment || ''
             });
-            setSelectedVideoUrl(exercise.video_url || null);
         } else {
             resetForm();
         }
-        loadVideoLibrary();
     }, [editMode, exercise, visible]);
-
-    const loadVideoLibrary = async () => {
-        try {
-            setLoadingLibrary(true);
-            const response = await VideoService.getAllVideos();
-            if (response.success) {
-                setVideoLibrary(response.data || []);
-            }
-        } catch (error) {
-            console.error('Error loading video library:', error);
-        } finally {
-            setLoadingLibrary(false);
-        }
-    };
 
     const resetForm = () => {
         setFormData({
@@ -110,7 +87,6 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
             players_max: '12',
             equipment: ''
         });
-        setSelectedVideoUrl(null);
         setErrors({});
     };
 
@@ -128,26 +104,6 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
             category: categoryId,
             subcategory: '' // Reset subcategory when category changes
         }));
-    };
-
-    const handleSelectVideo = (videoUrl) => {
-        setSelectedVideoUrl(videoUrl === selectedVideoUrl ? null : videoUrl);
-    };
-
-    const handlePickVideo = async () => {
-        try {
-            const result = await DocumentPicker.getDocumentAsync({
-                type: 'video/*',
-                copyToCacheDirectory: true
-            });
-
-            if (!result.canceled && result.assets && result.assets.length > 0) {
-                setVideoFile(result.assets[0]);
-            }
-        } catch (err) {
-            console.error('Error picking video:', err);
-            Alert.alert('Erreur', 'Impossible de sélectionner la vidéo');
-        }
     };
 
     const validate = () => {
@@ -197,21 +153,18 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
                 ...formData,
                 duration: formData.duration && !isNaN(parseInt(formData.duration)) ? parseInt(formData.duration) : null,
                 players_min: formData.players_min && !isNaN(parseInt(formData.players_min)) ? parseInt(formData.players_min) : null,
-                players_max: formData.players_max && !isNaN(parseInt(formData.players_max)) ? parseInt(formData.players_max) : null,
-                video_url: videoMode === 'library' ? selectedVideoUrl : (exercise?.video_url || null)
+                players_max: formData.players_max && !isNaN(parseInt(formData.players_max)) ? parseInt(formData.players_max) : null
             };
 
             let response;
             if (editMode && exercise) {
                 response = await ExerciseService.updateExercise(
                     exercise.id,
-                    submitData,
-                    videoMode === 'upload' ? videoFile : null
+                    submitData
                 );
             } else {
                 response = await ExerciseService.createExercise(
-                    submitData,
-                    videoMode === 'upload' ? videoFile : null
+                    submitData
                 );
             }
 
@@ -419,88 +372,6 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
                         />
                     </View>
 
-                    {/* Video Selection */}
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>
-                            Vidéo de démonstration <Text style={styles.optional}>(optionnel)</Text>
-                        </Text>
-                        <View style={styles.videoTabs}>
-                            <TouchableOpacity
-                                style={[styles.videoTab, videoMode === 'library' && styles.videoTabActive]}
-                                onPress={() => setVideoMode('library')}
-                            >
-                                <Text style={[styles.videoTabText, videoMode === 'library' && styles.videoTabTextActive]}>Bibliothèque</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.videoTab, videoMode === 'upload' && styles.videoTabActive]}
-                                onPress={() => setVideoMode('upload')}
-                            >
-                                <Text style={[styles.videoTabText, videoMode === 'upload' && styles.videoTabTextActive]}>Uploader</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {videoMode === 'library' ? (
-                            <View style={styles.libraryContainer}>
-                                {loadingLibrary ? (
-                                    <ActivityIndicator size="small" color="#FF6B35" />
-                                ) : (
-                                    <ScrollView
-                                        horizontal
-                                        showsHorizontalScrollIndicator={false}
-                                        style={styles.videoList}
-                                    >
-                                        {videoLibrary.map(video => (
-                                            <TouchableOpacity
-                                                key={video.id}
-                                                style={[
-                                                    styles.videoChip,
-                                                    selectedVideoUrl === video.url && styles.videoChipActive
-                                                ]}
-                                                onPress={() => handleSelectVideo(video.url)}
-                                            >
-                                                <Icon
-                                                    name={selectedVideoUrl === video.url ? "check-circle" : "video-outline"}
-                                                    size={20}
-                                                    color={selectedVideoUrl === video.url ? "#FFF" : "#666"}
-                                                />
-                                                <Text style={[
-                                                    styles.videoChipText,
-                                                    selectedVideoUrl === video.url && styles.videoChipTextActive
-                                                ]}>
-                                                    {video.title}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                        {videoLibrary.length === 0 && (
-                                            <Text style={styles.noVideosText}>Aucune vidéo disponible.</Text>
-                                        )}
-                                    </ScrollView>
-                                )}
-                            </View>
-                        ) : (
-                            <View style={styles.uploadContainer}>
-                                <TouchableOpacity
-                                    style={styles.pickButton}
-                                    onPress={handlePickVideo}
-                                >
-                                    <Icon name="upload" size={24} color="#666" />
-                                    <Text style={styles.pickButtonText}>
-                                        {videoFile ? videoFile.name : 'Choisir une vidéo'}
-                                    </Text>
-                                </TouchableOpacity>
-                                {videoFile && (
-                                    <TouchableOpacity
-                                        style={styles.clearVideoButton}
-                                        onPress={() => setVideoFile(null)}
-                                    >
-                                        <Icon name="close-circle" size={20} color="#FF6B35" />
-                                        <Text style={styles.clearVideoText}>Effacer</Text>
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-                        )}
-                    </View>
-
                     <View style={{ height: 40 }} />
                 </ScrollView>
             </View>
@@ -636,93 +507,6 @@ const styles = StyleSheet.create({
     },
     halfWidth: {
         width: '48%'
-    },
-    videoList: {
-        flexDirection: 'row',
-        paddingVertical: 8
-    },
-    videoChip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFF',
-        borderWidth: 1,
-        borderColor: '#E5E5E5',
-        borderRadius: 20,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        marginRight: 10
-    },
-    videoChipActive: {
-        backgroundColor: '#4ECDC4',
-        borderColor: '#4ECDC4'
-    },
-    videoChipText: {
-        marginLeft: 8,
-        fontSize: 14,
-        color: '#666'
-    },
-    videoChipTextActive: {
-        color: '#FFF',
-        fontWeight: 'bold'
-    },
-    noVideosText: {
-        fontSize: 14,
-        color: '#999',
-        fontStyle: 'italic'
-    },
-    videoTabs: {
-        flexDirection: 'row',
-        backgroundColor: '#E5E5E5',
-        borderRadius: 8,
-        padding: 2,
-        marginBottom: 12
-    },
-    videoTab: {
-        flex: 1,
-        paddingVertical: 8,
-        alignItems: 'center',
-        borderRadius: 6
-    },
-    videoTabActive: {
-        backgroundColor: '#FFF'
-    },
-    videoTabText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#666'
-    },
-    videoTabTextActive: {
-        color: '#1A1A1A'
-    },
-    uploadContainer: {
-        alignItems: 'center',
-        padding: 20,
-        backgroundColor: '#FFF',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#E5E5E5',
-        borderStyle: 'dashed'
-    },
-    pickButton: {
-        alignItems: 'center'
-    },
-    pickButtonText: {
-        marginTop: 8,
-        fontSize: 14,
-        color: '#666',
-        textAlign: 'center'
-    },
-    clearVideoButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 12,
-        padding: 4
-    },
-    clearVideoText: {
-        fontSize: 12,
-        color: '#FF6B35',
-        marginLeft: 4,
-        fontWeight: '600'
     },
     optional: {
         fontSize: 12,

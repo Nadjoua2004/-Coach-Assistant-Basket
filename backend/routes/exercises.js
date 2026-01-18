@@ -31,7 +31,6 @@ router.get('/:id', authenticateToken, ExerciseController.getExerciseById);
 router.post('/',
   authenticateToken,
   authorizeRole('coach', 'adjoint', 'admin'),
-  upload.single('video'),
   [
     body('name').notEmpty().trim(),
     body('category').notEmpty().trim(),
@@ -44,7 +43,6 @@ router.post('/',
 router.put('/:id',
   authenticateToken,
   authorizeRole('coach', 'adjoint', 'admin'),
-  upload.single('video'),
   ExerciseController.updateExercise
 );
 

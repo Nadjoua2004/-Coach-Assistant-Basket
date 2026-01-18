@@ -190,9 +190,7 @@ const ExerciseManagerScreen = ({ onBack, isAdmin }) => {
                         </Text>
                     </View>
                 </View>
-                {item.video_url && (
-                    <Icon name="video" size={20} color="#4ECDC4" />
-                )}
+
             </View>
 
             {item.description && (

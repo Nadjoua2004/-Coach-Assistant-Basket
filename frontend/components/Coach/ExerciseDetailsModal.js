@@ -10,11 +10,8 @@ import {
     Linking
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Video } from 'expo-av';
 
 const ExerciseDetailsModal = ({ visible, onClose, exercise, onEdit, onDelete }) => {
-    const [videoError, setVideoError] = React.useState(false);
-
     if (!exercise) return null;
 
     const categoryIcons = {
@@ -35,13 +32,7 @@ const ExerciseDetailsModal = ({ visible, onClose, exercise, onEdit, onDelete }) 
         mental: 'Mental'
     };
 
-    const handlePlayVideo = () => {
-        if (exercise.video_url) {
-            Linking.openURL(exercise.video_url).catch(() => {
-                Alert.alert('Erreur', 'Impossible de lire la vidéo');
-            });
-        }
-    };
+
 
     return (
         <Modal
@@ -96,35 +87,7 @@ const ExerciseDetailsModal = ({ visible, onClose, exercise, onEdit, onDelete }) 
                         </View>
                     </View>
 
-                    {/* Video Section */}
-                    {exercise.video_url && (
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>
-                                <Icon name="video" size={18} color="#1A1A1A" /> Vidéo de démonstration
-                            </Text>
-                            <View style={styles.videoContainer}>
-                                {!videoError ? (
-                                    <Video
-                                        source={{ uri: exercise.video_url }}
-                                        style={styles.video}
-                                        useNativeControls
-                                        resizeMode="contain"
-                                        onError={() => setVideoError(true)}
-                                    />
-                                ) : (
-                                    <TouchableOpacity
-                                        style={styles.videoPlaceholder}
-                                        onPress={handlePlayVideo}
-                                    >
-                                        <Icon name="play-circle" size={48} color="#FFF" />
-                                        <Text style={styles.videoPlaceholderText}>
-                                            Ouvrir la vidéo
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-                        </View>
-                    )}
+
 
                     {/* Description */}
                     {exercise.description && (
@@ -299,27 +262,7 @@ const styles = StyleSheet.create({
         color: '#1A1A1A',
         marginBottom: 16
     },
-    videoContainer: {
-        borderRadius: 12,
-        overflow: 'hidden',
-        backgroundColor: '#000'
-    },
-    video: {
-        width: '100%',
-        height: 200
-    },
-    videoPlaceholder: {
-        width: '100%',
-        height: 200,
-        backgroundColor: '#1A1A1A',
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    videoPlaceholderText: {
-        color: '#FFF',
-        fontSize: 14,
-        marginTop: 8
-    },
+
     descriptionText: {
         fontSize: 16,
         lineHeight: 24,

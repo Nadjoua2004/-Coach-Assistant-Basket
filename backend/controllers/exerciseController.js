@@ -88,20 +88,6 @@ class ExerciseController {
         });
       }
 
-      let videoUrl = req.body.video_url;
-      let storageKey = null;
-
-      // Handle direct file upload
-      if (req.file) {
-        const uploadResult = await uploadToR2(req.file, 'exercises');
-        if (uploadResult.success) {
-          videoUrl = uploadResult.url;
-          storageKey = uploadResult.key;
-        }
-      } else if (!videoUrl) {
-        console.log('Exercise created with NO video URL provided.');
-      }
-
       const exerciseData = {
         name: req.body.name,
         description: req.body.description,
@@ -111,16 +97,9 @@ class ExerciseController {
         players_min: req.body.players_min,
         players_max: req.body.players_max,
         equipment: req.body.equipment,
-        video_url: videoUrl,
-        video_id: req.body.video_id,
         created_by: req.user.id,
         created_at: new Date().toISOString()
       };
-
-      // Only add storage_key if it's actually provided (migration might be missing)
-      if (storageKey) {
-        exerciseData.storage_key = storageKey;
-      }
 
       console.log('Inserting exercise with data:', JSON.stringify(exerciseData, null, 2));
 
@@ -132,10 +111,6 @@ class ExerciseController {
 
       if (error) {
         console.error('Supabase insert error for exercise:', error);
-        // Rollback: delete from R2 if DB insert fails
-        if (storageKey) {
-          await deleteFromR2(storageKey);
-        }
         return res.status(500).json({
           success: false,
           message: 'Error creating exercise',
@@ -165,39 +140,8 @@ class ExerciseController {
    */
   static async updateExercise(req, res) {
     try {
-      const { data: oldExercise, error: fetchError } = await supabase
-        .from('exercises')
-        .select('storage_key, video_url')
-        .eq('id', req.params.id)
-        .single();
-
-      if (fetchError) {
-        return res.status(404).json({
-          success: false,
-          message: 'Exercise not found'
-        });
-      }
-
-      let videoUrl = req.body.video_url;
-      let storageKey = oldExercise.storage_key;
-
-      // Handle new file upload
-      if (req.file) {
-        // Delete old video from R2 if it exists
-        if (oldExercise.storage_key) {
-          await deleteFromR2(oldExercise.storage_key);
-        }
-        const uploadResult = await uploadToR2(req.file, 'exercises');
-        if (uploadResult.success) {
-          videoUrl = uploadResult.url;
-          storageKey = uploadResult.key;
-        }
-      }
-
       const updateData = {
         ...req.body,
-        video_url: videoUrl,
-        storage_key: storageKey,
         updated_at: new Date().toISOString()
       };
 
@@ -235,17 +179,6 @@ class ExerciseController {
    */
   static async deleteExercise(req, res) {
     try {
-      // Fetch to check for storage_key
-      const { data: exercise, error: fetchError } = await supabase
-        .from('exercises')
-        .select('storage_key')
-        .eq('id', req.params.id)
-        .single();
-
-      if (!fetchError && exercise?.storage_key) {
-        await deleteFromR2(exercise.storage_key);
-      }
-
       const { error } = await supabase
         .from('exercises')
         .delete()
