@@ -70,17 +70,23 @@ const ReadOnlyScreen = () => {
         setEvents(planningRes.data);
       }
 
-      // 3. Fetch Stats
+      // 3. Fetch Stats - ONLY if we have a profile
       if (profileRes && profileRes.data) {
         const statsRes = await AttendanceService.getStats({ athlete_id: profileRes.data.id });
         if (statsRes.success) {
           setStats(statsRes.data);
         }
       } else {
-        const statsRes = await AttendanceService.getStats();
-        if (statsRes.success) {
-          setStats(statsRes.data);
-        }
+        // New user has no sessions/stats
+        setStats({
+          attendanceRate: 0,
+          total: 0,
+          present: 0,
+          retard: 0,
+          excuse: 0,
+          absent: 0
+        });
+        setEvents([]); // Also clear events if no profile
       }
     } catch (error) {
       console.error('Error fetching player data:', error);

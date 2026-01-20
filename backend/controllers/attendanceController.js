@@ -109,7 +109,7 @@ class AttendanceController {
       console.error('Create attendance error:', error);
       res.status(500).json({
         success: false,
-        message: 'Error recording attendance',
+        message: 'Error creating attendance record',
         error: error.message
       });
     }

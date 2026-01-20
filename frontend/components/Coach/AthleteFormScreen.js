@@ -18,7 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AthleteService from '../../services/athleteService';
 
 const AthleteFormScreen = ({ athlete, onBack, onSave }) => {
-    const isEditing = !!athlete;
+    const isEditing = !!athlete && !athlete.id?.toString().startsWith('temp_');
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         nom: athlete?.nom || '',
@@ -87,6 +87,10 @@ const AthleteFormScreen = ({ athlete, onBack, onSave }) => {
             if (isEditing) {
                 response = await AthleteService.updateAthlete(athlete.id, athleteData, photo);
             } else {
+                // If we have a temp athlete, pass the user_id from it to link the new athlete
+                if (athlete?.id?.toString().startsWith('temp_') && athlete.user_id) {
+                    athleteData.user_id = athlete.user_id;
+                }
                 response = await AthleteService.createAthlete(athleteData, photo);
             }
 

@@ -13,7 +13,7 @@ import SessionService from '../../services/sessionService';
 import PlanningService from '../../services/planningService';
 import { TextInput } from 'react-native-gesture-handler';
 
-const SessionsListScreen = ({ onViewSession }) => {
+const SessionsListScreen = ({ onCreateSession, onReuseSession, onViewSession }) => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');

@@ -82,8 +82,24 @@ const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
                 }
             }
 
-            // 3. Merge Lists
-            setAthletes([...athletesData, ...unlinkedPlayers]);
+            // 3. Merge and Deduplicate Lists
+            const mergedMap = new Map();
+
+            // Add real athletes first (priority)
+            athletesData.forEach(a => {
+                mergedMap.set(a.id, a);
+            });
+
+            // Add unlinked players if they are not already represented by a real athlete
+            unlinkedPlayers.forEach(p => {
+                // Check if this user_id is already in mergedMap (unlikely if unlinked)
+                // or if name/email already exists (already filtered above, but let's be safe)
+                if (!mergedMap.has(p.id)) {
+                    mergedMap.set(p.id, p);
+                }
+            });
+
+            setAthletes(Array.from(mergedMap.values()));
 
         } catch (error) {
             console.error('Error fetching athletes:', error);
@@ -103,6 +119,11 @@ const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
                     text: 'Supprimer',
                     style: 'destructive',
                     onPress: async () => {
+                        if (id.toString().startsWith('temp_')) {
+                            setAthletes(prev => prev.filter(a => a.id !== id));
+                            Alert.alert('Succès', 'Le compte joueur a été retiré de la liste (non supprimé de la base)');
+                            return;
+                        }
                         try {
                             const response = await AthleteService.deleteAthlete(id);
                             if (response.success) {
