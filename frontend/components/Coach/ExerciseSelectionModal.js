@@ -9,7 +9,8 @@ import {
   TextInput,
   ScrollView,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  SafeAreaView
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import ExerciseService from '../../services/exerciseService';
@@ -248,7 +249,7 @@ const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {
       visible={visible}
       onRequestClose={onClose}
     >
-      <View style={styles.modalContainer}>
+      <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <View style={styles.modalHeaderLeft}>
@@ -291,7 +292,7 @@ const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {
             <Text style={styles.customExerciseButtonText}>Ajouter mon propre exercice</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };
@@ -434,7 +435,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
+    height: '92%',
   },
   modalHeader: {
     flexDirection: 'row',

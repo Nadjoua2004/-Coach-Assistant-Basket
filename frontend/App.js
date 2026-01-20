@@ -769,6 +769,14 @@ const AppContent = () => {
     }
 
     // Show Attendance Screen
+    if (showAttendance && currentSession) {
+      return (
+        <AttendanceScreen
+          session={currentSession}
+          onBack={handleBackFromAttendance}
+        />
+      );
+    }
 
     // Regular content based on role and tab
     // Regular content based on role and tab
@@ -792,7 +800,20 @@ const AppContent = () => {
       } else if (activeTab === 'profile') {
         return <CoachProfileScreen onLogout={logout} />;
       } else if (activeTab === 'attendance') {
-        return <AttendanceScreen />;
+        return (
+          <View style={styles.placeholder}>
+            <Icon name="calendar-check" size={60} color="#cbd5e1" />
+            <Text style={[styles.placeholderText, { textAlign: 'center', marginTop: 16 }]}>
+              Pour faire l'appel, rendez-vous dans l'onglet "Planning" et cliquez sur l'icône de présence d'une séance.
+            </Text>
+            <TouchableOpacity
+              style={{ marginTop: 24, backgroundColor: '#f97316', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
+              onPress={() => setActiveTab('calendar')}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>Aller au Planning</Text>
+            </TouchableOpacity>
+          </View>
+        );
       }
       return (
         <View style={styles.placeholder}>

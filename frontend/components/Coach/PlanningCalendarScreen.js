@@ -563,13 +563,16 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                                     key={session.id}
                                     style={styles.sessionPickItem}
                                     onPress={() => {
-                                        setEventForm({
-                                            ...eventForm,
+                                        console.log('Selecting session:', session.title);
+                                        setEventForm(prev => ({
+                                            ...prev,
                                             theme: session.title,
                                             duree: session.total_duration?.toString() || '90',
-                                            session_id: session.id
-                                        });
+                                            session_id: session.id,
+                                            lieu: session.lieu || prev.lieu
+                                        }));
                                         setShowSessionPicker(false);
+                                        Alert.alert('Séance sélectionnée', `La séance "${session.title}" a été chargée dans le planning.`);
                                     }}
                                 >
                                     <View>

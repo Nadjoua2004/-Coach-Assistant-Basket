@@ -17,6 +17,7 @@ const BottomNav = ({ activeTab, setActiveTab, role }) => {
         { id: 'sessions', icon: 'clipboard-text-outline', label: 'Séances' },
         { id: 'athletes', icon: 'account-group-outline', label: 'Athlètes' },
         { id: 'exercises', icon: 'dumbbell', label: 'Exercices' },
+        { id: 'attendance', icon: 'account-check-outline', label: 'Appel' },
         { id: 'profile', icon: 'account-outline', label: 'Profil' }
       ];
     } else if (role === 'admin') {
