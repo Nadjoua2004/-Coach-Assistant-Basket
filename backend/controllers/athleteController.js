@@ -42,7 +42,7 @@ class AthleteController {
   static async getAllAthletes(req, res) {
     try {
       // 1. Get existing athletes
-      let query = supabase.from('athletes').select('*');
+      let query = supabase.from('athletes').select('*, medical_records(*)');
 
       // Apply filters
       if (req.query.groupe) query = query.eq('groupe', req.query.groupe);
@@ -112,7 +112,7 @@ class AthleteController {
     try {
       const { data: athlete, error } = await supabase
         .from('athletes')
-        .select('*')
+        .select('*, medical_records(*)')
         .eq('id', req.params.id)
         .single();
 
@@ -149,8 +149,9 @@ class AthleteController {
         });
       }
 
+      const { allergies, blessures_cours, antecedents, certificat_date, ...restOfData } = req.body;
       const athleteData = {
-        ...req.body,
+        ...restOfData,
         created_at: new Date().toISOString(),
         created_by: req.user.id,
         // If the creator is a player, link this athlete record to their user account
@@ -179,6 +180,17 @@ class AthleteController {
           success: false,
           message: 'Error creating athlete',
           error: error.message
+        });
+      }
+
+      // Handle medical record if provided
+      if (allergies || blessures_cours || antecedents || certificat_date) {
+        await supabase.from('medical_records').insert({
+          athlete_id: athlete.id,
+          allergies,
+          blessures_cours,
+          antecedents,
+          certificat_date: certificat_date || null
         });
       }
 
@@ -214,8 +226,9 @@ class AthleteController {
         });
       }
 
+      const { allergies, blessures_cours, antecedents, certificat_date, ...restOfData } = req.body;
       const updateData = {
-        ...req.body,
+        ...restOfData,
         updated_at: new Date().toISOString()
       };
 
@@ -253,6 +266,20 @@ class AthleteController {
           message: 'Error updating athlete',
           error: error.message
         });
+      }
+
+      // Handle medical record update
+      if (allergies !== undefined || blessures_cours !== undefined || antecedents !== undefined || certificat_date !== undefined) {
+        const medicalData = {
+          athlete_id: req.params.id,
+          updated_at: new Date().toISOString()
+        };
+        if (allergies !== undefined) medicalData.allergies = allergies;
+        if (blessures_cours !== undefined) medicalData.blessures_cours = blessures_cours;
+        if (antecedents !== undefined) medicalData.antecedents = antecedents;
+        if (certificat_date !== undefined) medicalData.certificat_date = certificat_date || null;
+
+        await supabase.from('medical_records').upsert(medicalData, { onConflict: 'athlete_id' });
       }
 
       res.json({

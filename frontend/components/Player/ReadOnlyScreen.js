@@ -56,9 +56,15 @@ const ReadOnlyScreen = () => {
       }
 
       // 2. Fetch Planning
-      const planningRes = await PlanningService.getAllPlanning({
+      const planningParams = {
         start_date: new Date().toISOString().split('T')[0]
-      });
+      };
+
+      if (profileRes && profileRes.data) {
+        planningParams.athlete_id = profileRes.data.id;
+      }
+
+      const planningRes = await PlanningService.getAllPlanning(planningParams);
 
       if (planningRes.success) {
         setEvents(planningRes.data);

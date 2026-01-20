@@ -38,7 +38,6 @@ const BottomNav = ({ activeTab, setActiveTab, role }) => {
 
     return [
       { id: 'calendar', icon: 'calendar', label: 'Planning' },
-      { id: 'stats', icon: 'chart-bar', label: 'Stats' },
       { id: 'profile', icon: 'account', label: 'Profil' }
     ];
   };

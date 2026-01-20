@@ -98,7 +98,7 @@ const CoachHomeScreen = ({ onCreateSession, onNavigate }) => {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.greeting}>Coach Tracker</Text>
+              <Text style={styles.greeting}>Coach </Text>
               <Text style={styles.welcome}>Bonjour, {user?.name?.split(' ')[0]}</Text>
             </View>
           </View>

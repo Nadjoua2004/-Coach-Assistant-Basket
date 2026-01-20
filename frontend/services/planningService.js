@@ -10,6 +10,7 @@ class PlanningService {
             const queryParams = new URLSearchParams();
             if (range.start_date) queryParams.append('start_date', range.start_date);
             if (range.end_date) queryParams.append('end_date', range.end_date);
+            if (range.athlete_id) queryParams.append('athlete_id', range.athlete_id);
 
             const endpoint = `/api/planning${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
             return await ApiService.get(endpoint);

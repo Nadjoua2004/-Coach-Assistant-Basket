@@ -9,6 +9,26 @@ class PlanningController {
     try {
       let query = supabase.from('planning').select('*');
 
+      // Filter by athlete if provided
+      if (req.query.athlete_id) {
+        // Find planning IDs where this athlete is assigned
+        const { data: assignments, error: assignError } = await supabase
+          .from('planning_athletes')
+          .select('planning_id')
+          .eq('athlete_id', req.query.athlete_id);
+
+        if (assignError) throw assignError;
+
+        const planningIds = assignments.map(a => a.planning_id);
+
+        // If no assignments, return empty list
+        if (planningIds.length === 0) {
+          return res.json({ success: true, data: [], count: 0 });
+        }
+
+        query = query.in('id', planningIds);
+      }
+
       // Filter by date range
       if (req.query.start_date) {
         query = query.gte('date', req.query.start_date);

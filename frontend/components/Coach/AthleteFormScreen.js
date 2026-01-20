@@ -30,7 +30,11 @@ const AthleteFormScreen = ({ athlete, onBack, onSave }) => {
         poste: athlete?.poste?.toString() || '',
         numero_licence: athlete?.numero_licence || '',
         contact_parent: athlete?.contact_parent || '',
-        groupe: athlete?.groupe || 'U17'
+        groupe: athlete?.groupe || 'U17',
+        allergies: athlete?.medical_record?.allergies || '',
+        blessures_cours: athlete?.medical_record?.blessures_cours || '',
+        antecedents: athlete?.medical_record?.antecedents || '',
+        certificat_date: athlete?.medical_record?.certificat_date || ''
     });
     const [photo, setPhoto] = useState(null);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -270,6 +274,36 @@ const AthleteFormScreen = ({ athlete, onBack, onSave }) => {
                     />
                 </View>
 
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Informations Médicales</Text>
+                    <Text style={styles.label}>Allergies</Text>
+                    <TextInput
+                        style={[styles.input, styles.textArea]}
+                        value={formData.allergies}
+                        onChangeText={(t) => handleChange('allergies', t)}
+                        placeholder="Ex: Arachides, Pénicilline..."
+                        multiline
+                    />
+
+                    <Text style={styles.label}>Blessures en cours</Text>
+                    <TextInput
+                        style={[styles.input, styles.textArea]}
+                        value={formData.blessures_cours}
+                        onChangeText={(t) => handleChange('blessures_cours', t)}
+                        placeholder="Ex: Entorse cheville droite..."
+                        multiline
+                    />
+
+                    <Text style={styles.label}>Antécédents / Notes</Text>
+                    <TextInput
+                        style={[styles.input, styles.textArea]}
+                        value={formData.antecedents}
+                        onChangeText={(t) => handleChange('antecedents', t)}
+                        placeholder="Historique médical important..."
+                        multiline
+                    />
+                </View>
+
                 <TouchableOpacity
                     style={[styles.saveButton, loading && styles.disabledButton]}
                     onPress={handleSave}
@@ -368,6 +402,10 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#1e293b',
         marginBottom: 16,
+    },
+    textArea: {
+        height: 80,
+        textAlignVertical: 'top',
     },
     row: {
         flexDirection: 'row',

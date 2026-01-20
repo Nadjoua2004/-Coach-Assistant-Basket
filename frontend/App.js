@@ -836,13 +836,6 @@ const AppContent = () => {
     if (activeTab === 'profile') {
       return <PlayerProfileScreen />;
     }
-    if (activeTab === 'stats') {
-      return (
-        <View style={styles.placeholder}>
-          <Text style={styles.placeholderText}>Statistiques en développement</Text>
-        </View>
-      );
-    }
     return <ReadOnlyScreen />;
   };
 

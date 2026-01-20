@@ -67,32 +67,50 @@ class AttendanceController {
         created_at: new Date().toISOString()
       };
 
-      const { data: record, error } = await supabase
+      // Manually handle upsert because of potential missing unique constraint
+      const { data: existing, error: fetchError } = await supabase
         .from('attendance')
-        .upsert(attendanceData, {
-          onConflict: 'planning_id,athlete_id'
-        })
-        .select()
-        .single();
+        .select('id')
+        .eq('planning_id', attendanceData.planning_id)
+        .eq('athlete_id', attendanceData.athlete_id)
+        .maybeSingle();
 
-      if (error) {
-        return res.status(500).json({
-          success: false,
-          message: 'Error creating attendance record',
-          error: error.message
-        });
+      if (fetchError) throw fetchError;
+
+      let result;
+      if (existing) {
+        // Update
+        const { id, created_at, ...updateData } = attendanceData;
+        const { data, error } = await supabase
+          .from('attendance')
+          .update(updateData)
+          .eq('id', existing.id)
+          .select()
+          .single();
+        if (error) throw error;
+        result = data;
+      } else {
+        // Insert
+        const { data, error } = await supabase
+          .from('attendance')
+          .insert(attendanceData)
+          .select()
+          .single();
+        if (error) throw error;
+        result = data;
       }
 
       res.status(201).json({
         success: true,
         message: 'Attendance recorded successfully',
-        data: record
+        data: result
       });
     } catch (error) {
       console.error('Create attendance error:', error);
       res.status(500).json({
         success: false,
-        message: 'Server error'
+        message: 'Error recording attendance',
+        error: error.message
       });
     }
   }

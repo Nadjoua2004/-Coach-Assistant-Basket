@@ -77,19 +77,24 @@ const AttendanceScreen = ({ session, onBack }) => {
                 planning_id: session.id,
                 session_id: session.session_id || session.id,
                 athlete_id: a.id,
-                status: attendance[a.id].status,
-                notes: attendance[a.id].notes
+                status: attendance[a.id]?.status || 'absent',
+                notes: attendance[a.id]?.notes || ''
             }));
+
+            console.log('--- ATTENDANCE SAVE DEBUG ---');
+            console.log('Session ID:', session.id);
+            console.log('Records to save:', records.length);
 
             for (const record of records) {
                 await AttendanceService.recordAttendance(record);
             }
 
-            Alert.alert('Succès', 'Appel enregistré avec succès');
+            Alert.alert('Succès', 'Appel enregistré avec succès pour tous les athlètes');
             onBack();
         } catch (error) {
             console.error('Error recording attendance:', error);
-            Alert.alert('Erreur', 'Une erreur est survenue lors de l\'enregistrement');
+            const errorMsg = error.response?.data?.message || error.message || 'Une erreur est survenue';
+            Alert.alert('Erreur', `Impossible d'enregistrer l'appel: ${errorMsg}`);
         } finally {
             setSaving(false);
         }
