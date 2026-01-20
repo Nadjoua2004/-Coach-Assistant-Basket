@@ -242,20 +242,7 @@ const LoginScreen = () => {
                 <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
               </TouchableOpacity>
 
-              <View style={styles.demoBanner}>
-                <Text style={styles.demoTitle}>Comptes de démonstration :</Text>
-                <View style={styles.demoItem}>
-                  <Text style={styles.demoLabel}>Admin:</Text>
-                  <Text style={styles.demoValue}>admin@test.com / password123</Text>
-                </View>
-                <View style={styles.demoItem}>
-                  <Text style={styles.demoLabel}>Coach:</Text>
-                  <Text style={styles.demoValue}>coach@test.com / password123</Text>
-                </View>
-                <Text style={styles.demoHint}>
-                  (Utilisez ces identifiants pour tester les fonctionnalités)
-                </Text>
-              </View>
+           
             </>
           )}
         </View>

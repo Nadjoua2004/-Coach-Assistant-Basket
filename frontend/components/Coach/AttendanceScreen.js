@@ -85,7 +85,18 @@ const AttendanceScreen = ({ session, onBack }) => {
             console.log('Session ID:', session.id);
             console.log('Records to save:', records.length);
 
-            for (const record of records) {
+            // Filter records to only include real athletes (ignore temp_ ID for unlinked players)
+            const validRecords = records.filter(r =>
+                r.athlete_id && !r.athlete_id.toString().startsWith('temp_')
+            );
+
+            if (validRecords.length === 0) {
+                Alert.alert('Information', 'Aucun athlète avec un profil complet à enregistrer.');
+                setSaving(false);
+                return;
+            }
+
+            for (const record of validRecords) {
                 await AttendanceService.recordAttendance(record);
             }
 
