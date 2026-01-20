@@ -597,6 +597,8 @@ import ExerciseManagerScreen from './components/Coach/ExerciseManagerScreen';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import VideoManagerScreen from './components/Admin/VideoManagerScreen';
 import UsersListScreen from './components/Admin/UsersListScreen';
+import AdminProfileScreen from './components/Admin/AdminProfileScreen';
+import ReportsScreen from './components/Admin/ReportsScreen';
 import ReadOnlyScreen from './components/Player/ReadOnlyScreen';
 import PlayerProfileScreen from './components/Player/PlayerProfileScreen';
 import BottomNav from './components/Common/bottomNav';
@@ -799,7 +801,9 @@ const AppContent = () => {
       );
     }
 
-    if (user.role === 'admin') {
+    const userRole = user.role ? user.role.toLowerCase() : '';
+
+    if (userRole === 'admin') {
       if (activeTab === 'dashboard') {
         if (currentAdminScreen === 'videos') {
           return <VideoManagerScreen onBack={() => setCurrentAdminScreen('dashboard')} />;
@@ -810,6 +814,8 @@ const AppContent = () => {
         return <AdminDashboard onNavigate={(screen) => setCurrentAdminScreen(screen)} />;
       }
       if (activeTab === 'users') return <UsersListScreen />;
+      if (activeTab === 'reports') return <ReportsScreen />;
+      if (activeTab === 'profile') return <AdminProfileScreen onLogout={logout} />;
       return (
         <View style={styles.placeholder}>
           <Text style={styles.placeholderText}>Page {activeTab} en développement</Text>
@@ -818,7 +824,6 @@ const AppContent = () => {
     }
 
     // Player or Parent
-    const userRole = user.role.toLowerCase();
     if (activeTab === 'profile') {
       return <PlayerProfileScreen />;
     }

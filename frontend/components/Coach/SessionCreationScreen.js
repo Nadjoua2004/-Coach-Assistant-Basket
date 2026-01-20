@@ -28,7 +28,7 @@ const SessionCreationScreen = ({ onBack, onSaveSession, initialData }) => {
   const [duration, setDuration] = useState('90');
   const [warmup, setWarmup] = useState('');
   const [mainContent, setMainContent] = useState('');
-  const [coolDown, setCoolDown] = useState('');
+  const [cooldown, setCooldown] = useState('');
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,7 @@ const SessionCreationScreen = ({ onBack, onSaveSession, initialData }) => {
       setLocation(initialData.lieu || 'Salle Principale');
       setWarmup(initialData.warmup || '');
       setMainContent(initialData.main_content || '');
-      setCoolDown(initialData.cool_down || '');
+      setCooldown(initialData.cooldown || initialData.cool_down || '');
       setTime(initialData.heure || initialData.time || '18:00');
 
       if (initialData.exercises) {
@@ -65,10 +65,10 @@ const SessionCreationScreen = ({ onBack, onSaveSession, initialData }) => {
         total_duration: parseInt(duration),
         warmup,
         main_content: mainContent,
-        cool_down: coolDown,
+        cooldown: cooldown,
         exercises: selectedExercises.map(ex => ex.id),
         date,
-        time,
+        heure: time, // Corrected to match database field 'heure'
         lieu: location,
         status: 'planifiée'
       };
@@ -212,11 +212,11 @@ const SessionCreationScreen = ({ onBack, onSaveSession, initialData }) => {
                     onChangeText={setMainContent}
                     multiline
                   />
-                  <Text style={styles.subLabel}>Retour au calme</Text>
+                  <Text style={styles.subLabel}>Fin de séance</Text>
                   <TextInput
                     style={styles.structureInput}
-                    value={coolDown}
-                    onChangeText={setCoolDown}
+                    value={cooldown}
+                    onChangeText={setCooldown}
                     multiline
                   />
                 </View>

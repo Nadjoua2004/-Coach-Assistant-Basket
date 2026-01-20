@@ -241,6 +241,21 @@ const LoginScreen = () => {
               <TouchableOpacity style={styles.forgotPassword} activeOpacity={0.7}>
                 <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
               </TouchableOpacity>
+
+              <View style={styles.demoBanner}>
+                <Text style={styles.demoTitle}>Comptes de démonstration :</Text>
+                <View style={styles.demoItem}>
+                  <Text style={styles.demoLabel}>Admin:</Text>
+                  <Text style={styles.demoValue}>admin@test.com / password123</Text>
+                </View>
+                <View style={styles.demoItem}>
+                  <Text style={styles.demoLabel}>Coach:</Text>
+                  <Text style={styles.demoValue}>coach@test.com / password123</Text>
+                </View>
+                <Text style={styles.demoHint}>
+                  (Utilisez ces identifiants pour tester les fonctionnalités)
+                </Text>
+              </View>
             </>
           )}
         </View>
@@ -428,6 +443,42 @@ const styles = StyleSheet.create({
   },
   loginButtonDisabled: {
     opacity: 0.6,
+  },
+  demoBanner: {
+    backgroundColor: '#fff7ed',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ffedd5',
+    marginTop: 8,
+  },
+  demoTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#9a3412',
+    marginBottom: 8,
+  },
+  demoItem: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  demoLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#c2410c',
+    width: 60,
+  },
+  demoValue: {
+    fontSize: 13,
+    color: '#9a3412',
+    flex: 1,
+  },
+  demoHint: {
+    fontSize: 11,
+    color: '#ea580c',
+    fontStyle: 'italic',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
 

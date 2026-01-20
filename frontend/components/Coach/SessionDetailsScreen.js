@@ -147,7 +147,7 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
                 </View>
 
                 {/* Structure */}
-                {(fullSession.warmup || fullSession.main_content || fullSession.cool_down) && (
+                {(fullSession.warmup || fullSession.main_content || fullSession.cooldown || fullSession.cool_down) && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Structure de la séance</Text>
                         <View style={styles.card}>
@@ -163,10 +163,10 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
                                     <Text style={styles.structureText}>{fullSession.main_content}</Text>
                                 </View>
                             )}
-                            {fullSession.cool_down && (
+                            {(fullSession.cooldown || fullSession.cool_down) && (
                                 <View style={styles.structureItem}>
-                                    <Text style={styles.structureLabel}>RETOUR AU CALME</Text>
-                                    <Text style={styles.structureText}>{fullSession.cool_down}</Text>
+                                    <Text style={styles.structureLabel}>FIN DE SÉANCE</Text>
+                                    <Text style={styles.structureText}>{fullSession.cooldown || fullSession.cool_down}</Text>
                                 </View>
                             )}
                         </View>

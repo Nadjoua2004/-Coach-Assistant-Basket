@@ -17,6 +17,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import PlanningService from '../../services/planningService';
 import AthleteService from '../../services/athleteService';
 import SessionService from '../../services/sessionService';
+import ExerciseService from '../../services/exerciseService';
+import ExerciseSelectionModal from './ExerciseSelectionModal';
 
 const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
     const [loading, setLoading] = useState(true);
@@ -30,6 +32,8 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
     const [savedSessions, setSavedSessions] = useState([]);
     const [showSessionPicker, setShowSessionPicker] = useState(false);
     const [loadingSessions, setLoadingSessions] = useState(false);
+    const [showExerciseModal, setShowExerciseModal] = useState(false);
+    const [selectedExercises, setSelectedExercises] = useState([]);
 
     const [eventForm, setEventForm] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -501,7 +505,19 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                                     setShowSessionPicker(true);
                                 }}
                             >
-                                <Text style={styles.sessionPickerBtnText}>Choisir une séance enregistrée</Text>
+                                <Icon name="clipboard-text-outline" size={20} color="#3b82f6" />
+                                <Text style={styles.sessionPickerBtnText}>Choisir une séance complète</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.assignmentSection}>
+                            <Text style={styles.inputLabel}>Bibliothèque d'exercices</Text>
+                            <TouchableOpacity
+                                style={[styles.sessionPickerBtn, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}
+                                onPress={() => setShowExerciseModal(true)}
+                            >
+                                <Icon name="basketball" size={20} color="#10b981" />
+                                <Text style={[styles.sessionPickerBtnText, { color: '#10b981' }]}>Choisir des exercices</Text>
                             </TouchableOpacity>
                         </View>
 
@@ -594,18 +610,30 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                                                 {athlete.prenom} {athlete.nom}
                                             </Text>
                                             <Text style={styles.athleteMeta}>
-                                                Poste {athlete.poste || 'N/A'}
+                                                {athlete.poste ? `Poste ${athlete.poste}` : 'Non défini'}
                                             </Text>
                                         </View>
-                                        {isSelected && (
-                                            <Icon name="check-circle" size={24} color="#10b981" />
-                                        )}
+                                        {isSelected && <Icon name="check-circle" size={24} color="#10b981" />}
                                     </TouchableOpacity>
                                 );
                             })}
                     </ScrollView>
                 </SafeAreaView>
             </Modal>
+
+            <ExerciseSelectionModal
+                visible={showExerciseModal}
+                onClose={() => setShowExerciseModal(false)}
+                onSelectExercise={(exercise) => {
+                    // When an exercise is selected, we can add it to the theme or just update the theme
+                    setEventForm(prev => ({
+                        ...prev,
+                        theme: prev.theme ? `${prev.theme}, ${exercise.name}` : exercise.name
+                    }));
+                    setShowExerciseModal(false);
+                    Alert.alert('Exercice ajouté', `L'exercice "${exercise.name}" a été ajouté au thème de la séance.`);
+                }}
+            />
         </SafeAreaView>
     );
 };

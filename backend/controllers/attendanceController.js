@@ -7,7 +7,7 @@ class AttendanceController {
    */
   static async getAllAttendance(req, res) {
     try {
-      let query = supabase.from('attendance').select('*');
+      let query = supabase.from('attendance').select('*, athletes(prenom, nom), planning(date, theme)');
 
       // Filter by session or planning
       if (req.query.session_id) {

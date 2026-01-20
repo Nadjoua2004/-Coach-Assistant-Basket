@@ -97,6 +97,8 @@ class ExerciseController {
         players_min: req.body.players_min,
         players_max: req.body.players_max,
         equipment: req.body.equipment,
+        video_url: req.body.video_url,
+        video_id: req.body.video_id,
         created_by: req.user.id,
         created_at: new Date().toISOString()
       };
@@ -113,7 +115,7 @@ class ExerciseController {
         console.error('Supabase insert error for exercise:', error);
         return res.status(500).json({
           success: false,
-          message: 'Error creating exercise',
+          message: `Error creating exercise: ${error.message} ${error.details || ''}`,
           error: error.message,
           details: error.details,
           hint: error.hint
