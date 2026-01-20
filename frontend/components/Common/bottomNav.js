@@ -60,7 +60,7 @@ const BottomNav = ({ activeTab, setActiveTab, role }) => {
               <View style={styles.iconContainer}>
                 <Icon
                   name={item.icon}
-                  size={22}
+                  size={19}
                   color={isActive ? '#f97316' : '#94a3b8'}
                 />
                 {isActive && <View style={styles.activeDot} />}
@@ -89,29 +89,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
-    paddingBottom: 25,
+    paddingBottom: 20,
   },
   nav: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    height: 60,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    height: 52,
   },
   navItem: {
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   iconContainer: {
-    marginBottom: 4,
-    height: 24,
+    marginBottom: 2,
+    height: 20,
     justifyContent: 'center',
   },
   label: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#6b7280',
     fontWeight: '400',
   },
@@ -120,12 +120,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   activeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
     backgroundColor: '#f97316',
     position: 'absolute',
-    bottom: -8,
+    bottom: -6,
   },
 });
 

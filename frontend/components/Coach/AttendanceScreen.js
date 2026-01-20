@@ -19,8 +19,10 @@ const AttendanceScreen = ({ session, onBack }) => {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        fetchData();
-    }, [session.id]);
+        if (session && session.id) {
+            fetchData();
+        }
+    }, [session?.id]);
 
     const fetchData = async () => {
         try {
@@ -73,7 +75,7 @@ const AttendanceScreen = ({ session, onBack }) => {
             setSaving(true);
             const records = athletes.map(a => ({
                 planning_id: session.id,
-                session_id: session.session_id,
+                session_id: session.session_id || session.id,
                 athlete_id: a.id,
                 status: attendance[a.id].status,
                 notes: attendance[a.id].notes
@@ -160,7 +162,7 @@ const AttendanceScreen = ({ session, onBack }) => {
                 </TouchableOpacity>
                 <View style={styles.titleContainer}>
                     <Text style={styles.title}>Faire l'appel</Text>
-                    <Text style={styles.subtitle}>{session.theme || session.title} • {session.groupe}</Text>
+                    <Text style={styles.subtitle}>{session?.theme || session?.title} • {session?.groupe}</Text>
                 </View>
                 <View style={{ width: 44 }} />
             </View>
