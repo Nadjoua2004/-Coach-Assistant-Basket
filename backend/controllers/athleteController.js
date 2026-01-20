@@ -149,18 +149,35 @@ class AthleteController {
         });
       }
 
-      const { allergies, blessures_cours, antecedents, certificat_date, ...restOfData } = req.body;
+      const {
+        nom, prenom, sexe, date_naissance, taille, poids, poste,
+        numero_licence, contact_parent, groupe, blesse, user_id,
+        allergies, blessures_cours, antecedents, certificat_date
+      } = req.body;
+
       const athleteData = {
-        ...restOfData,
+        nom,
+        prenom,
+        sexe,
+        date_naissance,
+        taille,
+        poids,
+        poste,
+        numero_licence,
+        contact_parent,
+        groupe,
+        blesse: blesse === 'true' || blesse === true,
         created_at: new Date().toISOString(),
         created_by: req.user.id,
         // If the creator is a player, link this athlete record to their user account
-        user_id: req.user.role === 'joueur' ? req.user.id : null
+        user_id: req.user.role === 'joueur' ? req.user.id : (user_id || null)
       };
 
       // Handle photo upload if provided
       if (req.file) {
-        const photoPath = `athletes/photos/${req.params.id || Date.now()}-${req.file.originalname}`;
+        // Use a timestamp and random string to avoid collisions
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${req.file.originalname}`;
+        const photoPath = `athletes/photos/${fileName}`;
         const photoUrl = await uploadToR2(
           req.file.buffer,
           photoPath,
@@ -176,6 +193,7 @@ class AthleteController {
         .single();
 
       if (error) {
+        console.error('Supabase insert athlete error:', error);
         return res.status(500).json({
           success: false,
           message: 'Error creating athlete',
@@ -226,9 +244,24 @@ class AthleteController {
         });
       }
 
-      const { allergies, blessures_cours, antecedents, certificat_date, ...restOfData } = req.body;
+      const {
+        nom, prenom, sexe, date_naissance, taille, poids, poste,
+        numero_licence, contact_parent, groupe, blesse,
+        allergies, blessures_cours, antecedents, certificat_date
+      } = req.body;
+
       const updateData = {
-        ...restOfData,
+        nom,
+        prenom,
+        sexe,
+        date_naissance,
+        taille,
+        poids,
+        poste,
+        numero_licence,
+        contact_parent,
+        groupe,
+        blesse: blesse === 'true' || blesse === true,
         updated_at: new Date().toISOString()
       };
 
@@ -244,7 +277,8 @@ class AthleteController {
           }
         }
 
-        const photoPath = `athletes/photos/${req.params.id}-${req.file.originalname}`;
+        const fileName = `${req.params.id}-${Date.now()}-${req.file.originalname}`;
+        const photoPath = `athletes/photos/${fileName}`;
         const photoUrl = await uploadToR2(
           req.file.buffer,
           photoPath,

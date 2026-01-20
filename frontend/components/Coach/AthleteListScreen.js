@@ -53,16 +53,11 @@ const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
                     if (userRes.success) {
                         const players = userRes.data.filter(u => u.role === 'joueur');
 
-                        // Filter out players who already match an athlete by Name
-                        // (Normalization: lowercase, trimmed)
-                        const athleteNames = new Set(athletesData.map(a => `${a.prenom} ${a.nom}`.toLowerCase().trim()));
-                        const athleteEmails = new Set(athletesData.map(a => (a.email || '').toLowerCase().trim()));
+                        // Filter out players who already have an athlete profile (match by user_id)
+                        const athleteUserIds = new Set(athletesData.map(a => a.user_id).filter(id => id));
+                        const unlinkedPlayersList = players.filter(p => !athleteUserIds.has(p.id));
 
-                        unlinkedPlayers = players.filter(p => {
-                            const fullName = p.name.toLowerCase().trim();
-                            const email = (p.email || '').toLowerCase().trim();
-                            return !athleteNames.has(fullName) && !athleteEmails.has(email);
-                        }).map(p => {
+                        unlinkedPlayers = unlinkedPlayersList.map(p => {
                             const nameParts = p.name.split(' ');
                             return {
                                 id: `temp_${p.id}`,

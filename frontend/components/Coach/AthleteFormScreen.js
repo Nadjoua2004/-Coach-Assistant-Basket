@@ -31,10 +31,10 @@ const AthleteFormScreen = ({ athlete, onBack, onSave }) => {
         numero_licence: athlete?.numero_licence || '',
         contact_parent: athlete?.contact_parent || '',
         groupe: athlete?.groupe || 'U17',
-        allergies: athlete?.medical_record?.allergies || '',
-        blessures_cours: athlete?.medical_record?.blessures_cours || '',
-        antecedents: athlete?.medical_record?.antecedents || '',
-        certificat_date: athlete?.medical_record?.certificat_date || ''
+        allergies: athlete?.medical_records?.[0]?.allergies || '',
+        blessures_cours: athlete?.medical_records?.[0]?.blessures_cours || '',
+        antecedents: athlete?.medical_records?.[0]?.antecedents || '',
+        certificat_date: athlete?.medical_records?.[0]?.certificat_date || ''
     });
     const [photo, setPhoto] = useState(null);
     const [showDatePicker, setShowDatePicker] = useState(false);
