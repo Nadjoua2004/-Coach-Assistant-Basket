@@ -593,6 +593,7 @@ import PlanningCalendarScreen from './components/Coach/PlanningCalendarScreen';
 import CoachProfileScreen from './components/Coach/CoachProfileScreen';
 import SessionDetailsScreen from './components/Coach/SessionDetailsScreen';
 import AttendanceScreen from './components/Coach/AttendanceScreen';
+import AttendanceSelector from './components/Coach/AttendanceSelector';
 import ExerciseManagerScreen from './components/Coach/ExerciseManagerScreen';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import VideoManagerScreen from './components/Admin/VideoManagerScreen';
@@ -800,20 +801,7 @@ const AppContent = () => {
       } else if (activeTab === 'profile') {
         return <CoachProfileScreen onLogout={logout} />;
       } else if (activeTab === 'attendance') {
-        return (
-          <View style={styles.placeholder}>
-            <Icon name="calendar-check" size={60} color="#cbd5e1" />
-            <Text style={[styles.placeholderText, { textAlign: 'center', marginTop: 16 }]}>
-              Pour faire l'appel, rendez-vous dans l'onglet "Planning" et cliquez sur l'icône de présence d'une séance.
-            </Text>
-            <TouchableOpacity
-              style={{ marginTop: 24, backgroundColor: '#f97316', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
-              onPress={() => setActiveTab('calendar')}
-            >
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>Aller au Planning</Text>
-            </TouchableOpacity>
-          </View>
-        );
+        return <AttendanceSelector onSelectSession={handleTakeAttendance} />;
       }
       return (
         <View style={styles.placeholder}>

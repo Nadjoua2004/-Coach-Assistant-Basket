@@ -9,6 +9,7 @@ class AttendanceService {
         try {
             const queryParams = new URLSearchParams();
             if (filters.session_id) queryParams.append('session_id', filters.session_id);
+            if (filters.planning_id) queryParams.append('planning_id', filters.planning_id);
             if (filters.athlete_id) queryParams.append('athlete_id', filters.athlete_id);
 
             const endpoint = `/api/attendance${queryParams.toString() ? '?' + queryParams.toString() : ''}`;

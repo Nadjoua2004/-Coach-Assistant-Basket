@@ -546,7 +546,15 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
             <Modal visible={showSessionPicker} animationType="slide" presentationStyle="pageSheet">
                 <SafeAreaView style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Sélectionner une séance</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={styles.modalTitle}>Sélectionner une séance</Text>
+                            <TouchableOpacity
+                                style={{ marginLeft: 10 }}
+                                onPress={fetchSavedSessions}
+                            >
+                                <Icon name="refresh" size={20} color="#f97316" />
+                            </TouchableOpacity>
+                        </View>
                         <TouchableOpacity onPress={() => setShowSessionPicker(false)}>
                             <Icon name="close" size={24} color="#64748b" />
                         </TouchableOpacity>
@@ -556,7 +564,24 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                         {loadingSessions ? (
                             <ActivityIndicator size="small" color="#f97316" />
                         ) : savedSessions.length === 0 ? (
-                            <Text style={styles.emptyText}>Aucune séance enregistrée</Text>
+                            <View style={{ alignItems: 'center', marginTop: 40 }}>
+                                <Icon name="clipboard-text-outline" size={60} color="#cbd5e1" />
+                                <Text style={styles.emptyText}>Aucune séance dans votre bibliothèque.</Text>
+                                <Text style={{ color: '#94a3b8', textAlign: 'center', marginTop: 8, marginBottom: 20 }}>
+                                    Vous devez d'abord créer des modèles de séances dans l'onglet "Séances".
+                                </Text>
+                                <TouchableOpacity
+                                    style={{ backgroundColor: '#f97316', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 }}
+                                    onPress={() => {
+                                        setShowSessionPicker(false);
+                                        setShowEventModal(false);
+                                        // Navigate to sessions tab? We can't easily but we can tell them.
+                                        Alert.alert('Info', 'Veuillez fermer le planning et aller dans l\'onglet "Séances" pour créer un modèle.');
+                                    }}
+                                >
+                                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Compris</Text>
+                                </TouchableOpacity>
+                            </View>
                         ) : (
                             savedSessions.map(session => (
                                 <TouchableOpacity
@@ -575,7 +600,7 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                                         Alert.alert('Séance sélectionnée', `La séance "${session.title}" a été chargée dans le planning.`);
                                     }}
                                 >
-                                    <View>
+                                    <View style={{ flex: 1 }}>
                                         <Text style={styles.sessionPickTitle}>{session.title}</Text>
                                         <Text style={styles.sessionPickMeta}>{session.objective}</Text>
                                     </View>

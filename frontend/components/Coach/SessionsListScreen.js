@@ -25,9 +25,9 @@ const SessionsListScreen = ({ onViewSession }) => {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      const response = await PlanningService.getAllPlanning();
+      const response = await SessionService.getAllSessions();
       if (response.success) {
-        setSessions(response.data);
+        setSessions(response.data || []);
       }
     } catch (error) {
       console.error('Error fetching sessions:', error);
@@ -38,7 +38,8 @@ const SessionsListScreen = ({ onViewSession }) => {
   };
 
   const filteredSessions = sessions.filter(s =>
-    (s.theme || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.objective || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (s.lieu || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -53,7 +54,7 @@ const SessionsListScreen = ({ onViewSession }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await PlanningService.deletePlanning(sessionId);
+              const response = await SessionService.deleteSession(sessionId);
               if (response.success) {
                 setSessions(prev => prev.filter(session => session.id !== sessionId));
               }
@@ -76,9 +77,9 @@ const SessionsListScreen = ({ onViewSession }) => {
         <View style={styles.sessionTitleContainer}>
           <View style={[
             styles.statusIndicator,
-            { backgroundColor: '#f97316' }
+            { backgroundColor: '#3b82f6' }
           ]} />
-          <Text style={styles.sessionTitle}>{item.theme}</Text>
+          <Text style={styles.sessionTitle}>{item.title}</Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
@@ -90,28 +91,17 @@ const SessionsListScreen = ({ onViewSession }) => {
         </View>
       </View>
 
+      <Text style={styles.sessionObjective} numberOfLines={2}>{item.objective}</Text>
+
       <View style={styles.sessionDetails}>
         <View style={styles.detailRow}>
           <View style={styles.detailItem}>
-            <Icon name="calendar" size={16} color="#6b7280" />
-            <Text style={styles.detailText}>
-              {new Date(item.date).toLocaleDateString()} • {item.heure}
-            </Text>
-          </View>
-          <View style={styles.detailItem}>
             <Icon name="clock-outline" size={16} color="#6b7280" />
-            <Text style={styles.detailText}>{item.duree} min</Text>
+            <Text style={styles.detailText}>{item.total_duration} min</Text>
           </View>
-        </View>
-
-        <View style={styles.detailRow}>
           <View style={styles.detailItem}>
             <Icon name="map-marker-outline" size={16} color="#6b7280" />
-            <Text style={styles.detailText}>{item.lieu || 'Salle'}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Icon name="account-group-outline" size={16} color="#6b7280" />
-            <Text style={styles.detailText}>{item.groupe || 'U17'}</Text>
+            <Text style={styles.detailText}>{item.lieu || 'Non spécifié'}</Text>
           </View>
         </View>
       </View>
@@ -121,12 +111,12 @@ const SessionsListScreen = ({ onViewSession }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Séances planifiées</Text>
+        <Text style={styles.headerTitle}>Bibliothèque de séances</Text>
         <View style={styles.searchBar}>
           <Icon name="magnify" size={20} color="#94a3b8" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher une séance..."
+            placeholder="Rechercher un modèle..."
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -136,14 +126,14 @@ const SessionsListScreen = ({ onViewSession }) => {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#f97316" />
-          <Text style={styles.loadingText}>Chargement des séances...</Text>
+          <Text style={styles.loadingText}>Chargement des modèles...</Text>
         </View>
       ) : filteredSessions.length === 0 ? (
         <View style={styles.emptyState}>
           <Icon name="clipboard-text-outline" size={64} color="#d1d5db" />
-          <Text style={styles.emptyStateTitle}>Aucune séance trouvée</Text>
+          <Text style={styles.emptyStateTitle}>Aucun modèle de séance</Text>
           <Text style={styles.emptyStateText}>
-            Les séances s'affichent ici une fois créées dans le planning
+            Créez vos modèles ici pour les réutiliser dans le planning
           </Text>
         </View>
       ) : (
@@ -157,6 +147,13 @@ const SessionsListScreen = ({ onViewSession }) => {
           refreshing={loading}
         />
       )}
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => onCreateSession && onCreateSession()}
+      >
+        <Icon name="plus" size={30} color="white" />
+      </TouchableOpacity>
     </View>
   );
 };
