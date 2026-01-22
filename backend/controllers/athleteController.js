@@ -152,251 +152,253 @@ class AthleteController {
         });
       }
 
-      numero_licence, contact_parent, groupe, blesse, user_id, parent_id,
+      const {
+        nom, prenom, sexe, date_naissance, taille, poids, poste,
+        numero_licence, contact_parent, groupe, blesse, user_id, parent_id,
         allergies, blessures_cours, antecedents, certificat_date
-    } = req.body;
+      } = req.body;
 
-    const athleteData = {
-      nom,
-      prenom,
-      sexe,
-      date_naissance,
-      taille,
-      poids,
-      poste,
-      numero_licence,
-      contact_parent,
-      groupe,
-      blesse: blesse === 'true' || blesse === true,
-      created_at: new Date().toISOString(),
-      created_by: req.user.id,
-      // If the creator is a player, link this athlete record to their user account
-      user_id: req.user.role === 'joueur' ? req.user.id : (user_id || null),
-      // Link to parent if provided or if creator is a parent
-      parent_id: req.user.role === 'parent' ? req.user.id : (parent_id || null)
-    };
+      const athleteData = {
+        nom,
+        prenom,
+        sexe,
+        date_naissance,
+        taille,
+        poids,
+        poste,
+        numero_licence,
+        contact_parent,
+        groupe,
+        blesse: blesse === 'true' || blesse === true,
+        created_at: new Date().toISOString(),
+        created_by: req.user.id,
+        // If the creator is a player, link this athlete record to their user account
+        user_id: req.user.role === 'joueur' ? req.user.id : (user_id || null),
+        // Link to parent if provided or if creator is a parent
+        parent_id: req.user.role === 'parent' ? req.user.id : (parent_id || null)
+      };
 
-    // Handle photo upload if provided
-    if (req.file) {
-      // Use a timestamp and random string to avoid collisions
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${req.file.originalname}`;
-      const photoPath = `athletes/photos/${fileName}`;
-      const photoUrl = await uploadToR2(
-        req.file.buffer,
-        photoPath,
-        req.file.mimetype
-      );
-      athleteData.photo_url = photoUrl;
-    }
+      // Handle photo upload if provided
+      if (req.file) {
+        // Use a timestamp and random string to avoid collisions
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${req.file.originalname}`;
+        const photoPath = `athletes/photos/${fileName}`;
+        const photoUrl = await uploadToR2(
+          req.file.buffer,
+          photoPath,
+          req.file.mimetype
+        );
+        athleteData.photo_url = photoUrl;
+      }
 
-    const { data: athlete, error } = await supabase
-      .from('athletes')
-      .insert(athleteData)
-      .select()
-      .single();
+      const { data: athlete, error } = await supabase
+        .from('athletes')
+        .insert(athleteData)
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Supabase insert athlete error:', error);
-      return res.status(500).json({
+      if (error) {
+        console.error('Supabase insert athlete error:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Error creating athlete',
+          error: error.message
+        });
+      }
+
+      // Handle medical record if provided
+      if (allergies || blessures_cours || antecedents || certificat_date) {
+        await supabase.from('medical_records').insert({
+          athlete_id: athlete.id,
+          allergies,
+          blessures_cours,
+          antecedents,
+          certificat_date: certificat_date || null
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'Athlete created successfully',
+        data: athlete
+      });
+    } catch (error) {
+      console.error('Create athlete error:', error);
+      res.status(500).json({
         success: false,
-        message: 'Error creating athlete',
-        error: error.message
+        message: 'Server error'
       });
     }
-
-    // Handle medical record if provided
-    if (allergies || blessures_cours || antecedents || certificat_date) {
-      await supabase.from('medical_records').insert({
-        athlete_id: athlete.id,
-        allergies,
-        blessures_cours,
-        antecedents,
-        certificat_date: certificat_date || null
-      });
-    }
-
-    res.status(201).json({
-      success: true,
-      message: 'Athlete created successfully',
-      data: athlete
-    });
-  } catch(error) {
-    console.error('Create athlete error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
   }
-}
 
   /**
    * Update athlete
    */
   static async updateAthlete(req, res) {
-  try {
-    const { data: athlete, error: fetchError } = await supabase
-      .from('athletes')
-      .select('*')
-      .eq('id', req.params.id)
-      .single();
+    try {
+      const { data: athlete, error: fetchError } = await supabase
+        .from('athletes')
+        .select('*')
+        .eq('id', req.params.id)
+        .single();
 
-    if (fetchError || !athlete) {
-      return res.status(404).json({
-        success: false,
-        message: 'Athlete not found'
-      });
-    }
-
-    const {
-      nom, prenom, sexe, date_naissance, taille, poids, poste,
-      numero_licence, contact_parent, groupe, blesse,
-      allergies, blessures_cours, antecedents, certificat_date
-    } = req.body;
-
-    const updateData = {
-      nom,
-      prenom,
-      sexe,
-      date_naissance,
-      taille,
-      poids,
-      poste,
-      numero_licence,
-      contact_parent,
-      groupe,
-      blesse: blesse === 'true' || blesse === true,
-      updated_at: new Date().toISOString()
-    };
-
-    // Handle photo upload if provided
-    if (req.file) {
-      // Delete old photo if exists
-      if (athlete.photo_url) {
-        try {
-          const oldPhotoPath = athlete.photo_url.split('/').pop();
-          await deleteFromR2(`athletes/photos/${oldPhotoPath}`);
-        } catch (error) {
-          console.error('Error deleting old photo:', error);
-        }
+      if (fetchError || !athlete) {
+        return res.status(404).json({
+          success: false,
+          message: 'Athlete not found'
+        });
       }
 
-      const fileName = `${req.params.id}-${Date.now()}-${req.file.originalname}`;
-      const photoPath = `athletes/photos/${fileName}`;
-      const photoUrl = await uploadToR2(
-        req.file.buffer,
-        photoPath,
-        req.file.mimetype
-      );
-      updateData.photo_url = photoUrl;
-    }
+      const {
+        nom, prenom, sexe, date_naissance, taille, poids, poste,
+        numero_licence, contact_parent, groupe, blesse,
+        allergies, blessures_cours, antecedents, certificat_date
+      } = req.body;
 
-    const { data: updatedAthlete, error } = await supabase
-      .from('athletes')
-      .update(updateData)
-      .eq('id', req.params.id)
-      .select()
-      .single();
-
-    if (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Error updating athlete',
-        error: error.message
-      });
-    }
-
-    // Handle medical record update
-    if (allergies !== undefined || blessures_cours !== undefined || antecedents !== undefined || certificat_date !== undefined) {
-      const medicalData = {
-        athlete_id: req.params.id,
+      const updateData = {
+        nom,
+        prenom,
+        sexe,
+        date_naissance,
+        taille,
+        poids,
+        poste,
+        numero_licence,
+        contact_parent,
+        groupe,
+        blesse: blesse === 'true' || blesse === true,
         updated_at: new Date().toISOString()
       };
-      if (allergies !== undefined) medicalData.allergies = allergies;
-      if (blessures_cours !== undefined) medicalData.blessures_cours = blessures_cours;
-      if (antecedents !== undefined) medicalData.antecedents = antecedents;
-      if (certificat_date !== undefined) medicalData.certificat_date = certificat_date || null;
 
-      await supabase.from('medical_records').upsert(medicalData, { onConflict: 'athlete_id' });
+      // Handle photo upload if provided
+      if (req.file) {
+        // Delete old photo if exists
+        if (athlete.photo_url) {
+          try {
+            const oldPhotoPath = athlete.photo_url.split('/').pop();
+            await deleteFromR2(`athletes/photos/${oldPhotoPath}`);
+          } catch (error) {
+            console.error('Error deleting old photo:', error);
+          }
+        }
+
+        const fileName = `${req.params.id}-${Date.now()}-${req.file.originalname}`;
+        const photoPath = `athletes/photos/${fileName}`;
+        const photoUrl = await uploadToR2(
+          req.file.buffer,
+          photoPath,
+          req.file.mimetype
+        );
+        updateData.photo_url = photoUrl;
+      }
+
+      const { data: updatedAthlete, error } = await supabase
+        .from('athletes')
+        .update(updateData)
+        .eq('id', req.params.id)
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(500).json({
+          success: false,
+          message: 'Error updating athlete',
+          error: error.message
+        });
+      }
+
+      // Handle medical record update
+      if (allergies !== undefined || blessures_cours !== undefined || antecedents !== undefined || certificat_date !== undefined) {
+        const medicalData = {
+          athlete_id: req.params.id,
+          updated_at: new Date().toISOString()
+        };
+        if (allergies !== undefined) medicalData.allergies = allergies;
+        if (blessures_cours !== undefined) medicalData.blessures_cours = blessures_cours;
+        if (antecedents !== undefined) medicalData.antecedents = antecedents;
+        if (certificat_date !== undefined) medicalData.certificat_date = certificat_date || null;
+
+        await supabase.from('medical_records').upsert(medicalData, { onConflict: 'athlete_id' });
+      }
+
+      res.json({
+        success: true,
+        message: 'Athlete updated successfully',
+        data: updatedAthlete
+      });
+    } catch (error) {
+      console.error('Update athlete error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-
-    res.json({
-      success: true,
-      message: 'Athlete updated successfully',
-      data: updatedAthlete
-    });
-  } catch (error) {
-    console.error('Update athlete error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
   }
-}
 
   /**
    * Delete athlete
    */
   static async deleteAthlete(req, res) {
-  try {
-    // Get athlete to delete photo
-    const { data: athlete } = await supabase
-      .from('athletes')
-      .select('photo_url')
-      .eq('id', req.params.id)
-      .single();
+    try {
+      // Get athlete to delete photo
+      const { data: athlete } = await supabase
+        .from('athletes')
+        .select('photo_url')
+        .eq('id', req.params.id)
+        .single();
 
-    // Delete photo from R2 if exists
-    if (athlete?.photo_url) {
-      try {
-        const photoPath = athlete.photo_url.split('/').pop();
-        await deleteFromR2(`athletes/photos/${photoPath}`);
-      } catch (error) {
-        console.error('Error deleting photo:', error);
+      // Delete photo from R2 if exists
+      if (athlete?.photo_url) {
+        try {
+          const photoPath = athlete.photo_url.split('/').pop();
+          await deleteFromR2(`athletes/photos/${photoPath}`);
+        } catch (error) {
+          console.error('Error deleting photo:', error);
+        }
       }
-    }
 
-    // 1. Delete associated medical records
-    const { error: medError } = await supabase
-      .from('medical_records')
-      .delete()
-      .eq('athlete_id', req.params.id);
+      // 1. Delete associated medical records
+      const { error: medError } = await supabase
+        .from('medical_records')
+        .delete()
+        .eq('athlete_id', req.params.id);
 
-    if (medError) console.error('Error deleting medical records:', medError);
+      if (medError) console.error('Error deleting medical records:', medError);
 
-    // 2. Delete associated attendance
-    const { error: attError } = await supabase
-      .from('attendance')
-      .delete()
-      .eq('athlete_id', req.params.id);
+      // 2. Delete associated attendance
+      const { error: attError } = await supabase
+        .from('attendance')
+        .delete()
+        .eq('athlete_id', req.params.id);
 
-    if (attError) console.error('Error deleting attendance:', attError);
+      if (attError) console.error('Error deleting attendance:', attError);
 
-    // 3. Delete the athlete
-    const { error } = await supabase
-      .from('athletes')
-      .delete()
-      .eq('id', req.params.id);
+      // 3. Delete the athlete
+      const { error } = await supabase
+        .from('athletes')
+        .delete()
+        .eq('id', req.params.id);
 
-    if (error) {
-      return res.status(500).json({
+      if (error) {
+        return res.status(500).json({
+          success: false,
+          message: 'Error deleting athlete',
+          error: error.message
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Athlete deleted successfully'
+      });
+    } catch (error) {
+      console.error('Delete athlete error:', error);
+      res.status(500).json({
         success: false,
-        message: 'Error deleting athlete',
-        error: error.message
+        message: 'Server error'
       });
     }
-
-    res.json({
-      success: true,
-      message: 'Athlete deleted successfully'
-    });
-  } catch (error) {
-    console.error('Delete athlete error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
   }
-}
 }
 
 module.exports = AthleteController;
