@@ -631,6 +631,12 @@ const AppContent = () => {
   const [showSessionDetails, setShowSessionDetails] = useState(false);
   const [currentSession, setCurrentSession] = useState(null);
   const [reuseData, setReuseData] = useState(null);
+  const [selectedChild, setSelectedChild] = useState(null);
+
+  const handleSelectChild = (child) => {
+    setSelectedChild(child);
+    setActiveTab('calendar');
+  };
 
   if (!user) {
     return <LoginScreen />;
@@ -837,8 +843,8 @@ const AppContent = () => {
 
     // Parent
     if (userRole === 'parent') {
-      if (activeTab === 'profile') return <ParentProfileScreen />;
-      // Fallthrough to ReadOnlyScreen for 'calendar'
+      if (activeTab === 'profile') return <ParentProfileScreen onSelectChild={handleSelectChild} />;
+      if (activeTab === 'calendar') return <ReadOnlyScreen athleteId={selectedChild?.id} />;
     }
 
     // Player

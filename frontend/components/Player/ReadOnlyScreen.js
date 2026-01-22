@@ -16,7 +16,7 @@ import PlayerProfileModal from './PlayerProfileModal';
 import PlanningService from '../../services/planningService';
 import AttendanceService from '../../services/attendanceService';
 
-const ReadOnlyScreen = () => {
+const ReadOnlyScreen = ({ athleteId }) => {
   const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [stats, setStats] = useState(null);
@@ -29,30 +29,47 @@ const ReadOnlyScreen = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [athleteId]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
 
-      // 1. Check for Athlete Profile
-      let profileRes;
-      try {
-        profileRes = await AthleteService.getMyProfile();
-        // If we get a profile, hasProfile = true. If data is null, false.
-        if (profileRes.success && profileRes.data) {
-          setHasProfile(true);
-          setAthlete(profileRes.data);
-          // Update display name from athlete profile
-          if (profileRes.data.prenom && profileRes.data.nom) {
-            setDisplayName(`${profileRes.data.prenom} ${profileRes.data.nom}`);
+      let currentAthlete = null;
+
+      // 1. Get Athlete Profile
+      if (athleteId) {
+        // Fetch specific athlete (for parents)
+        try {
+          const res = await AthleteService.getAthleteById(athleteId);
+          if (res.success) {
+            currentAthlete = res.data;
+            setHasProfile(true);
+            setAthlete(currentAthlete);
+            setDisplayName(`${currentAthlete.prenom} ${currentAthlete.nom}`);
           }
-        } else {
+        } catch (e) {
+          console.error('Error fetching specific athlete:', e);
           setHasProfile(false);
         }
-      } catch (e) {
-        console.log('Profile check failed (likely no profile yet)', e);
-        setHasProfile(false);
+      } else {
+        // Fetch logged-in user's profile (for players)
+        try {
+          const profileRes = await AthleteService.getMyProfile();
+          if (profileRes.success && profileRes.data) {
+            currentAthlete = profileRes.data;
+            setHasProfile(true);
+            setAthlete(currentAthlete);
+            if (currentAthlete.prenom && currentAthlete.nom) {
+              setDisplayName(`${currentAthlete.prenom} ${currentAthlete.nom}`);
+            }
+          } else {
+            setHasProfile(false);
+          }
+        } catch (e) {
+          console.log('Profile check failed (likely no profile yet)', e);
+          setHasProfile(false);
+        }
       }
 
       // 2. Fetch Planning
@@ -60,33 +77,26 @@ const ReadOnlyScreen = () => {
         start_date: new Date().toISOString().split('T')[0]
       };
 
-      if (profileRes && profileRes.data) {
-        planningParams.athlete_id = profileRes.data.id;
+      if (currentAthlete) {
+        planningParams.athlete_id = currentAthlete.id;
       }
 
       const planningRes = await PlanningService.getAllPlanning(planningParams);
-
       if (planningRes.success) {
         setEvents(planningRes.data);
       }
 
-      // 3. Fetch Stats - ONLY if we have a profile
-      if (profileRes && profileRes.data) {
-        const statsRes = await AttendanceService.getStats({ athlete_id: profileRes.data.id });
+      // 3. Fetch Stats
+      if (currentAthlete) {
+        const statsRes = await AttendanceService.getStats({ athlete_id: currentAthlete.id });
         if (statsRes.success) {
           setStats(statsRes.data);
         }
       } else {
-        // New user has no sessions/stats
         setStats({
-          attendanceRate: 0,
-          total: 0,
-          present: 0,
-          retard: 0,
-          excuse: 0,
-          absent: 0
+          attendanceRate: 0, total: 0, present: 0, retard: 0, excuse: 0, absent: 0
         });
-        setEvents([]); // Also clear events if no profile
+        setEvents([]);
       }
     } catch (error) {
       console.error('Error fetching player data:', error);

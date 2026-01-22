@@ -5,18 +5,47 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Alert
+    Alert,
+    ActivityIndicator,
+    RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../Common/AuthProvider';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
+import AthleteService from '../../services/athleteService';
+import AddChildModal from './AddChildModal';
 
-const ParentProfileScreen = () => {
+const ParentProfileScreen = ({ onSelectChild }) => {
     const { user, logout } = useAuth();
-    const [children, setChildren] = useState([
-        { id: 1, name: 'Danyl Ouksel', team: 'U17', attendance: '92%' },
-        { id: 2, name: 'Lina Ouksel', team: 'U15', attendance: '88%' } // Mock data for now
-    ]);
+    const [children, setChildren] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
+
+    useEffect(() => {
+        fetchChildren();
+    }, []);
+
+    const fetchChildren = async () => {
+        try {
+            setLoading(true);
+            const response = await AthleteService.getAllAthletes();
+            if (response.success) {
+                setChildren(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching children:', error);
+            // Alert.alert('Erreur', 'Impossible de charger vos enfants');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchChildren();
+    };
 
     const handleLogout = () => {
         Alert.alert(
@@ -29,9 +58,18 @@ const ParentProfileScreen = () => {
         );
     };
 
+    const handleAddChild = (newChild) => {
+        setChildren(prev => [...prev, newChild]);
+    };
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#f97316']} />
+                }
+            >
                 {/* Header */}
                 <View style={styles.header}>
                     <View style={styles.avatarContainer}>
@@ -44,29 +82,48 @@ const ParentProfileScreen = () => {
                 {/* Children Section */}
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Vos Enfants</Text>
-                    <TouchableOpacity>
-                        <Icon name="plus-circle" size={24} color="#f97316" />
+                    <TouchableOpacity onPress={() => setShowAddModal(true)}>
+                        <Icon name="plus-circle" size={28} color="#f97316" />
                     </TouchableOpacity>
                 </View>
 
-                {children.map(child => (
-                    <TouchableOpacity key={child.id} style={styles.childCard}>
-                        <View style={styles.childAvatar}>
-                            <Text style={styles.childInitials}>
-                                {child.name.split(' ').map(n => n[0]).join('')}
-                            </Text>
-                        </View>
-                        <View style={styles.childInfo}>
-                            <Text style={styles.childName}>{child.name}</Text>
-                            <Text style={styles.childTeam}>{child.team}</Text>
-                        </View>
-                        <View style={styles.childStats}>
-                            <Text style={styles.statValue}>{child.attendance}</Text>
-                            <Text style={styles.statLabel}>Présence</Text>
-                        </View>
-                        <Icon name="chevron-right" size={24} color="#94a3b8" />
-                    </TouchableOpacity>
-                ))}
+                {loading && !refreshing ? (
+                    <ActivityIndicator size="large" color="#f97316" style={{ marginVertical: 20 }} />
+                ) : children.length === 0 ? (
+                    <View style={styles.emptyState}>
+                        <Icon name="account-group-outline" size={48} color="#cbd5e1" />
+                        <Text style={styles.emptyText}>Aucun enfant ajouté</Text>
+                        <TouchableOpacity
+                            style={styles.addButtonSmall}
+                            onPress={() => setShowAddModal(true)}
+                        >
+                            <Text style={styles.addButtonSmallText}>Ajouter mon premier enfant</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    children.map(child => (
+                        <TouchableOpacity
+                            key={child.id}
+                            style={styles.childCard}
+                            onPress={() => onSelectChild(child)}
+                        >
+                            <View style={styles.childAvatar}>
+                                <Text style={styles.childInitials}>
+                                    {child.prenom[0]}{child.nom[0]}
+                                </Text>
+                            </View>
+                            <View style={styles.childInfo}>
+                                <Text style={styles.childName}>{child.prenom} {child.nom}</Text>
+                                <Text style={styles.childTeam}>{child.groupe}</Text>
+                            </View>
+                            <View style={styles.childStats}>
+                                <Text style={styles.statValue}>{child.attendance || '0%'}</Text>
+                                <Text style={styles.statLabel}>Présence</Text>
+                            </View>
+                            <Icon name="chevron-right" size={24} color="#94a3b8" />
+                        </TouchableOpacity>
+                    ))
+                )}
 
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Options</Text>
@@ -97,6 +154,12 @@ const ParentProfileScreen = () => {
                     </View>
                 </TouchableOpacity>
             </ScrollView>
+
+            <AddChildModal
+                visible={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSave={handleAddChild}
+            />
         </SafeAreaView>
     );
 };
@@ -253,6 +316,33 @@ const styles = StyleSheet.create({
     },
     logoutText: {
         color: '#ef4444',
+    },
+    emptyState: {
+        alignItems: 'center',
+        padding: 40,
+        backgroundColor: 'white',
+        borderRadius: 20,
+        marginVertical: 10,
+        borderStyle: 'dashed',
+        borderWidth: 1,
+        borderColor: '#cbd5e1',
+    },
+    emptyText: {
+        marginTop: 12,
+        fontSize: 16,
+        color: '#64748b',
+        fontWeight: '500',
+    },
+    addButtonSmall: {
+        marginTop: 20,
+        backgroundColor: '#f97316',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+    },
+    addButtonSmallText: {
+        color: 'white',
+        fontWeight: '600',
     },
 });
 
