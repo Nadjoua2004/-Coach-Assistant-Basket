@@ -10,7 +10,7 @@ async function seedUsers() {
         { email: 'mlkkaouah@gmail.com', name: 'Malik kaouha', password: 'password123', role: 'admin' },
         { email: 'adel@ntf-dz.com', name: 'Adel benmesbah', password: 'password123', role: 'coach' },
         { email: 'da.ouksel@gmail.com', name: 'danyl ouksel', password: 'player123', role: 'joueur' },
-        { email: 'Yacine.ouksel@gmail.com', name: 'Yacine ouksel', password: 'parent123', role: 'parent' }
+        { email: 'yacine.ouksel@gmail.com', name: 'Yacine ouksel', password: 'parent123', role: 'parent' }
     ];
 
     console.log('🌱 Seeding specific users...');

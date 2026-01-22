@@ -6,7 +6,7 @@ const { authenticateToken } = require('../middleware/auth');
 
 // Register new user
 router.post('/register', [
-  body('email').isEmail().normalizeEmail(),
+  body('email').isEmail(),
   body('password').isLength({ min: 6 }),
   body('name').notEmpty().trim(),
   body('role').isIn(['joueur', 'parent'])
@@ -15,7 +15,7 @@ router.post('/register', [
 // Admin: Create any user | Coach/Adjoint: Create 'joueur' users only
 router.post('/users', [
   authenticateToken,
-  body('email').isEmail().normalizeEmail(),
+  body('email').isEmail(),
   body('password').isLength({ min: 6 }),
   body('name').notEmpty().trim(),
   body('role').isIn(['coach', 'adjoint', 'admin', 'joueur', 'parent'])
@@ -29,7 +29,7 @@ router.delete('/users/:id', authenticateToken, AuthController.deleteUser);
 
 // Login
 router.post('/login', [
-  body('email').isEmail().normalizeEmail(),
+  body('email').isEmail(),
   body('password').notEmpty()
 ], AuthController.login);
 
@@ -38,7 +38,7 @@ router.get('/me', authenticateToken, AuthController.getMe);
 
 // Forgot password
 router.post('/forgot-password', [
-  body('email').isEmail().normalizeEmail()
+  body('email').isEmail()
 ], AuthController.forgotPassword);
 
 // Reset password

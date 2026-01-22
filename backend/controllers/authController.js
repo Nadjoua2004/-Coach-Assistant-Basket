@@ -16,7 +16,8 @@ class AuthController {
           errors: errors.array()
         });
       }
-      const { email, password, name, role } = req.body;
+      let { email, password, name, role } = req.body;
+      email = email.toLowerCase();
 
       // Restrict roles for public registration
       if (!['joueur', 'parent'].includes(role)) {
@@ -103,7 +104,9 @@ class AuthController {
         });
       }
 
-      const { email, password } = req.body;
+      let { email, password } = req.body;
+      email = email.toLowerCase();
+      console.log(`📡 LOGIN ATTEMPT: [${email}]`);
 
       // Get user from database
       const { data: user, error } = await supabase
@@ -113,20 +116,25 @@ class AuthController {
         .single();
 
       if (error || !user) {
+        console.log(`❌ USER NOT FOUND: [${email}]`);
         return res.status(401).json({
           success: false,
           message: 'Invalid email or password'
         });
       }
+      console.log(`✅ USER FOUND: ${user.email} (Role: ${user.role})`);
 
       // Verify password
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
+        console.log(`❌ PASSWORD MISMATCH for: [${email}]`);
+        console.log(`   Expected length: ${user.password.length}`);
         return res.status(401).json({
           success: false,
           message: 'Invalid email or password'
         });
       }
+      console.log(`✨ LOGIN SUCCESS: [${email}]`);
 
       // Generate JWT token
       const token = jwt.sign(
@@ -317,7 +325,8 @@ class AuthController {
         });
       }
 
-      const { email, password, name, role } = req.body;
+      let { email, password, name, role } = req.body;
+      email = email.toLowerCase();
 
       // Coaches and adjoints can only create 'joueur' users
       if (req.user.role !== 'admin' && role !== 'joueur') {
