@@ -1,8 +1,7 @@
 {
   "expo": {
     "name": "coach basket",
-    "slug": "coach basket",
-    "owner": "nadjouapp",
+    "slug": "coach-basket", 
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nadjoua.coachbasket"
+      "bundleIdentifier": "com.yourname.coachbasketnew" 
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +22,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.nadjoua.coachbasket"
+      "package": "com.yourname.coachbasketnew" 
     },
     "web": {
       "favicon": "./assets/logo.png"

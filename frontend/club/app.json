@@ -24,6 +24,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5e71b895-fa04-4ce0-93d3-b3a2d3831359"
+      }
+    },
+    "owner": "nadjouapp"
   }
 }

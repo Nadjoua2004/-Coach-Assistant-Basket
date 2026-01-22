@@ -11,7 +11,21 @@ class PlanningController {
 
       // Filter by athlete if provided
       if (req.query.athlete_id) {
-        // Find planning IDs where this athlete is assigned
+        // 1. Get athlete's group
+        const { data: athlete, error: athleteError } = await supabase
+          .from('athletes')
+          .select('groupe')
+          .eq('id', req.query.athlete_id)
+          .single();
+
+        if (athleteError) {
+          console.error('Error fetching athlete group:', athleteError);
+          // Fallback to just ID filtering if athlete lookup fails
+        }
+
+        const athleteGroup = athlete?.groupe;
+
+        // 2. Find planning IDs where this athlete is explicitly assigned
         const { data: assignments, error: assignError } = await supabase
           .from('planning_athletes')
           .select('planning_id')
@@ -19,14 +33,22 @@ class PlanningController {
 
         if (assignError) throw assignError;
 
-        const planningIds = assignments.map(a => a.planning_id);
+        const assignedIds = assignments.map(a => a.planning_id);
 
-        // If no assignments, return empty list
-        if (planningIds.length === 0) {
+        // 3. Build compound filter: (id IN assignedIds) OR (groupe == athleteGroup)
+        if (assignedIds.length > 0 && athleteGroup) {
+          // Both conditions
+          query = query.or(`id.in.(${assignedIds.join(',')}),groupe.eq.${athleteGroup}`);
+        } else if (assignedIds.length > 0) {
+          // Only direct assignments
+          query = query.in('id', assignedIds);
+        } else if (athleteGroup) {
+          // Only group match
+          query = query.eq('groupe', athleteGroup);
+        } else {
+          // No group and no assignments -> return nothing
           return res.json({ success: true, data: [], count: 0 });
         }
-
-        query = query.in('id', planningIds);
       }
 
       // Filter by date range

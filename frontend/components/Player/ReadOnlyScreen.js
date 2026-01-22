@@ -27,6 +27,7 @@ const ReadOnlyScreen = ({ athleteId: initialAthleteId }) => {
   const [displayName, setDisplayName] = useState(user?.name || '');
   const [myChildren, setMyChildren] = useState([]);
   const [selectedAthleteId, setSelectedAthleteId] = useState(initialAthleteId);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     if (user?.role === 'parent') {
