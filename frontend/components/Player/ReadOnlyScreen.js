@@ -16,32 +16,55 @@ import PlayerProfileModal from './PlayerProfileModal';
 import PlanningService from '../../services/planningService';
 import AttendanceService from '../../services/attendanceService';
 
-const ReadOnlyScreen = ({ athleteId }) => {
+const ReadOnlyScreen = ({ athleteId: initialAthleteId }) => {
   const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [hasProfile, setHasProfile] = useState(true); // Assume true initially to avoid flicker
-  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [hasProfile, setHasProfile] = useState(true);
   const [athlete, setAthlete] = useState(null);
   const [displayName, setDisplayName] = useState(user?.name || '');
+  const [myChildren, setMyChildren] = useState([]);
+  const [selectedAthleteId, setSelectedAthleteId] = useState(initialAthleteId);
+
+  useEffect(() => {
+    if (user?.role === 'parent') {
+      fetchChildren();
+    }
+  }, []);
+
+  useEffect(() => {
+    setSelectedAthleteId(initialAthleteId);
+  }, [initialAthleteId]);
 
   useEffect(() => {
     fetchData();
-  }, [athleteId]);
+  }, [selectedAthleteId]);
+
+  const fetchChildren = async () => {
+    try {
+      const res = await AthleteService.getAllAthletes();
+      if (res.success) {
+        setMyChildren(res.data);
+        if (!selectedAthleteId && res.data.length > 0) {
+          setSelectedAthleteId(res.data[0].id);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching children in ReadOnlyScreen:', e);
+    }
+  };
 
   const fetchData = async () => {
     try {
       setLoading(true);
-
       let currentAthlete = null;
 
       // 1. Get Athlete Profile
-      if (athleteId) {
-        // Fetch specific athlete (for parents)
+      if (selectedAthleteId) {
         try {
-          const res = await AthleteService.getAthleteById(athleteId);
+          const res = await AthleteService.getAthleteById(selectedAthleteId);
           if (res.success) {
             currentAthlete = res.data;
             setHasProfile(true);
@@ -52,8 +75,8 @@ const ReadOnlyScreen = ({ athleteId }) => {
           console.error('Error fetching specific athlete:', e);
           setHasProfile(false);
         }
-      } else {
-        // Fetch logged-in user's profile (for players)
+      } else if (user?.role !== 'parent') {
+        // Only try getMyProfile for non-parents (players)
         try {
           const profileRes = await AthleteService.getMyProfile();
           if (profileRes.success && profileRes.data) {
@@ -67,9 +90,10 @@ const ReadOnlyScreen = ({ athleteId }) => {
             setHasProfile(false);
           }
         } catch (e) {
-          console.log('Profile check failed (likely no profile yet)', e);
           setHasProfile(false);
         }
+      } else {
+        setHasProfile(false);
       }
 
       // 2. Fetch Planning
@@ -131,7 +155,42 @@ const ReadOnlyScreen = ({ athleteId }) => {
         <Text style={styles.title}>
           Bonjour {displayName.split(' ')[0]}
         </Text>
-        <Text style={styles.subtitle}>Votre planning et vos statistiques</Text>
+        <Text style={styles.subtitle}>
+          {user?.role === 'parent' ? 'Planning et résultats de vos enfants' : 'Votre planning et vos statistiques'}
+        </Text>
+
+        {user?.role === 'parent' && myChildren.length > 0 && (
+          <View style={styles.childrenSelectorContainer}>
+            <Text style={styles.selectorLabel}>Sélectionner un enfant :</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.childrenSelector}>
+              {myChildren.map((child) => (
+                <TouchableOpacity
+                  key={child.id}
+                  style={[
+                    styles.childTab,
+                    selectedAthleteId === child.id && styles.childTabActive
+                  ]}
+                  onPress={() => setSelectedAthleteId(child.id)}
+                >
+                  <Text style={[
+                    styles.childTabText,
+                    selectedAthleteId === child.id && styles.childTabTextActive
+                  ]}>
+                    {child.prenom}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {user?.role === 'parent' && myChildren.length === 0 && (
+          <View style={styles.noChildrenContainer}>
+            <Icon name="account-group-outline" size={64} color="#cbd5e1" />
+            <Text style={styles.noChildrenText}>Aucun enfant configuré</Text>
+            <Text style={styles.noChildrenSubtext}>Ajoutez vos enfants depuis l'onglet Accueil.</Text>
+          </View>
+        )}
 
         {!hasProfile && (
           <TouchableOpacity
@@ -430,6 +489,61 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#94a3b8',
     marginTop: 4,
+  },
+  childrenSelectorContainer: {
+    marginBottom: 24,
+  },
+  selectorLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748b',
+    marginBottom: 12,
+  },
+  childrenSelector: {
+    gap: 12,
+    paddingRight: 24,
+  },
+  childTab: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  childTabActive: {
+    backgroundColor: '#f97316',
+    borderColor: '#f97316',
+  },
+  childTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  childTabTextActive: {
+    color: 'white',
+  },
+  noChildrenContainer: {
+    padding: 40,
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    marginBottom: 24,
+  },
+  noChildrenText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginTop: 16,
+  },
+  noChildrenSubtext: {
+    fontSize: 14,
+    color: '#64748b',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
 
