@@ -10,7 +10,7 @@ import {
     Alert,
     Image
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AthleteService from '../../services/athleteService';
 import AuthService from '../../services/authService';
 

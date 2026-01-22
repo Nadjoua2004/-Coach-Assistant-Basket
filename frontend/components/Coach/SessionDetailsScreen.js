@@ -9,7 +9,7 @@ import {
     Alert,
     Linking
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import SessionService from '../../services/sessionService';
 import ExerciseService from '../../services/exerciseService';
 import API_URL from '../../config/api';

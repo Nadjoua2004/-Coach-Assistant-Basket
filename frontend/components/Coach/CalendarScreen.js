@@ -11,7 +11,7 @@ import {
     TextInput,
     ScrollView
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AthleteService from '../../services/athleteService';
 import PlanningService from '../../services/planningService';
 import SessionService from '../../services/sessionService';

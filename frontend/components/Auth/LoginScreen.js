@@ -12,7 +12,7 @@ import {
   Platform
 } from 'react-native';
 import { useAuth } from '../Common/AuthProvider';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 
 const { width, height } = Dimensions.get('window');
 

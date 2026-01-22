@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Linking
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ExerciseSelectionModal from './ExerciseSelectionModal';

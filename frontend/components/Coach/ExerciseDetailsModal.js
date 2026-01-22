@@ -9,7 +9,7 @@ import {
     Platform,
     Linking
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 
 const ExerciseDetailsModal = ({ visible, onClose, exercise, onEdit, onDelete }) => {
     if (!exercise) return null;

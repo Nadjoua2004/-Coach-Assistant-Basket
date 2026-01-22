@@ -6,7 +6,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 
 const BottomNav = ({ activeTab, setActiveTab, role }) => {
   const getNavItems = () => {
@@ -29,10 +29,8 @@ const BottomNav = ({ activeTab, setActiveTab, role }) => {
       ];
     } else if (role === 'parent') {
       return [
-        { id: 'dashboard', icon: 'view-dashboard', label: 'Dashboard' },
-        { id: 'users', icon: 'account-group', label: 'Utilisateurs' },
-        { id: 'reports', icon: 'file-document', label: 'Rapports' },
-        { id: 'profile', icon: 'account', label: 'Profil' }
+        { id: 'profile', icon: 'account-child', label: 'Accueil' },
+        { id: 'calendar', icon: 'calendar-multiselect', label: 'Planning' }
       ];
     }
 

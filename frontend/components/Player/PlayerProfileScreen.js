@@ -13,7 +13,7 @@ import { useAuth } from '../Common/AuthProvider';
 import AthleteService from '../../services/athleteService';
 import PlayerProfileModal from './PlayerProfileModal';
 import PlayerMedicalModal from './PlayerMedicalModal';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AttendanceService from '../../services/attendanceService';
 import PlanningService from '../../services/planningService';
 

@@ -456,7 +456,7 @@
 //   StatusBar,
 // } from 'react-native';
 // import { AuthProvider, useAuth } from './components/Common/AuthProvider';
-// import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+// import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 
 // // Import screens
 // import LoginScreen from './components/Auth/LoginScreen';
@@ -577,7 +577,7 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './components/Common/AuthProvider';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Import screens
@@ -602,6 +602,7 @@ import AdminProfileScreen from './components/Admin/AdminProfileScreen';
 import ReportsScreen from './components/Admin/ReportsScreen';
 import ReadOnlyScreen from './components/Player/ReadOnlyScreen';
 import PlayerProfileScreen from './components/Player/PlayerProfileScreen';
+import ParentProfileScreen from './components/Parent/ParentProfileScreen';
 import BottomNav from './components/Common/bottomNav';
 
 const AppContent = () => {
@@ -611,8 +612,10 @@ const AppContent = () => {
   React.useEffect(() => {
     if (user) {
       const role = user.role?.toLowerCase();
-      if (role === 'joueur' || role === 'parent') {
+      if (role === 'joueur') {
         setActiveTab('calendar');
+      } else if (role === 'parent') {
+        setActiveTab('profile'); // Parent lands on profile/dashboard
       } else {
         setActiveTab('home');
       }
@@ -832,7 +835,13 @@ const AppContent = () => {
       );
     }
 
-    // Player or Parent
+    // Parent
+    if (userRole === 'parent') {
+      if (activeTab === 'profile') return <ParentProfileScreen />;
+      // Fallthrough to ReadOnlyScreen for 'calendar'
+    }
+
+    // Player
     if (activeTab === 'profile') {
       return <PlayerProfileScreen />;
     }

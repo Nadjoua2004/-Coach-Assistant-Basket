@@ -12,7 +12,7 @@ import {
     ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import ExerciseService from '../../services/exerciseService';
 import ExerciseFormModal from './ExerciseFormModal';
 import ExerciseDetailsModal from './ExerciseDetailsModal';

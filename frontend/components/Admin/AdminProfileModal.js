@@ -12,7 +12,7 @@ import {
     KeyboardAvoidingView,
     Platform
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 
 const AdminProfileModal = ({ visible, onClose, onUpdate, user }) => {
     const [loading, setLoading] = useState(false);

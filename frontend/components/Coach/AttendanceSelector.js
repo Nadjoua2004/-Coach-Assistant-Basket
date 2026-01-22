@@ -8,7 +8,7 @@ import {
     ActivityIndicator,
     RefreshControl
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import PlanningService from '../../services/planningService';
 
 const AttendanceSelector = ({ onSelectSession }) => {

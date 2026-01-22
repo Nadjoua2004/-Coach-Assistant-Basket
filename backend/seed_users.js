@@ -8,9 +8,9 @@ const supabase = require('./config/database');
 async function seedUsers() {
     const usersToSeed = [
         { email: 'mlkkaouah@gmail.com', name: 'Malik kaouha', password: 'password123', role: 'admin' },
-        { email: 'adel@ntf-dz.com', name: 'Adel benmesbah', password: 'password123', role: 'admin' }, // admin/coach
-        { email: 'da.ouksel@gmail.com', name: 'danyl ouksel', password: 'password123', role: 'joueur' },
-        { email: 'Yacine.ouksel@gmail.com', name: 'Yacine ouksel', password: 'password123', role: 'parent' }
+        { email: 'adel@ntf-dz.com', name: 'Adel benmesbah', password: 'password123', role: 'coach' },
+        { email: 'da.ouksel@gmail.com', name: 'danyl ouksel', password: 'player123', role: 'joueur' },
+        { email: 'Yacine.ouksel@gmail.com', name: 'Yacine ouksel', password: 'parent123', role: 'parent' }
     ];
 
     console.log('🌱 Seeding specific users...');
@@ -19,28 +19,25 @@ async function seedUsers() {
         try {
             const hashedPassword = await bcrypt.hash(userData.password, 10);
 
+            // Upsert user (update if email exists)
             const { data, error } = await supabase
                 .from('users')
-                .insert({
+                .upsert({
                     email: userData.email,
                     password: hashedPassword,
                     name: userData.name,
                     role: userData.role,
-                    created_at: new Date().toISOString()
-                })
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'email' })
                 .select()
                 .single();
 
             if (error) {
-                if (error.code === '23505') {
-                    console.log(`ℹ️ User already exists: ${userData.email}`);
-                } else {
-                    console.error(`❌ Error creating user ${userData.email}:`, error.message);
-                }
+                console.error(`❌ Error seeding user ${userData.email}:`, error.message);
                 continue;
             }
 
-            console.log(`✅ User created: ${userData.email} (${userData.role})`);
+            console.log(`✅ User seeded (Created/Updated): ${userData.email} (${userData.role})`);
         } catch (err) {
             console.error(`💥 Unexpected error for ${userData.email}:`, err.message);
         }

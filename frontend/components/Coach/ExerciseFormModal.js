@@ -11,7 +11,7 @@ import {
     ActivityIndicator,
     Platform
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import ExerciseService from '../../services/exerciseService';
 
 const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) => {

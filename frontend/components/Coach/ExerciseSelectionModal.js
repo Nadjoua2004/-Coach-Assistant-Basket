@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   SafeAreaView
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import ExerciseService from '../../services/exerciseService';
 
 const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {

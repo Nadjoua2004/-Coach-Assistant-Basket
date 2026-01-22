@@ -12,7 +12,7 @@ import {
     Platform,
     Switch
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as DocumentPicker from 'expo-document-picker';
 import MedicalRecordService from '../../services/medicalRecordService';

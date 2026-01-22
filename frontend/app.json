@@ -1,19 +1,21 @@
 {
   "expo": {
     "name": "coach basket",
-    "slug": "frontend",
+    "slug": "coach basket",
+    "owner": "nadjouapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nadjoua.coachbasket"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +23,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.nadjoua.frontend"
+      "package": "com.nadjoua.coachbasket"
     },
     "web": {
       "favicon": "./assets/logo.png"
@@ -29,11 +31,6 @@
     "plugins": [
       "expo-asset",
       "@react-native-community/datetimepicker"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "04896102-132f-47fa-94a1-4be711399f36"
-      }
-    }
+    ]
   }
 }

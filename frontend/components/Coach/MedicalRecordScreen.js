@@ -10,7 +10,7 @@ import {
     Alert,
     Switch
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import MedicalRecordService from '../../services/medicalRecordService';
 
 const MedicalRecordScreen = ({ athlete, onBack }) => {

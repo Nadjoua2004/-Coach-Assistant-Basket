@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../Common/AuthProvider';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AthleteService from '../../services/athleteService';
 import PlayerProfileModal from './PlayerProfileModal';
 import PlanningService from '../../services/planningService';

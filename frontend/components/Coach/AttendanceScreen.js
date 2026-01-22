@@ -8,7 +8,7 @@ import {
     ActivityIndicator,
     Alert,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AttendanceService from '../../services/attendanceService';
 import AthleteService from '../../services/athleteService';
 

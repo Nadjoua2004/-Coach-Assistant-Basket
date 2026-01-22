@@ -12,7 +12,7 @@ import {
     KeyboardAvoidingView,
     Platform
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AuthService from '../../services/authService';
 
 const CoachProfileModal = ({ visible, onClose, onUpdate, user }) => {
