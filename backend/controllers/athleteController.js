@@ -55,12 +55,19 @@ class AthleteController {
 
       const { data: existingAthletes, error: athletesError } = await query.order('nom', { ascending: true });
 
-      if (athletesError) throw athletesError;
+      if (athletesError) {
+        console.error('Database error in getAllAthletes:', athletesError);
+        throw new Error(`Database error: ${athletesError.message}`);
+      }
+
+      const safeAthletes = existingAthletes || [];
 
       // 2. Get unlinked users with role 'joueur'
-      // Only fetch if no specific filters preventing it (like 'groupe' or 'blesse' which unlinked users won't have)
+      // Skip this if the user is a parent (they only care about their own children)
       let unlinkedPlayers = [];
-      if (!req.query.groupe && !req.query.sexe && !req.query.poste && !req.query.blesse) {
+      const skipUnlinked = req.user && req.user.role === 'parent';
+
+      if (!skipUnlinked && !req.query.groupe && !req.query.sexe && !req.query.poste && !req.query.blesse) {
         const { data: players, error: playersError } = await supabase
           .from('users')
           .select('id, name, email')
@@ -74,7 +81,7 @@ class AthleteController {
           // Assuming 'name' might match or we just show them as "New")
 
           // Only filter by exact name match for now to avoid duplicates if manual entry exists
-          const existingNames = new Set(existingAthletes.map(a => `${a.prenom} ${a.nom}`.toLowerCase().trim()));
+          const existingNames = new Set(safeAthletes.map(a => `${a.prenom || ''} ${a.nom || ''}`.toLowerCase().trim()));
 
           unlinkedPlayers = players.filter(p => !existingNames.has(p.name.toLowerCase().trim())).map(p => {
             const nameParts = p.name.split(' ');
@@ -92,7 +99,7 @@ class AthleteController {
         }
       }
 
-      const allAthletes = [...existingAthletes, ...unlinkedPlayers];
+      const allAthletes = [...safeAthletes, ...unlinkedPlayers];
 
       res.json({
         success: true,
@@ -100,10 +107,11 @@ class AthleteController {
         count: allAthletes.length
       });
     } catch (error) {
-      console.error('Get athletes error:', error);
+      console.error('Get athletes error (catch):', error);
       res.status(500).json({
         success: false,
-        message: 'Server error'
+        message: 'Server error in getAllAthletes',
+        error: error.message || error
       });
     }
   }
@@ -146,9 +154,12 @@ class AthleteController {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        const firstError = errors.array()[0];
+        console.log('Validation failed:', firstError);
         return res.status(400).json({
           success: false,
-          errors: errors.array()
+          errors: errors.array(),
+          message: firstError.msg || 'Validation failed'
         });
       }
 
@@ -199,10 +210,11 @@ class AthleteController {
 
       if (error) {
         console.error('Supabase insert athlete error:', error);
+        console.error('FULL ERROR:', JSON.stringify(error, null, 2));
         return res.status(500).json({
           success: false,
           message: 'Error creating athlete',
-          error: error.message
+          error: error.message || error
         });
       }
 
@@ -223,10 +235,11 @@ class AthleteController {
         data: athlete
       });
     } catch (error) {
-      console.error('Create athlete error:', error);
+      console.error('Create athlete error (catch):', error);
       res.status(500).json({
         success: false,
-        message: 'Server error'
+        message: 'Server error in createAthlete',
+        error: error.message || error
       });
     }
   }

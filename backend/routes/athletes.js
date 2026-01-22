@@ -36,11 +36,11 @@ router.post('/',
   authorizeRole('coach', 'admin', 'joueur', 'parent'),
   upload.single('photo'),
   [
-    body('nom').notEmpty().trim(),
-    body('prenom').notEmpty().trim(),
-    body('sexe').isIn(['M', 'F']),
-    body('date_naissance').isISO8601(),
-    body('poste').isInt({ min: 1, max: 5 }).optional()
+    body('nom').notEmpty().withMessage('Le nom est requis').trim(),
+    body('prenom').notEmpty().withMessage('Le prénom est requis').trim(),
+    body('sexe').isIn(['M', 'F']).withMessage('Le sexe doit être M ou F'),
+    body('date_naissance').isISO8601().withMessage('La date de naissance doit être au format ISO8601'),
+    body('poste').isInt({ min: 1, max: 5 }).withMessage('Le poste doit être entre 1 et 5').optional()
   ],
   AthleteController.createAthlete
 );
