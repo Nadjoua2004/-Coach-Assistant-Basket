@@ -82,7 +82,7 @@ const AdminDashboard = ({ onNavigate }) => {
             <Text style={styles.statLabel}>Exercices</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statCard} onPress={() => handleActionPress('videos')}>
-            <Icon name="video-collection" size={32} color="#10b981" />
+            <Icon name="video-box" size={32} color="#10b981" />
             <Text style={styles.statLabel}>Vidéothèque</Text>
             <Text style={styles.statSubLabel}>Gérer les vidéos</Text>
           </TouchableOpacity>

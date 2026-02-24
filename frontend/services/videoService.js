@@ -7,7 +7,7 @@ class VideoService {
     async getAllVideos() {
         try {
             const response = await api.get('/api/videos');
-            return response.data;
+            return response; // response is already { success, data, count }
         } catch (error) {
             throw error.response?.data || { success: false, message: error.message || 'Network error' };
         }
@@ -20,7 +20,7 @@ class VideoService {
     async uploadVideo(formData) {
         try {
             const response = await api.postFormData('/api/videos', formData);
-            return response.data;
+            return response; // response is already { success, data }
         } catch (error) {
             throw error.response?.data || { success: false, message: error.message || 'Network error' };
         }
@@ -33,7 +33,7 @@ class VideoService {
     async deleteVideo(id) {
         try {
             const response = await api.delete(`/api/videos/${id}`);
-            return response.data;
+            return response; // response is already { success }
         } catch (error) {
             throw error.response?.data || { success: false, message: error.message || 'Network error' };
         }
@@ -41,3 +41,4 @@ class VideoService {
 }
 
 export default new VideoService();
+

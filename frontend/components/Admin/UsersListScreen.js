@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AuthService from '../../services/authService';
 import UserCreationModal from './UserCreationModal';
+import ManageKidsModal from './ManageKidsModal';
 
 const UsersListScreen = () => {
     const [users, setUsers] = useState([]);
@@ -22,6 +23,8 @@ const UsersListScreen = () => {
     const [showUserModal, setShowUserModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRole, setFilterRole] = useState(null);
+    const [showKidsModal, setShowKidsModal] = useState(false);
+    const [selectedParent, setSelectedParent] = useState(null);
 
     useEffect(() => {
         fetchUsers();
@@ -44,6 +47,11 @@ const UsersListScreen = () => {
     const onRefresh = () => {
         setRefreshing(true);
         fetchUsers();
+    };
+
+    const handleManageKids = (parent) => {
+        setSelectedParent(parent);
+        setShowKidsModal(true);
     };
 
     const handleDeleteUser = (user) => {
@@ -151,9 +159,16 @@ const UsersListScreen = () => {
                                     </Text>
                                 </View>
                             </View>
-                            <Text style={styles.dateText}>
-                                {new Date(item.created_at).toLocaleDateString()}
-                            </Text>
+
+                            {item.role === 'parent' && (
+                                <TouchableOpacity
+                                    style={styles.manageKidsButton}
+                                    onPress={() => handleManageKids(item)}
+                                >
+                                    <Icon name="account-multiple-plus" size={20} color="#f97316" />
+                                    <Text style={styles.manageKidsText}>Gérer Enfants</Text>
+                                </TouchableOpacity>
+                            )}
 
                             <TouchableOpacity
                                 style={styles.deleteButton}
@@ -187,6 +202,12 @@ const UsersListScreen = () => {
                 visible={showUserModal}
                 onClose={() => setShowUserModal(false)}
                 onSuccess={fetchUsers}
+            />
+
+            <ManageKidsModal
+                visible={showKidsModal}
+                onClose={() => setShowKidsModal(false)}
+                parent={selectedParent}
             />
         </SafeAreaView>
     );
@@ -338,7 +359,23 @@ const styles = StyleSheet.create({
     },
     deleteButton: {
         padding: 8,
+        marginLeft: 8,
+    },
+    manageKidsButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#f97316',
         marginLeft: 'auto',
+    },
+    manageKidsText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#f97316',
+        marginLeft: 4,
     },
 });
 

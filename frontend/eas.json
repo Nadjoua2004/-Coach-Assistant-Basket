@@ -1,9 +1,0 @@
-echo '{
-  "build": {
-    "preview": {
-      "android": {
-        "buildType": "apk"
-      }
-    }
-  }
-}' > eas.json

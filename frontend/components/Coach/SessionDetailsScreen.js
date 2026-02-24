@@ -7,17 +7,21 @@ import {
     ScrollView,
     ActivityIndicator,
     Alert,
-    Linking
+    Linking,
+    Platform
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import SessionService from '../../services/sessionService';
 import ExerciseService from '../../services/exerciseService';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import API_URL from '../../config/api';
 
 const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
     const [loading, setLoading] = useState(true);
     const [exercises, setExercises] = useState([]);
     const [fullSession, setFullSession] = useState(session);
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         if (session && (session.id || session.session_id)) {
@@ -77,12 +81,126 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
     };
 
     const handleExportPDF = async () => {
+        if (!fullSession) return;
+
         try {
-            const url = `${API_URL}/api/sessions/${fullSession.id}/export-pdf`;
-            await Linking.openURL(url);
+            setExporting(true);
+
+            const html = `
+                <html>
+                <head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+                    <style>
+                        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; }
+                        .header { border-bottom: 2px solid #f97316; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+                        .club-name { font-size: 24px; font-weight: bold; color: #1e293b; }
+                        .fiche-title { font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 2px; }
+                        .session-title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+                        .meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #f8fafc; padding: 15px; border-radius: 10px; }
+                        .meta-item { display: flex; flex-direction: column; }
+                        .meta-label { font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+                        .meta-value { font-size: 16px; font-weight: 600; }
+                        .section { margin-bottom: 30px; }
+                        .section-title { font-size: 18px; font-weight: bold; border-left: 4px solid #f97316; padding-left: 12px; margin-bottom: 15px; text-transform: uppercase; }
+                        .objective-box { background: #fff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; line-height: 1.6; }
+                        .structure-table { width: 100%; border-collapse: collapse; }
+                        .structure-row { border-bottom: 1px solid #e2e8f0; }
+                        .structure-cell { padding: 12px 0; }
+                        .structure-label { font-weight: bold; width: 150px; color: #f97316; font-size: 12px; }
+                        .exercise-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; page-break-inside: avoid; }
+                        .ex-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+                        .ex-title { font-size: 18px; font-weight: bold; margin: 0; }
+                        .ex-meta { color: #64748b; font-size: 13px; }
+                        .ex-desc { color: #334155; line-height: 1.5; font-size: 14px; }
+                        .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; pt: 20px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="club-name">COACH ASSISTANT BASKET</div>
+                        <div class="fiche-title">Fiche de Séance</div>
+                    </div>
+
+                    <h1 class="session-title">${fullSession.title || fullSession.theme}</h1>
+                    
+                    <div class="meta-grid">
+                        <div class="meta-item">
+                            <span class="meta-label">Date</span>
+                            <span class="meta-value">${new Date(fullSession.date).toLocaleDateString()}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Horaire</span>
+                            <span class="meta-value">${fullSession.heure || fullSession.time}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Durée Totale</span>
+                            <span class="meta-value">${fullSession.total_duration || fullSession.duree || 0} min</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Objectif de la séance</div>
+                        <div class="objective-box">${fullSession.objective || 'Aucun objectif défini'}</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Structure</div>
+                        <table class="structure-table">
+                            ${fullSession.warmup ? `
+                            <tr class="structure-row">
+                                <td class="structure-cell structure-label">ÉCHAUFFEMENT</td>
+                                <td class="structure-cell">${fullSession.warmup}</td>
+                            </tr>` : ''}
+                            ${fullSession.main_content ? `
+                            <tr class="structure-row">
+                                <td class="structure-cell structure-label">FOND PRINCIPAL</td>
+                                <td class="structure-cell">${fullSession.main_content}</td>
+                            </tr>` : ''}
+                            ${(fullSession.cooldown || fullSession.cool_down) ? `
+                            <tr class="structure-row">
+                                <td class="structure-cell structure-label">FIN DE SÉANCE</td>
+                                <td class="structure-cell">${fullSession.cooldown || fullSession.cool_down}</td>
+                            </tr>` : ''}
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Exercices (${exercises.length})</div>
+                        ${exercises.map((ex, index) => `
+                            <div class="exercise-card">
+                                <div class="ex-header">
+                                    <h3 class="ex-title">${index + 1}. ${ex.name}</h3>
+                                    <span class="ex-meta">${ex.duration} min | ${ex.players_min}-${ex.players_max} joueurs</span>
+                                </div>
+                                <div class="ex-desc">${ex.description}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="footer">
+                        Généré le ${new Date().toLocaleString()} par Coach Assistant Basket
+                    </div>
+                </body>
+                </html>
+            `;
+
+            const { uri } = await Print.printToFileAsync({ html });
+
+            if (Platform.OS === 'ios') {
+                await Sharing.shareAsync(uri);
+            } else {
+                // Sur Android, on partage directement aussi
+                await Sharing.shareAsync(uri, {
+                    mimeType: 'application/pdf',
+                    dialogTitle: 'Exporter la fiche de séance',
+                    UTI: 'com.adobe.pdf'
+                });
+            }
         } catch (error) {
             console.error('Export error:', error);
-            Alert.alert('Erreur', 'Impossible d\'exporter le PDF');
+            Alert.alert('Erreur', 'Impossible de générer le PDF');
+        } finally {
+            setExporting(false);
         }
     };
 
@@ -200,9 +318,19 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
             </ScrollView>
 
             {/* Floating Action Button for Export */}
-            <TouchableOpacity style={styles.exportFab} onPress={handleExportPDF}>
-                <Icon name="file-pdf-box" size={24} color="white" />
-                <Text style={styles.exportText}>EXPORTER PDF</Text>
+            <TouchableOpacity
+                style={[styles.exportFab, exporting && { opacity: 0.7 }]}
+                onPress={handleExportPDF}
+                disabled={exporting}
+            >
+                {exporting ? (
+                    <ActivityIndicator color="white" />
+                ) : (
+                    <Icon name="file-pdf-box" size={24} color="white" />
+                )}
+                <Text style={styles.exportText}>
+                    {exporting ? 'GÉNÉRATION...' : 'EXPORTER PDF'}
+                </Text>
             </TouchableOpacity>
         </View>
     );

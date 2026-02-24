@@ -185,9 +185,18 @@ class AthleteController {
         created_by: req.user.id,
         // If the creator is a player, link this athlete record to their user account
         user_id: req.user.role === 'joueur' ? req.user.id : (user_id || null),
-        // Link to parent if provided or if creator is a parent
-        parent_id: req.user.role === 'parent' ? req.user.id : (parent_id || null)
+        // Link to parent if provided (Only coach/admin can set this now)
+        parent_id: (req.user.role === 'coach' || req.user.role === 'admin') ? (parent_id || null) : null
       };
+
+      // Security Check: Only Coach/Admin can manually create athlete profiles for others
+      // Players can only create their own profile (auto-linked via user_id above)
+      if (req.user.role === 'parent') {
+        return res.status(403).json({
+          success: false,
+          message: 'Les parents ne peuvent pas créer de profils athlètes. Veuillez attendre l\'affectation par un coach.'
+        });
+      }
 
       // Handle photo upload if provided
       if (req.file) {
@@ -282,6 +291,11 @@ class AthleteController {
         blesse: blesse === 'true' || blesse === true,
         updated_at: new Date().toISOString()
       };
+
+      // Security: Only coach/admin can change the parent linkage
+      if (req.body.parent_id !== undefined && (req.user.role === 'coach' || req.user.role === 'admin')) {
+        updateData.parent_id = req.body.parent_id;
+      }
 
       // Handle photo upload if provided
       if (req.file) {

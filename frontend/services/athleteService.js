@@ -118,6 +118,20 @@ class AthleteService {
             throw error;
         }
     }
+
+    /**
+     * Link an athlete to a parent
+     * @param {string} athleteId 
+     * @param {string} parentId 
+     */
+    static async linkParent(athleteId, parentId) {
+        try {
+            return await ApiService.put(`/api/athletes/${athleteId}`, { parent_id: parentId });
+        } catch (error) {
+            console.error('Error in AthleteService.linkParent:', error);
+            throw error;
+        }
+    }
 }
 
 export default AthleteService;

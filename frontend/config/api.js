@@ -1,6 +1,5 @@
-// --- CONFIGURATION IP ---
 // Remplacez cette IP par celle de votre serveur (ex: 192.168.0.105)
-const SERVER_IP = '192.168.43.76';
+const SERVER_IP = process.env.EXPO_PUBLIC_API_IP || '192.168.0.102';
 // -------------------------
 
 const API_URL = __DEV__

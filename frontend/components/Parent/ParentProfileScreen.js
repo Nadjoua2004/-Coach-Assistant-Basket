@@ -13,14 +13,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../Common/AuthProvider';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AthleteService from '../../services/athleteService';
-import AddChildModal from './AddChildModal';
 
 const ParentProfileScreen = ({ onSelectChild }) => {
     const { user, logout } = useAuth();
     const [children, setChildren] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [showAddModal, setShowAddModal] = useState(false);
 
     useEffect(() => {
         fetchChildren();
@@ -35,7 +33,6 @@ const ParentProfileScreen = ({ onSelectChild }) => {
             }
         } catch (error) {
             console.error('Error fetching children:', error);
-            // Alert.alert('Erreur', 'Impossible de charger vos enfants');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -58,10 +55,6 @@ const ParentProfileScreen = ({ onSelectChild }) => {
         );
     };
 
-    const handleAddChild = (newChild) => {
-        setChildren(prev => [...prev, newChild]);
-    };
-
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <ScrollView
@@ -82,23 +75,17 @@ const ParentProfileScreen = ({ onSelectChild }) => {
                 {/* Children Section */}
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Vos Enfants</Text>
-                    <TouchableOpacity onPress={() => setShowAddModal(true)}>
-                        <Icon name="plus-circle" size={28} color="#f97316" />
-                    </TouchableOpacity>
                 </View>
 
                 {loading && !refreshing ? (
                     <ActivityIndicator size="large" color="#f97316" style={{ marginVertical: 20 }} />
                 ) : children.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <Icon name="account-group-outline" size={48} color="#cbd5e1" />
-                        <Text style={styles.emptyText}>Aucun enfant ajouté</Text>
-                        <TouchableOpacity
-                            style={styles.addButtonSmall}
-                            onPress={() => setShowAddModal(true)}
-                        >
-                            <Text style={styles.addButtonSmallText}>Ajouter mon premier enfant</Text>
-                        </TouchableOpacity>
+                        <Icon name="account-clock-outline" size={48} color="#cbd5e1" />
+                        <Text style={styles.emptyText}>Aucun enfant affecté</Text>
+                        <Text style={styles.emptySubtitle}>
+                            Veuillez attendre que le coach affecte vos enfants à votre compte.
+                        </Text>
                     </View>
                 ) : (
                     children.map(child => (
@@ -109,7 +96,7 @@ const ParentProfileScreen = ({ onSelectChild }) => {
                         >
                             <View style={styles.childAvatar}>
                                 <Text style={styles.childInitials}>
-                                    {child.prenom[0]}{child.nom[0]}
+                                    {child.prenom ? child.prenom[0] : ''}{child.nom ? child.nom[0] : ''}
                                 </Text>
                             </View>
                             <View style={styles.childInfo}>
@@ -154,12 +141,6 @@ const ParentProfileScreen = ({ onSelectChild }) => {
                     </View>
                 </TouchableOpacity>
             </ScrollView>
-
-            <AddChildModal
-                visible={showAddModal}
-                onClose={() => setShowAddModal(false)}
-                onSave={handleAddChild}
-            />
         </SafeAreaView>
     );
 };
@@ -329,21 +310,17 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         marginTop: 12,
-        fontSize: 16,
+        fontSize: 18,
+        color: '#1e293b',
+        fontWeight: 'bold',
+    },
+    emptySubtitle: {
+        marginTop: 8,
+        fontSize: 14,
         color: '#64748b',
-        fontWeight: '500',
-    },
-    addButtonSmall: {
-        marginTop: 20,
-        backgroundColor: '#f97316',
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 12,
-    },
-    addButtonSmallText: {
-        color: 'white',
-        fontWeight: '600',
-    },
+        textAlign: 'center',
+        lineHeight: 20,
+    }
 });
 
 export default ParentProfileScreen;

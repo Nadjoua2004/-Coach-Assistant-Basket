@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "coach basket",
-    "slug": "coach-basket", 
+    "slug": "coach-basket",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,23 +13,17 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.yourname.coachbasketnew" 
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.yourname.coachbasketnew" 
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/logo.png"
-    },
-    "plugins": [
-      "expo-asset",
-      "@react-native-community/datetimepicker"
-    ]
+    }
   }
 }
