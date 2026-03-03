@@ -2,8 +2,64 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const supabase = require('../config/database');
+const { uploadToR2 } = require('../config/storage');
 
 class AuthController {
+  /**
+   * Update profile
+   */
+  static async updateProfile(req, res) {
+    try {
+      const { name, email, phone, club_role } = req.body;
+      const updateData = {};
+
+      if (name) updateData.name = name;
+      if (email) updateData.email = email.toLowerCase();
+
+      // These might be extra fields if we add them to users table, or stored in metadata
+      // For now let's stick to what's in schema.sql for users
+      // Note: Admin/Coach specific fields could go to a profiles table if needed
+      // but let's assume we can update name/email/photo_url for now.
+
+      if (req.file) {
+        const fileName = `users/${req.user.userId}-${Date.now()}-${req.file.originalname}`;
+        const photoUrl = await uploadToR2(
+          req.file.buffer,
+          fileName,
+          req.file.mimetype
+        );
+        updateData.photo_url = photoUrl;
+      }
+
+      const { data: updatedUser, error } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', req.user.userId)
+        .select('id, email, name, role, photo_url')
+        .single();
+
+      if (error) {
+        console.error('Update profile error:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Erreur lors de la mise à jour du profil'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Profil mis à jour avec succès',
+        data: updatedUser
+      });
+    } catch (error) {
+      console.error('Update profile error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur serveur'
+      });
+    }
+  }
+
   /**
    * Register new user
    */

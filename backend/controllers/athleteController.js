@@ -299,16 +299,6 @@ class AthleteController {
 
       // Handle photo upload if provided
       if (req.file) {
-        // Delete old photo if exists
-        if (athlete.photo_url) {
-          try {
-            const oldPhotoPath = athlete.photo_url.split('/').pop();
-            await deleteFromR2(`athletes/photos/${oldPhotoPath}`);
-          } catch (error) {
-            console.error('Error deleting old photo:', error);
-          }
-        }
-
         const fileName = `${req.params.id}-${Date.now()}-${req.file.originalname}`;
         const photoPath = `athletes/photos/${fileName}`;
         const photoUrl = await uploadToR2(

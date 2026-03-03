@@ -14,8 +14,8 @@ import {
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as ImagePicker from 'expo-image-picker';
 import AthleteService from '../../services/athleteService';
+import ProfileImagePicker from '../Common/ProfileImagePicker';
 
 const AthleteFormScreen = ({ athlete, onBack, onSave }) => {
     const isEditing = !!athlete && !athlete.id?.toString().startsWith('temp_');
@@ -52,19 +52,6 @@ const AthleteFormScreen = ({ athlete, onBack, onSave }) => {
             setSelectedDate(date);
             const formattedDate = date.toISOString().split('T')[0];
             handleChange('date_naissance', formattedDate);
-        }
-    };
-
-    const handlePickImage = async () => {
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.5,
-        });
-
-        if (!result.canceled) {
-            setPhoto(result.assets[0]);
         }
     };
 
@@ -121,21 +108,12 @@ const AthleteFormScreen = ({ athlete, onBack, onSave }) => {
             </View>
 
             <ScrollView contentContainerStyle={styles.formContent}>
-                {/* Photo Upload */}
-                <View style={styles.photoSection}>
-                    <TouchableOpacity onPress={handlePickImage} style={styles.photoContainer}>
-                        {photo ? (
-                            <Image source={{ uri: photo.uri }} style={styles.photo} />
-                        ) : athlete?.photo_url ? (
-                            <Image source={{ uri: athlete.photo_url }} style={styles.photo} />
-                        ) : (
-                            <View style={styles.photoPlaceholder}>
-                                <Icon name="camera" size={32} color="#94a3b8" />
-                                <Text style={styles.photoText}>Ajouter une photo</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                </View>
+                {/* Profile Image Picker */}
+                <ProfileImagePicker
+                    initialImage={athlete?.photo_url}
+                    onImageSelected={setPhoto}
+                    size={100}
+                />
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Informations Personnelles</Text>

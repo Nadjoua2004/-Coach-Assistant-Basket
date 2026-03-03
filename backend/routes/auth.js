@@ -3,6 +3,14 @@ const router = express.Router();
 const { body } = require('express-validator');
 const AuthController = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
+const multer = require('multer');
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: process.env.MAX_FILE_SIZE || 5 * 1024 * 1024 }
+});
+
+// Update profile
+router.put('/profile', authenticateToken, upload.single('photo'), AuthController.updateProfile);
 
 // Register new user
 router.post('/register', [

@@ -51,11 +51,35 @@ class MedicalRecordController {
       }
 
       const { athleteId } = req.params;
+      
+      // Fields allowed in medical_records table
+      const allowedFields = [
+        'allergies', 
+        'blessures_cours', 
+        'antecedents', 
+        'certificat_date',
+        'groupe_sanguin',
+        'traitements_en_cours',
+        'aptitude_sportive',
+        'notes_coach'
+      ];
+
       const recordData = {
         athlete_id: athleteId,
-        ...req.body,
         updated_at: new Date().toISOString()
       };
+
+      // Only include allowed fields from request body
+      allowedFields.forEach(field => {
+        if (req.body[field] !== undefined) {
+          // Convert string 'true'/'false' from FormData to boolean if necessary
+          if (field === 'aptitude_sportive') {
+             recordData[field] = req.body[field] === 'true' || req.body[field] === true;
+          } else {
+             recordData[field] = req.body[field];
+          }
+        }
+      });
 
       // Handle PDF upload if provided
       if (req.file) {
@@ -78,16 +102,6 @@ class MedicalRecordController {
       let result;
       if (existingRecord) {
         // Update existing record
-        // Delete old PDF if new one is uploaded
-        if (req.file && existingRecord.certificat_pdf_url) {
-          try {
-            const oldPdfPath = existingRecord.certificat_pdf_url.split('/').pop();
-            await deleteFromR2(`medical-records/${oldPdfPath}`);
-          } catch (error) {
-            console.error('Error deleting old PDF:', error);
-          }
-        }
-
         const { data, error } = await supabase
           .from('medical_records')
           .update(recordData)

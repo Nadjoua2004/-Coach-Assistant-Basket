@@ -13,6 +13,8 @@ import {
     Platform
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
+import AuthService from '../../services/authService';
+import ProfileImagePicker from '../Common/ProfileImagePicker';
 
 const AdminProfileModal = ({ visible, onClose, onUpdate, user }) => {
     const [loading, setLoading] = useState(false);
@@ -22,6 +24,7 @@ const AdminProfileModal = ({ visible, onClose, onUpdate, user }) => {
         phone: user?.phone || '',
         club_role: user?.club_role || 'Administrateur',
     });
+    const [photo, setPhoto] = useState(null);
 
     const handleSave = async () => {
         if (!formData.name || !formData.email) {
@@ -31,17 +34,19 @@ const AdminProfileModal = ({ visible, onClose, onUpdate, user }) => {
 
         try {
             setLoading(true);
-            // Simulate API call
-            setTimeout(() => {
-                onUpdate({ ...user, ...formData });
-                setLoading(false);
+            const response = await AuthService.updateProfile(formData, photo);
+
+            if (response.success) {
+                onUpdate(response.data);
                 Alert.alert('Succès', 'Profil administrateur mis à jour');
                 onClose();
-            }, 1000);
-
+            } else {
+                Alert.alert('Erreur', response.message || 'Impossible de mettre à jour le profil');
+            }
         } catch (error) {
             console.error('Error updating admin profile:', error);
-            Alert.alert('Erreur', 'Impossible de mettre à jour le profil');
+            Alert.alert('Erreur', 'Une erreur est survenue lors de la mise à jour');
+        } finally {
             setLoading(false);
         }
     };
@@ -66,6 +71,12 @@ const AdminProfileModal = ({ visible, onClose, onUpdate, user }) => {
                     </View>
 
                     <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+                        <ProfileImagePicker
+                            initialImage={user?.photo_url}
+                            onImageSelected={setPhoto}
+                            size={100}
+                        />
+
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Nom complet</Text>
                             <View style={styles.inputWrapper}>

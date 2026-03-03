@@ -149,15 +149,28 @@ class ApiService {
         body: formData,
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      const contentType = response.headers.get('content-type');
+      let data;
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Server error (${response.status}): ${text.substring(0, 100)}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Request failed');
+        let errorMessage = data.message || 'Request failed';
+        if (data.errors && Array.isArray(data.errors)) {
+          errorMessage = data.errors.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
+        }
+        console.error(`API Error POST [${endpoint}]:`, errorMessage);
+        throw new Error(errorMessage);
       }
 
       return data;
     } catch (error) {
-      console.error('API Error:', error);
+      console.error(`API Request failed POST [${endpoint}]:`, error.message);
       throw error;
     }
   }
@@ -180,15 +193,28 @@ class ApiService {
         body: formData,
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      const contentType = response.headers.get('content-type');
+      let data;
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Server error (${response.status}): ${text.substring(0, 100)}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Request failed');
+        let errorMessage = data.message || 'Request failed';
+        if (data.errors && Array.isArray(data.errors)) {
+          errorMessage = data.errors.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
+        }
+        console.error(`API Error PUT [${endpoint}]:`, errorMessage);
+        throw new Error(errorMessage);
       }
 
       return data;
     } catch (error) {
-      console.error('API Error:', error);
+      console.error(`API Request failed PUT [${endpoint}]:`, error.message);
       throw error;
     }
   }

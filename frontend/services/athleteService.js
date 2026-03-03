@@ -63,7 +63,7 @@ class AthleteService {
                 formData.append('photo', {
                     uri: photoFile.uri,
                     name: photoFile.name || 'athlete_photo.jpg',
-                    type: photoFile.type || 'image/jpeg'
+                    type: photoFile.mimeType || photoFile.type || 'image/jpeg'
                 });
 
                 return await ApiService.postFormData('/api/athletes', formData);
@@ -93,7 +93,7 @@ class AthleteService {
                 formData.append('photo', {
                     uri: photoFile.uri,
                     name: photoFile.name || 'athlete_photo.jpg',
-                    type: photoFile.type || 'image/jpeg'
+                    type: photoFile.mimeType || photoFile.type || 'image/jpeg'
                 });
 
                 return await ApiService.postFormData(`/api/athletes/${id}`, formData);

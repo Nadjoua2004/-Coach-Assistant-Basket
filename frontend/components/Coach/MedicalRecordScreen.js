@@ -12,11 +12,14 @@ import {
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import MedicalRecordService from '../../services/medicalRecordService';
+import * as DocumentPicker from 'expo-document-picker';
+import * as Linking from 'expo-linking';
 
 const MedicalRecordScreen = ({ athlete, onBack }) => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [record, setRecord] = useState(null);
+    const [certificate, setCertificate] = useState(null);
 
     // Form state
     const [groupeSanguin, setGroupeSanguin] = useState('');
@@ -52,6 +55,28 @@ const MedicalRecordScreen = ({ athlete, onBack }) => {
         }
     };
 
+    const handlePickDocument = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: 'application/pdf',
+                copyToCacheDirectory: true
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                setCertificate(result.assets[0]);
+            }
+        } catch (error) {
+            console.error('Error picking document:', error);
+            Alert.alert('Erreur', 'Impossible de sélectionner le document');
+        }
+    };
+
+    const handleViewCertificate = () => {
+        if (record?.certificat_pdf_url) {
+            Linking.openURL(record.certificat_pdf_url);
+        }
+    };
+
     const handleSave = async () => {
         try {
             setSaving(true);
@@ -64,10 +89,11 @@ const MedicalRecordScreen = ({ athlete, onBack }) => {
                 notes_coach: notesCoach
             };
 
-            const response = await MedicalRecordService.updateRecord(athlete.id, recordData);
+            const response = await MedicalRecordService.updateRecord(athlete.id, recordData, certificate);
             if (response.success) {
                 Alert.alert('Succès', 'Dossier médical mis à jour');
                 setRecord(response.data);
+                setCertificate(null); // Clear selected file after save
             }
         } catch (error) {
             console.error('Error saving medical record:', error);
@@ -145,6 +171,42 @@ const MedicalRecordScreen = ({ athlete, onBack }) => {
                     </View>
 
                     <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Certificat Médical (PDF)</Text>
+
+                        {record?.certificat_pdf_url && (
+                            <TouchableOpacity
+                                style={styles.viewFileButton}
+                                onPress={handleViewCertificate}
+                            >
+                                <Icon name="file-pdf-box" size={24} color="#ef4444" />
+                                <Text style={styles.viewFileText}>Voir le certificat actuel</Text>
+                                <Icon name="open-in-new" size={18} color="#94a3b8" />
+                            </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                            style={[styles.uploadButton, certificate && styles.uploadButtonActive]}
+                            onPress={handlePickDocument}
+                        >
+                            <Icon
+                                name={certificate ? "file-check" : "file-upload-outline"}
+                                size={24}
+                                color={certificate ? "#10b981" : "#64748b"}
+                            />
+                            <View style={styles.uploadInfo}>
+                                <Text style={[styles.uploadText, certificate && styles.uploadTextActive]}>
+                                    {certificate ? certificate.name : "Télécharger un nouveau certificat"}
+                                </Text>
+                                {certificate && (
+                                    <Text style={styles.uploadSize}>
+                                        {(certificate.size / 1024 / 1024).toFixed(2)} MB
+                                    </Text>
+                                )}
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.inputGroup}>
                         <Text style={styles.label}>Allergies</Text>
                         <TextInput
                             style={[styles.input, styles.textArea]}
@@ -169,7 +231,7 @@ const MedicalRecordScreen = ({ athlete, onBack }) => {
                             placeholderTextColor="#94a3b8"
                         />
                     </View>
-                </View>
+                </View >
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Historique & Notes</Text>
@@ -214,8 +276,8 @@ const MedicalRecordScreen = ({ athlete, onBack }) => {
                         </>
                     )}
                 </TouchableOpacity>
-            </ScrollView>
-        </View>
+            </ScrollView >
+        </View >
     );
 };
 
@@ -364,6 +426,55 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '700',
     },
+    viewFileButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fef2f2',
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#fee2e2',
+        marginBottom: 12,
+    },
+    viewFileText: {
+        flex: 1,
+        marginLeft: 12,
+        fontSize: 15,
+        color: '#ef4444',
+        fontWeight: '600',
+    },
+    uploadButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderStyle: 'dashed',
+        borderColor: '#cbd5e1',
+    },
+    uploadButtonActive: {
+        borderColor: '#10b981',
+        backgroundColor: '#f0fdf4',
+        borderStyle: 'solid',
+    },
+    uploadInfo: {
+        flex: 1,
+        marginLeft: 12,
+    },
+    uploadText: {
+        fontSize: 14,
+        color: '#64748b',
+    },
+    uploadTextActive: {
+        color: '#065f46',
+        fontWeight: '600',
+    },
+    uploadSize: {
+        fontSize: 12,
+        color: '#94a3b8',
+        marginTop: 2,
+    }
 });
 
 export default MedicalRecordScreen;

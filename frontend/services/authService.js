@@ -176,6 +176,37 @@ class AuthService {
       };
     }
   }
+
+  /**
+   * Update current user profile
+   */
+  static async updateProfile(userData, photoAsset = null) {
+    try {
+      const formData = new FormData();
+
+      Object.keys(userData).forEach(key => {
+        if (userData[key] !== null && userData[key] !== undefined) {
+          formData.append(key, userData[key]);
+        }
+      });
+
+      if (photoAsset) {
+        formData.append('photo', {
+          uri: photoAsset.uri,
+          name: photoAsset.name || 'profile_photo.jpg',
+          type: photoAsset.mimeType || 'image/jpeg'
+        });
+      }
+
+      return await ApiService.postFormData('/api/auth/profile', formData, { method: 'PUT' });
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return {
+        success: false,
+        message: error.message || 'Erreur lors de la mise à jour du profil'
+      };
+    }
+  }
 }
 
 export default AuthService;

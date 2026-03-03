@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AuthService from '../../services/authService';
+import ProfileImagePicker from '../Common/ProfileImagePicker';
 
 const CoachProfileModal = ({ visible, onClose, onUpdate, user }) => {
     const [loading, setLoading] = useState(false);
@@ -23,6 +24,7 @@ const CoachProfileModal = ({ visible, onClose, onUpdate, user }) => {
         phone: user?.phone || '',
         club_role: user?.club_role || '',
     });
+    const [photo, setPhoto] = useState(null);
 
     const handleSave = async () => {
         if (!formData.name || !formData.email) {
@@ -32,21 +34,19 @@ const CoachProfileModal = ({ visible, onClose, onUpdate, user }) => {
 
         try {
             setLoading(true);
-            // In a real app, you'd have an API to update user info
-            // For now we'll simulate it or update local storage via onUpdate
-            // const response = await AuthService.updateProfile(formData);
+            const response = await AuthService.updateProfile(formData, photo);
 
-            // Mocking success
-            setTimeout(() => {
-                onUpdate({ ...user, ...formData });
-                setLoading(false);
+            if (response.success) {
+                onUpdate(response.data);
                 Alert.alert('Succès', 'Profil mis à jour avec succès');
                 onClose();
-            }, 1000);
-
+            } else {
+                Alert.alert('Erreur', response.message || 'Impossible de mettre à jour le profil');
+            }
         } catch (error) {
             console.error('Error updating profile:', error);
-            Alert.alert('Erreur', 'Impossible de mettre à jour le profil');
+            Alert.alert('Erreur', 'Une erreur est survenue lors de la mise à jour');
+        } finally {
             setLoading(false);
         }
     };
@@ -71,6 +71,12 @@ const CoachProfileModal = ({ visible, onClose, onUpdate, user }) => {
                     </View>
 
                     <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+                        <ProfileImagePicker
+                            initialImage={user?.photo_url}
+                            onImageSelected={setPhoto}
+                            size={100}
+                        />
+
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Nom complet</Text>
                             <View style={styles.inputWrapper}>
