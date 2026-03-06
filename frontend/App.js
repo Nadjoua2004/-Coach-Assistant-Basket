@@ -582,6 +582,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Import screens
 import LoginScreen from './components/Auth/LoginScreen';
+import ForgotPasswordScreen from './components/Auth/ForgotPasswordScreen';
+import VerifyOtpScreen from './components/Auth/VerifyOtpScreen';
+import ResetPasswordScreen from './components/Auth/ResetPasswordScreen';
 import CoachHomeScreen from './components/Coach/CoachHomeScreen';
 import SessionsListScreen from './components/Coach/SessionsListScreen';
 import SessionCreationScreen from './components/Coach/SessionCreationScreen';
@@ -608,6 +611,11 @@ import BottomNav from './components/Common/bottomNav';
 const AppContent = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('home');
+
+  // Auth flow state
+  const [authScreen, setAuthScreen] = useState('login'); // 'login', 'forgot', 'verify', 'reset'
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetOtp, setResetOtp] = useState('');
 
   React.useEffect(() => {
     if (user) {
@@ -639,7 +647,40 @@ const AppContent = () => {
   };
 
   if (!user) {
-    return <LoginScreen />;
+    switch (authScreen) {
+      case 'forgot':
+        return (
+          <ForgotPasswordScreen
+            onBack={() => setAuthScreen('login')}
+            onCodeSent={(email) => {
+              setResetEmail(email);
+              setAuthScreen('verify');
+            }}
+          />
+        );
+      case 'verify':
+        return (
+          <VerifyOtpScreen
+            email={resetEmail}
+            onBack={() => setAuthScreen('forgot')}
+            onVerified={(otp) => {
+              setResetOtp(otp);
+              setAuthScreen('reset');
+            }}
+          />
+        );
+      case 'reset':
+        return (
+          <ResetPasswordScreen
+            email={resetEmail}
+            otp={resetOtp}
+            onBack={() => setAuthScreen('verify')}
+            onSuccess={() => setAuthScreen('login')}
+          />
+        );
+      default:
+        return <LoginScreen onForgotPassword={() => setAuthScreen('forgot')} />;
+    }
   }
 
   const handleTabPress = (tabId) => {

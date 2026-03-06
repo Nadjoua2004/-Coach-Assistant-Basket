@@ -16,7 +16,7 @@ import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 
 const { width, height } = Dimensions.get('window');
 
-const LoginScreen = () => {
+const LoginScreen = ({ onForgotPassword }) => {
   const { login, register } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -238,11 +238,15 @@ const LoginScreen = () => {
 
           {!isSignUp && (
             <>
-              <TouchableOpacity style={styles.forgotPassword} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.forgotPassword}
+                activeOpacity={0.7}
+                onPress={onForgotPassword}
+              >
                 <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
               </TouchableOpacity>
 
-           
+
             </>
           )}
         </View>

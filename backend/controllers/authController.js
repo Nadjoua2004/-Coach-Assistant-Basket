@@ -252,109 +252,186 @@ class AuthController {
   }
 
   /**
-   * Forgot password
+   * Forgot password - Generates 6-digit OTP and sends via Resend
    */
   static async forgotPassword(req, res) {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          errors: errors.array()
-        });
+        return res.status(400).json({ success: false, errors: errors.array() });
       }
 
       const { email } = req.body;
+      const normalizedEmail = email.toLowerCase();
 
       // Check if user exists
       const { data: user } = await supabase
         .from('users')
-        .select('id, email')
-        .eq('email', email)
+        .select('id, name')
+        .eq('email', normalizedEmail)
         .single();
 
-      // Always return success for security (don't reveal if email exists)
-      if (user) {
-        // Generate reset token
-        const resetToken = jwt.sign(
-          { userId: user.id, type: 'password-reset' },
-          process.env.JWT_SECRET,
-          { expiresIn: '1h' }
-        );
+      if (!user) {
+        // Return success even if user not found for security
+        return res.json({
+          success: true,
+          message: 'Si cet email est enregistré, un code de vérification a été envoyé.'
+        });
+      }
 
-        // TODO: Send email with reset link
-        // For now, just log it (in production, use email service)
-        console.log(`Password reset token for ${email}: ${resetToken}`);
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      // Save OTP to password_resets table
+      const { error: resetError } = await supabase
+        .from('password_resets')
+        .insert({
+          email: normalizedEmail,
+          otp,
+          expires_at: expiresAt.toISOString()
+        });
+
+      if (resetError) {
+        console.error('Error saving reset OTP:', resetError);
+        return res.status(500).json({ success: false, message: 'Erreur lors de la génération du code' });
+      }
+
+      // Send email via Resend
+      if (process.env.RESEND_API_KEY) {
+        try {
+          const { Resend } = require('resend');
+          const resend = new Resend(process.env.RESEND_API_KEY);
+
+          await resend.emails.send({
+            from: 'Coach Assistant <onboarding@resend.dev>',
+            to: normalizedEmail,
+            subject: 'Votre code de réinitialisation - Coach Assistant',
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                <h2 style="color: #f97316; text-align: center;">Réinitialisation de mot de passe</h2>
+                <p>Bonjour ${user.name},</p>
+                <p>Vous avez demandé la réinitialisation de votre mot de passe. Voici votre code de vérification (valide pendant 15 minutes) :</p>
+                <div style="background: #f8fafc; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b; border-radius: 8px;">
+                  ${otp}
+                </div>
+                <p style="margin-top: 20px;">Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email en toute sécurité.</p>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                <p style="font-size: 12px; color: #64748b; text-align: center;">Coach Assistant Basket &copy; 2024</p>
+              </div>
+            `
+          });
+          console.log(`✅ OTP sent to ${normalizedEmail}: ${otp}`);
+        } catch (emailError) {
+          console.error('Resend Email Error:', emailError);
+          // Don't fail the request, but log it. In local dev, we use the logged OTP.
+        }
+      } else {
+        console.log(`⚠️ RESEND_API_KEY missing. OTP for ${normalizedEmail}: ${otp}`);
       }
 
       res.json({
         success: true,
-        message: 'If the email exists, a password reset link has been sent'
+        message: 'Un code de vérification a été envoyé à votre adresse email.'
       });
     } catch (error) {
       console.error('Forgot password error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Server error'
-      });
+      res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }
 
   /**
-   * Reset password
+   * Verify OTP
    */
-  static async resetPassword(req, res) {
+  static async verifyOtp(req, res) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
+      const { email, otp } = req.body;
+      const normalizedEmail = email.toLowerCase();
+
+      const { data, error } = await supabase
+        .from('password_resets')
+        .select('*')
+        .eq('email', normalizedEmail)
+        .eq('otp', otp)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error || !data || data.length === 0) {
         return res.status(400).json({
           success: false,
-          errors: errors.array()
-        });
-      }
-
-      const { token, password } = req.body;
-
-      // Verify reset token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      if (decoded.type !== 'password-reset') {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid reset token'
-        });
-      }
-
-      // Hash new password
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      // Update password
-      const { error } = await supabase
-        .from('users')
-        .update({ password: hashedPassword })
-        .eq('id', decoded.userId);
-
-      if (error) {
-        return res.status(500).json({
-          success: false,
-          message: 'Error updating password'
+          message: 'Code invalide ou expiré'
         });
       }
 
       res.json({
         success: true,
-        message: 'Password reset successfully'
+        message: 'Code vérifié avec succès'
       });
     } catch (error) {
-      if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      console.error('Verify OTP error:', error);
+      res.status(500).json({ success: false, message: 'Erreur serveur' });
+    }
+  }
+
+  /**
+   * Reset password - Verifies OTP and updates user password
+   */
+  static async resetPassword(req, res) {
+    try {
+      const { email, otp, password } = req.body;
+      const normalizedEmail = email.toLowerCase();
+
+      // 1. Double check OTP validity
+      const { data: resetData, error: resetError } = await supabase
+        .from('password_resets')
+        .select('*')
+        .eq('email', normalizedEmail)
+        .eq('otp', otp)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (resetError || !resetData || resetData.length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid or expired reset token'
+          message: 'Code invalide ou expiré'
         });
       }
-      res.status(500).json({
-        success: false,
-        message: 'Server error'
+
+      // 2. Hash new password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // 3. Update user password
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          password: hashedPassword,
+          updated_at: new Date().toISOString()
+        })
+        .eq('email', normalizedEmail);
+
+      if (updateError) {
+        console.error('Error updating password:', updateError);
+        return res.status(500).json({
+          success: false,
+          message: 'Erreur lors de la mise à jour du mot de passe'
+        });
+      }
+
+      // 4. Delete used OTPs for this email
+      await supabase
+        .from('password_resets')
+        .delete()
+        .eq('email', normalizedEmail);
+
+      res.json({
+        success: true,
+        message: 'Votre mot de passe a été réinitialisé avec succès.'
       });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ success: false, message: 'Erreur serveur' });
     }
   }
 

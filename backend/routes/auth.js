@@ -49,9 +49,16 @@ router.post('/forgot-password', [
   body('email').isEmail()
 ], AuthController.forgotPassword);
 
+// Verify OTP
+router.post('/verify-otp', [
+  body('email').isEmail(),
+  body('otp').isLength({ min: 6, max: 6 })
+], AuthController.verifyOtp);
+
 // Reset password
 router.post('/reset-password', [
-  body('token').notEmpty(),
+  body('email').isEmail(),
+  body('otp').isLength({ min: 6, max: 6 }),
   body('password').isLength({ min: 6 })
 ], AuthController.resetPassword);
 

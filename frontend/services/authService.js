@@ -83,7 +83,7 @@ class AuthService {
   }
 
   /**
-   * Forgot password
+   * Forgot password - Step 1: Request OTP
    */
   static async forgotPassword(email) {
     try {
@@ -95,18 +95,38 @@ class AuthService {
       console.error('Forgot password error:', error);
       return {
         success: false,
-        message: error.message || 'Failed to send reset email',
+        message: error.message || 'Failed to send reset code',
       };
     }
   }
 
   /**
-   * Reset password
+   * Verify OTP - Step 2: Check code
    */
-  static async resetPassword(token, password) {
+  static async verifyOtp(email, otp) {
+    try {
+      const response = await ApiService.post('/api/auth/verify-otp', {
+        email,
+        otp,
+      });
+      return response;
+    } catch (error) {
+      console.error('Verify OTP error:', error);
+      return {
+        success: false,
+        message: error.message || 'Invalid or expired code',
+      };
+    }
+  }
+
+  /**
+   * Reset password - Step 3: Set new password
+   */
+  static async resetPassword(email, otp, password) {
     try {
       const response = await ApiService.post('/api/auth/reset-password', {
-        token,
+        email,
+        otp,
         password,
       });
       return response;
