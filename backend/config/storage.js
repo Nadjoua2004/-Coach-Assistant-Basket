@@ -33,7 +33,10 @@ const uploadToR2 = async (fileBuffer, fileName, contentType) => {
     await r2Client.send(command);
 
     // Return public URL
-    return `${R2_PUBLIC_URL}/${fileName}`;
+    const publicUrl = `${R2_PUBLIC_URL}/${fileName}`;
+    console.log(`✅ File uploaded to R2: ${fileName}`);
+    console.log(`🔗 Public URL: ${publicUrl}`);
+    return publicUrl;
   } catch (error) {
     console.error('R2 Upload Error:', error);
     throw new Error('Failed to upload file to R2');
@@ -54,11 +57,11 @@ const getFromR2 = async (fileName) => {
 
     const response = await r2Client.send(command);
     const chunks = [];
-    
+
     for await (const chunk of response.Body) {
       chunks.push(chunk);
     }
-    
+
     return Buffer.concat(chunks);
   } catch (error) {
     console.error('R2 Get Error:', error);

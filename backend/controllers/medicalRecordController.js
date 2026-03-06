@@ -51,12 +51,12 @@ class MedicalRecordController {
       }
 
       const { athleteId } = req.params;
-      
+
       // Fields allowed in medical_records table
       const allowedFields = [
-        'allergies', 
-        'blessures_cours', 
-        'antecedents', 
+        'allergies',
+        'blessures_cours',
+        'antecedents',
         'certificat_date',
         'groupe_sanguin',
         'traitements_en_cours',
@@ -74,16 +74,21 @@ class MedicalRecordController {
         if (req.body[field] !== undefined) {
           // Convert string 'true'/'false' from FormData to boolean if necessary
           if (field === 'aptitude_sportive') {
-             recordData[field] = req.body[field] === 'true' || req.body[field] === true;
+            recordData[field] = req.body[field] === 'true' || req.body[field] === true;
           } else {
-             recordData[field] = req.body[field];
+            recordData[field] = req.body[field];
           }
         }
       });
 
       // Handle PDF upload if provided
       if (req.file) {
-        const pdfPath = `medical-records/${athleteId}-${Date.now()}-${req.file.originalname}`;
+        // Sanitize filename to avoid URL issues (replace spaces with _, remove special chars)
+        const sanitizedOriginalName = req.file.originalname
+          .replace(/\s+/g, '_')
+          .replace(/[^a-zA-Z0-9._-]/g, '');
+
+        const pdfPath = `medical-records/${athleteId}-${Date.now()}-${sanitizedOriginalName}`;
         const pdfUrl = await uploadToR2(
           req.file.buffer,
           pdfPath,

@@ -200,8 +200,12 @@ class AthleteController {
 
       // Handle photo upload if provided
       if (req.file) {
-        // Use a timestamp and random string to avoid collisions
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${req.file.originalname}`;
+        // Sanitize filename to avoid URL issues
+        const sanitizedOriginalName = req.file.originalname
+          .replace(/\s+/g, '_')
+          .replace(/[^a-zA-Z0-9._-]/g, '');
+
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${sanitizedOriginalName}`;
         const photoPath = `athletes/photos/${fileName}`;
         const photoUrl = await uploadToR2(
           req.file.buffer,
@@ -299,8 +303,12 @@ class AthleteController {
 
       // Handle photo upload if provided
       if (req.file) {
-        const fileName = `${req.params.id}-${Date.now()}-${req.file.originalname}`;
-        const photoPath = `athletes/photos/${fileName}`;
+        // Sanitize filename to avoid URL issues
+        const sanitizedOriginalName = req.file.originalname
+          .replace(/\s+/g, '_')
+          .replace(/[^a-zA-Z0-9._-]/g, '');
+
+        const photoPath = `athletes/photos/${req.params.id}-${Date.now()}-${sanitizedOriginalName}`;
         const photoUrl = await uploadToR2(
           req.file.buffer,
           photoPath,
