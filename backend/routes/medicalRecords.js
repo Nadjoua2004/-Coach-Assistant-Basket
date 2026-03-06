@@ -30,10 +30,14 @@ router.post('/:athleteId',
   authorizeRole('coach', 'adjoint', 'admin', 'joueur'),
   upload.single('certificate'),
   [
-    body('allergies').optional().trim(),
-    body('blessures_cours').optional().trim(),
-    body('antecedents').optional().trim(),
-    body('certificat_date').optional().isISO8601()
+    body('allergies').optional({ checkFalsy: true }).trim(),
+    body('blessures_cours').optional({ checkFalsy: true }).trim(),
+    body('antecedents').optional({ checkFalsy: true }).trim(),
+    body('certificat_date').optional({ checkFalsy: true }).isISO8601(),
+    body('groupe_sanguin').optional({ checkFalsy: true }).trim(),
+    body('traitements_en_cours').optional({ checkFalsy: true }).trim(),
+    body('aptitude_sportive').optional({ checkFalsy: true }),
+    body('notes_coach').optional({ checkFalsy: true }).trim()
   ],
   MedicalRecordController.upsertMedicalRecord
 );

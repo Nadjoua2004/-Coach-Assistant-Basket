@@ -21,8 +21,9 @@ class MedicalRecordService {
             const formData = new FormData();
 
             Object.keys(recordData).forEach(key => {
-                if (recordData[key] !== null && recordData[key] !== undefined) {
-                    formData.append(key, typeof recordData[key] === 'boolean' ? recordData[key].toString() : recordData[key]);
+                const value = recordData[key];
+                if (value !== null && value !== undefined && value !== '') {
+                    formData.append(key, typeof value === 'boolean' ? value.toString() : value);
                 }
             });
 
