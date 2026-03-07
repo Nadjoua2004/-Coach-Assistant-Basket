@@ -9,7 +9,7 @@ console.log('SERVER_IP:', SERVER_IP);
 console.log('USE_RENDER:', USE_RENDER);
 
 const API_URL = (USE_RENDER || !(__DEV__ || SERVER_IP))
-    ? 'https://coach-assistant-backend.onrender.com'
+    ? 'https://coach-assistant-basket.onrender.com'
     : `http://${SERVER_IP}:3000`;
 
 console.log('🚀 API_URL being used:', API_URL);
