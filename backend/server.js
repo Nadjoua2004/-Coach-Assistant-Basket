@@ -17,6 +17,12 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Log requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -82,7 +88,17 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'Not configured'}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`💡 Access from Expo Go: http://192.168.43.76:${PORT}`);
+  const os = require('os');
+  const networkInterfaces = os.networkInterfaces();
+  let localIp = '127.0.0.1';
+  Object.keys(networkInterfaces).forEach((ifname) => {
+    networkInterfaces[ifname].forEach((iface) => {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        localIp = iface.address;
+      }
+    });
+  });
+  console.log(`💡 Access from Expo Go: http://${localIp}:${PORT}`);
 });
 
 module.exports = app;

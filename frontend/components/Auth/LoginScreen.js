@@ -26,6 +26,8 @@ const LoginScreen = ({ onForgotPassword }) => {
   const [role, setRole] = useState('joueur');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const scrollViewRef = useRef(null);
 
   const handleLogin = async () => {
@@ -167,15 +169,23 @@ const LoginScreen = ({ onForgotPassword }) => {
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Mot de passe</Text>
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                secureTextEntry
-                placeholderTextColor="#9ca3af"
-                returnKeyType="done"
-              />
+              <View style={styles.passwordInputWrapper}>
+                <TextInput
+                  style={styles.passwordInput}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="••••••••"
+                  secureTextEntry={!showPassword}
+                  placeholderTextColor="#9ca3af"
+                  returnKeyType="done"
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Icon name={showPassword ? "eye-off" : "eye"} size={22} color="#6b7280" />
+                </TouchableOpacity>
+              </View>
               {isSignUp && (
                 <Text style={styles.passwordHint}>
                   Minimum 8 caractères avec chiffres et lettres
@@ -187,15 +197,23 @@ const LoginScreen = ({ onForgotPassword }) => {
               <>
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Confirmer le mot de passe</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    placeholder="••••••••"
-                    secureTextEntry
-                    placeholderTextColor="#9ca3af"
-                    returnKeyType="done"
-                  />
+                  <View style={styles.passwordInputWrapper}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      placeholder="••••••••"
+                      secureTextEntry={!showConfirmPassword}
+                      placeholderTextColor="#9ca3af"
+                      returnKeyType="done"
+                    />
+                    <TouchableOpacity
+                      style={styles.eyeIcon}
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      <Icon name={showConfirmPassword ? "eye-off" : "eye"} size={22} color="#6b7280" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Rôle</Text>
@@ -364,6 +382,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+  },
+  passwordInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    fontSize: 16,
+    color: '#1f2937',
+  },
+  eyeIcon: {
+    padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   passwordHint: {
     fontSize: 12,

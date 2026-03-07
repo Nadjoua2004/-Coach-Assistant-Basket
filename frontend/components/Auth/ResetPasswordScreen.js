@@ -18,6 +18,8 @@ const ResetPasswordScreen = ({ email, otp, onBack, onSuccess }) => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const handleReset = async () => {
         if (!password || !confirmPassword) {
@@ -83,9 +85,15 @@ const ResetPasswordScreen = ({ email, otp, onBack, onSuccess }) => {
                                 placeholder="••••••••"
                                 value={password}
                                 onChangeText={setPassword}
-                                secureTextEntry
+                                secureTextEntry={!showPassword}
                                 placeholderTextColor="#94a3b8"
                             />
+                            <TouchableOpacity
+                                style={styles.eyeIcon}
+                                onPress={() => setShowPassword(!showPassword)}
+                            >
+                                <Icon name={showPassword ? "eye-off" : "eye"} size={22} color="#94a3b8" />
+                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -98,9 +106,15 @@ const ResetPasswordScreen = ({ email, otp, onBack, onSuccess }) => {
                                 placeholder="••••••••"
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
-                                secureTextEntry
+                                secureTextEntry={!showConfirmPassword}
                                 placeholderTextColor="#94a3b8"
                             />
+                            <TouchableOpacity
+                                style={styles.eyeIcon}
+                                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                            >
+                                <Icon name={showConfirmPassword ? "eye-off" : "eye"} size={22} color="#94a3b8" />
+                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -202,6 +216,10 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 16,
         color: '#1e293b',
+        height: '100%',
+    },
+    eyeIcon: {
+        padding: 8,
     },
     resetButton: {
         width: '100%',

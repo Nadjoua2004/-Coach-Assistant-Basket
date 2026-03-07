@@ -297,37 +297,35 @@ class AuthController {
         return res.status(500).json({ success: false, message: 'Erreur lors de la génération du code' });
       }
 
-      // Send email via Resend
-      if (process.env.RESEND_API_KEY) {
-        try {
-          const { Resend } = require('resend');
-          const resend = new Resend(process.env.RESEND_API_KEY);
+      // Send email via EmailJS
+      const { EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY, EMAILJS_PRIVATE_KEY } = process.env;
 
-          await resend.emails.send({
-            from: 'Coach Assistant <onboarding@resend.dev>',
-            to: normalizedEmail,
-            subject: 'Votre code de réinitialisation - Coach Assistant',
-            html: `
-              <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h2 style="color: #f97316; text-align: center;">Réinitialisation de mot de passe</h2>
-                <p>Bonjour ${user.name},</p>
-                <p>Vous avez demandé la réinitialisation de votre mot de passe. Voici votre code de vérification (valide pendant 15 minutes) :</p>
-                <div style="background: #f8fafc; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b; border-radius: 8px;">
-                  ${otp}
-                </div>
-                <p style="margin-top: 20px;">Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email en toute sécurité.</p>
-                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-                <p style="font-size: 12px; color: #64748b; text-align: center;">Coach Assistant Basket &copy; 2024</p>
-              </div>
-            `
-          });
-          console.log(`✅ OTP sent to ${normalizedEmail}: ${otp}`);
+      if (EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && EMAILJS_PUBLIC_KEY && EMAILJS_PRIVATE_KEY) {
+        try {
+          const emailjs = require('@emailjs/nodejs');
+
+          await emailjs.send(
+            EMAILJS_SERVICE_ID,
+            EMAILJS_TEMPLATE_ID,
+            {
+              email: normalizedEmail,
+              to_name: user.name,
+              otp: otp,
+              reply_to: 'support@coach-assistant.dz'
+            },
+            {
+              publicKey: EMAILJS_PUBLIC_KEY,
+              privateKey: EMAILJS_PRIVATE_KEY,
+            }
+          );
+
+          console.log(`✅ OTP sent via EmailJS to ${normalizedEmail}: ${otp}`);
         } catch (emailError) {
-          console.error('Resend Email Error:', emailError);
-          // Don't fail the request, but log it. In local dev, we use the logged OTP.
+          console.error('❌ EmailJS Error:', emailError);
+          // In local dev, we still have the OTP in the console
         }
       } else {
-        console.log(`⚠️ RESEND_API_KEY missing. OTP for ${normalizedEmail}: ${otp}`);
+        console.log(`⚠️ EmailJS configuration missing. OTP for ${normalizedEmail}: ${otp}`);
       }
 
       res.json({
