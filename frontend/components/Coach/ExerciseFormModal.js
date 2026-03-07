@@ -9,10 +9,16 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
+    KeyboardAvoidingView,
     Platform
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import ExerciseService from '../../services/exerciseService';
+import VideoService from '../../services/videoService';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Button from '../UI/Button';
+import Input from '../UI/Input';
+import Card from '../UI/Card';
 
 const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) => {
     const [loading, setLoading] = useState(false);
@@ -24,16 +30,18 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
         duration: '',
         players_min: '1',
         players_max: '12',
-        equipment: ''
+        equipment: '',
+        video_id: null
     });
+    const [videos, setVideos] = useState([]);
     const [errors, setErrors] = useState({});
 
     const categories = [
-        { id: 'shoot', label: 'Shoot', icon: 'basketball' },
-        { id: 'dribble', label: 'Conduite', icon: 'run' },
-        { id: 'defense', label: 'Défense', icon: 'shield' },
-        { id: 'system', label: 'Système', icon: 'strategy' },
-        { id: 'physical', label: 'Physique', icon: 'dumbbell' },
+        { id: 'shoot', label: 'Shoot', icon: 'basketball-hoop' },
+        { id: 'dribble', label: 'Dribble', icon: 'basketball' },
+        { id: 'defense', label: 'Défense', icon: 'shield-check' },
+        { id: 'system', label: 'Tactique', icon: 'strategy' },
+        { id: 'physical', label: 'Physique', icon: 'lightning-bolt' },
         { id: 'mental', label: 'Mental', icon: 'brain' }
     ];
 
@@ -48,14 +56,14 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
             { id: 'crossover', label: 'Crossover' }
         ],
         defense: [
-            { id: 'individual', label: 'Individuel' },
+            { id: 'individual', label: '1 contre 1' },
             { id: 'help', label: 'Aide défensive' },
-            { id: 'system', label: 'Système' }
+            { id: 'system', label: 'Zone / Presse' }
         ],
         system: [
             { id: 'offense', label: 'Attaque' },
-            { id: 'defense', label: 'Défense' },
-            { id: 'transition', label: 'Transition' }
+            { id: 'defense', label: 'Défense Co' },
+            { id: 'transition', label: 'Contre-attaque' }
         ]
     };
 
@@ -69,12 +77,25 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
                 duration: exercise.duration?.toString() || '',
                 players_min: exercise.players_min?.toString() || '1',
                 players_max: exercise.players_max?.toString() || '12',
-                equipment: exercise.equipment || ''
+                equipment: exercise.equipment || '',
+                video_id: exercise.video_id || null
             });
         } else {
             resetForm();
         }
+        fetchVideos();
     }, [editMode, exercise, visible]);
+
+    const fetchVideos = async () => {
+        try {
+            const response = await VideoService.getAllVideos();
+            if (response.success) {
+                setVideos(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching videos:', error);
+        }
+    };
 
     const resetForm = () => {
         setFormData({
@@ -85,14 +106,14 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
             duration: '',
             players_min: '1',
             players_max: '12',
-            equipment: ''
+            equipment: '',
+            video_id: null
         });
         setErrors({});
     };
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-        // Clear error when user starts typing
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: null }));
         }
@@ -102,85 +123,46 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
         setFormData(prev => ({
             ...prev,
             category: categoryId,
-            subcategory: '' // Reset subcategory when category changes
+            subcategory: ''
         }));
     };
 
     const validate = () => {
         const newErrors = {};
-
-        if (!formData.name.trim()) {
-            newErrors.name = 'Le nom est requis';
-        }
-
-        if (!formData.category) {
-            newErrors.category = 'La catégorie est requise';
-        }
-
-        if (formData.duration && isNaN(parseInt(formData.duration))) {
-            newErrors.duration = 'La durée doit être un nombre';
-        }
-
-        if (formData.players_min && isNaN(parseInt(formData.players_min))) {
-            newErrors.players_min = 'Doit être un nombre';
-        }
-
-        if (formData.players_max && isNaN(parseInt(formData.players_max))) {
-            newErrors.players_max = 'Doit être un nombre';
-        }
-
-        if (formData.players_min && formData.players_max) {
-            const min = parseInt(formData.players_min);
-            const max = parseInt(formData.players_max);
-            if (min > max) {
-                newErrors.players_max = 'Doit être >= minimum';
-            }
-        }
+        if (!formData.name.trim()) newErrors.name = 'Le nom est requis';
+        if (!formData.category) newErrors.category = 'La catégorie est requise';
+        if (formData.duration && isNaN(parseInt(formData.duration))) newErrors.duration = 'Doit être un nombre';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async () => {
-        if (!validate()) {
-            return;
-        }
+        if (!validate()) return;
 
         try {
             setLoading(true);
-
+            const { video_id, ...dataWithoutVideo } = formData;
             const submitData = {
-                ...formData,
-                duration: formData.duration && !isNaN(parseInt(formData.duration)) ? parseInt(formData.duration) : null,
-                players_min: formData.players_min && !isNaN(parseInt(formData.players_min)) ? parseInt(formData.players_min) : null,
-                players_max: formData.players_max && !isNaN(parseInt(formData.players_max)) ? parseInt(formData.players_max) : null
+                ...dataWithoutVideo,
+                duration: formData.duration ? parseInt(formData.duration) : null,
+                players_min: formData.players_min ? parseInt(formData.players_min) : 1,
+                players_max: formData.players_max ? parseInt(formData.players_max) : 12,
             };
 
-            let response;
-            if (editMode && exercise) {
-                response = await ExerciseService.updateExercise(
-                    exercise.id,
-                    submitData
-                );
-            } else {
-                response = await ExerciseService.createExercise(
-                    submitData
-                );
-            }
+            const response = editMode
+                ? await ExerciseService.updateExercise(exercise.id, submitData)
+                : await ExerciseService.createExercise(submitData);
 
             if (response.success) {
-                Alert.alert(
-                    'Succès',
-                    editMode ? 'Exercice modifié avec succès' : 'Exercice créé avec succès'
-                );
                 resetForm();
-                onSuccess();
+                if (onSuccess) onSuccess(response.data);
             } else {
                 Alert.alert('Erreur', response.message || 'Une erreur est survenue');
             }
         } catch (error) {
             console.error('Error saving exercise:', error);
-            Alert.alert('Erreur', 'Impossible de sauvegarder l\'exercice');
+            Alert.alert('Erreur', 'Impossible de sauvegarder');
         } finally {
             setLoading(false);
         }
@@ -200,181 +182,237 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
             transparent={false}
             onRequestClose={handleClose}
         >
-            <View style={styles.container}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={handleClose} disabled={loading}>
-                        <Icon name="close" size={24} color="#1A1A1A" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>
-                        {editMode ? 'Modifier l\'exercice' : 'Nouvel exercice'}
-                    </Text>
-                    <TouchableOpacity onPress={handleSubmit} disabled={loading}>
-                        {loading ? (
-                            <ActivityIndicator size="small" color="#FF6B35" />
-                        ) : (
-                            <Icon name="check" size={24} color="#4ECDC4" />
-                        )}
-                    </TouchableOpacity>
-                </View>
-
-                <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                    {/* Name */}
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>
-                            Nom de l'exercice <Text style={styles.required}>*</Text>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior="padding"
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
+            >
+                <View style={styles.container}>
+                    <View style={styles.header}>
+                        <TouchableOpacity onPress={handleClose} disabled={loading} style={styles.headerAction}>
+                            <Icon name="close" size={24} color={COLORS.gray[900]} />
+                        </TouchableOpacity>
+                        <Text style={styles.headerTitle}>
+                            {editMode ? 'Modifier' : 'Nouvel Exercice'}
                         </Text>
-                        <TextInput
-                            style={[styles.input, errors.name && styles.inputError]}
-                            value={formData.name}
-                            onChangeText={(value) => handleInputChange('name', value)}
-                            placeholder="Ex: Shoot à 3 points"
-                            placeholderTextColor="#999"
-                        />
-                        {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+                        <TouchableOpacity onPress={handleSubmit} disabled={loading} style={styles.saveBtn}>
+                            {loading ? (
+                                <ActivityIndicator size="small" color={COLORS.white} />
+                            ) : (
+                                <Text style={styles.saveBtnText}>{editMode ? 'MODIFIER' : 'CRÉER'}</Text>
+                            )}
+                        </TouchableOpacity>
                     </View>
 
-                    {/* Category */}
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>
-                            Catégorie <Text style={styles.required}>*</Text>
-                        </Text>
-                        <View style={styles.categoryGrid}>
-                            {categories.map(cat => (
-                                <TouchableOpacity
-                                    key={cat.id}
-                                    style={[
-                                        styles.categoryCard,
-                                        formData.category === cat.id && styles.categoryCardActive
-                                    ]}
-                                    onPress={() => handleCategoryChange(cat.id)}
-                                >
-                                    <Icon
-                                        name={cat.icon}
-                                        size={24}
-                                        color={formData.category === cat.id ? '#FFF' : '#666'}
-                                    />
-                                    <Text
-                                        style={[
-                                            styles.categoryCardText,
-                                            formData.category === cat.id && styles.categoryCardTextActive
-                                        ]}
-                                    >
-                                        {cat.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
+                    <ScrollView
+                        style={styles.content}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode="interactive"
+                    >
+                        <Card style={styles.sectionCard} padding="lg">
+                            <Input
+                                label="NOM DE L'EXERCICE *"
+                                value={formData.name}
+                                onChangeText={(value) => handleInputChange('name', value)}
+                                placeholder="Ex: Shooting Fondamental"
+                                error={errors.name}
+                                icon="basketball-hoop-outline"
+                            />
 
-                    {/* Subcategory */}
-                    {subcategories[formData.category] && (
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>Sous-catégorie</Text>
-                            <View style={styles.subcategoryContainer}>
-                                {subcategories[formData.category].map(sub => (
+                            <Text style={styles.fieldLabel}>CATÉGORIE *</Text>
+                            <View style={styles.categoryGrid}>
+                                {categories.map(cat => (
                                     <TouchableOpacity
-                                        key={sub.id}
+                                        key={cat.id}
                                         style={[
-                                            styles.subcategoryChip,
-                                            formData.subcategory === sub.id && styles.subcategoryChipActive
+                                            styles.catButton,
+                                            formData.category === cat.id && styles.catButtonActive
                                         ]}
-                                        onPress={() => handleInputChange('subcategory', sub.id)}
+                                        onPress={() => handleCategoryChange(cat.id)}
                                     >
-                                        <Text
-                                            style={[
-                                                styles.subcategoryChipText,
-                                                formData.subcategory === sub.id && styles.subcategoryChipTextActive
-                                            ]}
-                                        >
-                                            {sub.label}
+                                        <View style={[
+                                            styles.catIconBox,
+                                            formData.category === cat.id && styles.catIconBoxActive
+                                        ]}>
+                                            <Icon
+                                                name={cat.icon}
+                                                size={22}
+                                                color={formData.category === cat.id ? COLORS.white : COLORS.gray[400]}
+                                            />
+                                        </View>
+                                        <Text style={[
+                                            styles.catText,
+                                            formData.category === cat.id && styles.catTextActive
+                                        ]}>
+                                            {cat.label}
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
-                        </View>
-                    )}
 
-                    {/* Description */}
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Description</Text>
-                        <TextInput
-                            style={[styles.input, styles.textArea]}
-                            value={formData.description}
-                            onChangeText={(value) => handleInputChange('description', value)}
-                            placeholder="Décrivez l'exercice en détail..."
-                            placeholderTextColor="#999"
-                            multiline
-                            numberOfLines={4}
-                            textAlignVertical="top"
-                        />
-                    </View>
-
-                    {/* Duration and Players */}
-                    <View style={styles.rowGroup}>
-                        <View style={[styles.formGroup, styles.halfWidth]}>
-                            <Text style={styles.label}>Durée (min)</Text>
-                            <TextInput
-                                style={[styles.input, errors.duration && styles.inputError]}
-                                value={formData.duration}
-                                onChangeText={(value) => handleInputChange('duration', value)}
-                                placeholder="15"
-                                placeholderTextColor="#999"
-                                keyboardType="numeric"
-                            />
-                            {errors.duration && (
-                                <Text style={styles.errorText}>{errors.duration}</Text>
+                            {subcategories[formData.category] && (
+                                <View style={{ marginTop: 20 }}>
+                                    <Text style={styles.fieldLabel}>SOUS-CATÉGORIE</Text>
+                                    <View style={styles.subGrid}>
+                                        {subcategories[formData.category].map(sub => (
+                                            <TouchableOpacity
+                                                key={sub.id}
+                                                style={[
+                                                    styles.subChip,
+                                                    formData.subcategory === sub.id && styles.subChipActive
+                                                ]}
+                                                onPress={() => handleInputChange('subcategory', sub.id)}
+                                            >
+                                                <Text style={[
+                                                    styles.subChipText,
+                                                    formData.subcategory === sub.id && styles.subChipTextActive
+                                                ]}>
+                                                    {sub.label}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
                             )}
-                        </View>
-                    </View>
+                        </Card>
 
-                    <View style={styles.rowGroup}>
-                        <View style={[styles.formGroup, styles.halfWidth]}>
-                            <Text style={styles.label}>Joueurs min</Text>
-                            <TextInput
-                                style={[styles.input, errors.players_min && styles.inputError]}
-                                value={formData.players_min}
-                                onChangeText={(value) => handleInputChange('players_min', value)}
-                                placeholder="1"
-                                placeholderTextColor="#999"
-                                keyboardType="numeric"
+                        <Card style={styles.sectionCard} padding="lg">
+                            <Input
+                                label="DESCRIPTION"
+                                value={formData.description}
+                                onChangeText={(value) => handleInputChange('description', value)}
+                                placeholder="Détails de l'exercice..."
+                                multiline
+                                numberOfLines={3}
+                                icon="text-subject"
                             />
-                            {errors.players_min && (
-                                <Text style={styles.errorText}>{errors.players_min}</Text>
+                        </Card>
+
+                        <Card style={styles.sectionCard} padding="lg">
+                            <View style={styles.row}>
+                                <View style={{ flex: 1, marginRight: 12 }}>
+                                    <Input
+                                        label="DURÉE (MIN)"
+                                        value={formData.duration}
+                                        onChangeText={(value) => handleInputChange('duration', value)}
+                                        placeholder="15"
+                                        keyboardType="numeric"
+                                        error={errors.duration}
+                                        icon="timer-outline"
+                                    />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Input
+                                        label="MATÉRIEL"
+                                        value={formData.equipment}
+                                        onChangeText={(value) => handleInputChange('equipment', value)}
+                                        placeholder="Plots, ballons..."
+                                        icon="hammer-wrench"
+                                    />
+                                </View>
+                            </View>
+                            <View style={styles.row}>
+                                <View style={{ flex: 1, marginRight: 12 }}>
+                                    <Input
+                                        label="JOUEURS MIN"
+                                        value={formData.players_min}
+                                        onChangeText={(value) => handleInputChange('players_min', value)}
+                                        placeholder="1"
+                                        keyboardType="numeric"
+                                        icon="account"
+                                    />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Input
+                                        label="JOUEURS MAX"
+                                        value={formData.players_max}
+                                        onChangeText={(value) => handleInputChange('players_max', value)}
+                                        placeholder="12"
+                                        keyboardType="numeric"
+                                        icon="account-group"
+                                    />
+                                </View>
+                            </View>
+
+                            {/* VIDEO SELECTION */}
+                            <Text style={[styles.fieldLabel, { marginTop: 24 }]}>VIDÉO ASSOCIÉE (OPTIONNEL)</Text>
+                            {videos.length > 0 ? (
+                                <View style={{ gap: 12, marginTop: 8 }}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.videoCard,
+                                            formData.video_id === null && styles.videoCardActive
+                                        ]}
+                                        onPress={() => handleInputChange('video_id', null)}
+                                    >
+                                        <View style={styles.videoCardContent}>
+                                            <Icon
+                                                name="close-circle-outline"
+                                                size={24}
+                                                color={formData.video_id === null ? COLORS.white : COLORS.gray[400]}
+                                            />
+                                            <View style={{ marginLeft: 12 }}>
+                                                <Text style={[
+                                                    styles.videoCardTitle,
+                                                    formData.video_id === null && styles.videoCardTitleActive
+                                                ]}>
+                                                    Aucune vidéo
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+
+                                    {videos.map(video => (
+                                        <TouchableOpacity
+                                            key={video.id}
+                                            style={[
+                                                styles.videoCard,
+                                                formData.video_id === video.id && styles.videoCardActive
+                                            ]}
+                                            onPress={() => handleInputChange('video_id', video.id)}
+                                        >
+                                            <View style={styles.videoCardContent}>
+                                                <View style={[
+                                                    styles.videoIconBox,
+                                                    formData.video_id === video.id && styles.videoIconBoxActive
+                                                ]}>
+                                                    <Icon
+                                                        name="play-circle"
+                                                        size={28}
+                                                        color={formData.video_id === video.id ? COLORS.white : COLORS.primary}
+                                                    />
+                                                </View>
+                                                <View style={{ marginLeft: 12, flex: 1 }}>
+                                                    <Text style={[
+                                                        styles.videoCardTitle,
+                                                        formData.video_id === video.id && styles.videoCardTitleActive
+                                                    ]} numberOfLines={2}>
+                                                        {video.title}
+                                                    </Text>
+                                                    {Boolean(video.description) && (
+                                                        <Text style={[
+                                                            styles.videoCardDesc,
+                                                            formData.video_id === video.id && styles.videoCardDescActive
+                                                        ]} numberOfLines={1}>
+                                                            {video.description}
+                                                        </Text>
+                                                    )}
+                                                </View>
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            ) : (
+                                <Text style={{ ...TYPOGRAPHY.bodySmall, color: COLORS.gray[400], fontStyle: 'italic' }}>
+                                    Aucune vidéo disponible dans la bibliothèque. Demandez à un admin d'en ajouter.
+                                </Text>
                             )}
-                        </View>
-
-                        <View style={[styles.formGroup, styles.halfWidth]}>
-                            <Text style={styles.label}>Joueurs max</Text>
-                            <TextInput
-                                style={[styles.input, errors.players_max && styles.inputError]}
-                                value={formData.players_max}
-                                onChangeText={(value) => handleInputChange('players_max', value)}
-                                placeholder="12"
-                                placeholderTextColor="#999"
-                                keyboardType="numeric"
-                            />
-                            {errors.players_max && (
-                                <Text style={styles.errorText}>{errors.players_max}</Text>
-                            )}
-                        </View>
-                    </View>
-
-                    {/* Equipment */}
-                    <View style={styles.formGroup}>
-                        <Text style={styles.label}>Matériel nécessaire</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={formData.equipment}
-                            onChangeText={(value) => handleInputChange('equipment', value)}
-                            placeholder="Ex: 5 ballons, 10 cônes, 2 échelles"
-                            placeholderTextColor="#999"
-                        />
-                    </View>
-
-                    <View style={{ height: 40 }} />
-                </ScrollView>
-            </View>
+                        </Card>
+                        <View style={{ height: 100 }} />
+                    </ScrollView>
+                </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 };
@@ -382,136 +420,178 @@ const ExerciseFormModal = ({ visible, onClose, onSuccess, exercise, editMode }) 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA'
+        backgroundColor: COLORS.gray[50]
     },
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        backgroundColor: '#FFF',
+        justifyContent: 'space-between',
+        paddingHorizontal: SPACING.lg,
+        paddingTop: Platform.OS === 'ios' ? 60 : 20,
+        paddingBottom: SPACING.md,
+        backgroundColor: COLORS.white,
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E5E5',
-        ...Platform.select({
-            ios: {
-                paddingTop: 50
-            },
-            android: {
-                paddingTop: 20
-            }
-        })
+        borderBottomColor: COLORS.gray[100],
+        ...SHADOWS.sm
+    },
+    headerAction: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        marginLeft: -10
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#1A1A1A'
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[900]
+    },
+    saveBtn: {
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 12,
+        ...SHADOWS.sm
+    },
+    saveBtnText: {
+        color: COLORS.white,
+        ...TYPOGRAPHY.label,
+        fontSize: 12,
+        fontWeight: 'bold',
+        letterSpacing: 0.5
     },
     content: {
         flex: 1,
-        paddingHorizontal: 20,
-        paddingTop: 20
+        padding: SPACING.lg
     },
-    formGroup: {
-        marginBottom: 20
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#1A1A1A',
-        marginBottom: 8
-    },
-    required: {
-        color: '#FF6B35'
-    },
-    input: {
-        backgroundColor: '#FFF',
+    sectionCard: {
+        marginBottom: 20,
+        borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#E5E5E5',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        fontSize: 16,
-        color: '#1A1A1A'
+        borderColor: COLORS.gray[50],
+        ...SHADOWS.xs
     },
-    inputError: {
-        borderColor: '#FF6B35'
-    },
-    textArea: {
-        height: 100,
-        paddingTop: 12
-    },
-    errorText: {
-        fontSize: 12,
-        color: '#FF6B35',
-        marginTop: 4
+    fieldLabel: {
+        ...TYPOGRAPHY.label,
+        fontSize: 11,
+        color: COLORS.gray[400],
+        marginBottom: 16,
+        marginTop: 8,
+        letterSpacing: 1,
+        textTransform: 'uppercase'
     },
     categoryGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginHorizontal: -4
+        gap: 12
     },
-    categoryCard: {
-        width: '31%',
+    catButton: {
+        width: '30%',
         aspectRatio: 1,
-        backgroundColor: '#FFF',
+        backgroundColor: COLORS.white,
+        borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#E5E5E5',
+        borderColor: COLORS.gray[50],
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 8,
+        ...SHADOWS.xs
+    },
+    catButtonActive: {
+        backgroundColor: COLORS.gray[900],
+        borderColor: COLORS.gray[900]
+    },
+    catIconBox: {
+        width: 44,
+        height: 44,
         borderRadius: 12,
-        margin: 4,
+        backgroundColor: COLORS.gray[50],
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8
+    },
+    catIconBoxActive: {
+        backgroundColor: 'rgba(255, 255, 255, 0.15)'
+    },
+    catText: {
+        ...TYPOGRAPHY.label,
+        fontSize: 10,
+        color: COLORS.gray[500],
+        textAlign: 'center'
+    },
+    catTextActive: {
+        color: COLORS.white
+    },
+    subGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8
+    },
+    subChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        backgroundColor: COLORS.gray[50],
+        borderWidth: 1,
+        borderColor: COLORS.gray[100]
+    },
+    subChipActive: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary
+    },
+    subChipText: {
+        ...TYPOGRAPHY.bodySmall,
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.gray[600]
+    },
+    subChipTextActive: {
+        color: COLORS.white
+    },
+    row: {
+        flexDirection: 'row',
+        marginBottom: 4
+    },
+    videoCard: {
+        backgroundColor: COLORS.gray[50],
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: COLORS.gray[100]
+    },
+    videoCardActive: {
+        backgroundColor: COLORS.gray[900],
+        borderColor: COLORS.gray[900]
+    },
+    videoCardContent: {
+        flexDirection: 'row',
+        alignItems: 'center'
+    },
+    videoIconBox: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: COLORS.primary + '15',
         justifyContent: 'center',
         alignItems: 'center'
     },
-    categoryCardActive: {
-        backgroundColor: '#FF6B35',
-        borderColor: '#FF6B35'
+    videoIconBoxActive: {
+        backgroundColor: 'rgba(255, 255, 255, 0.15)'
     },
-    categoryCardText: {
-        fontSize: 12,
-        fontWeight: '500',
-        color: '#666',
-        marginTop: 8
-    },
-    categoryCardTextActive: {
-        color: '#FFF'
-    },
-    subcategoryContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginHorizontal: -4
-    },
-    subcategoryChip: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        margin: 4,
-        borderRadius: 20,
-        backgroundColor: '#FFF',
-        borderWidth: 1,
-        borderColor: '#E5E5E5'
-    },
-    subcategoryChipActive: {
-        backgroundColor: '#4ECDC4',
-        borderColor: '#4ECDC4'
-    },
-    subcategoryChipText: {
+    videoCardTitle: {
+        ...TYPOGRAPHY.label,
         fontSize: 14,
-        fontWeight: '500',
-        color: '#666'
+        color: COLORS.gray[800],
+        marginBottom: 4
     },
-    subcategoryChipTextActive: {
-        color: '#FFF'
+    videoCardTitleActive: {
+        color: COLORS.white
     },
-    rowGroup: {
-        flexDirection: 'row',
-        justifyContent: 'space-between'
-    },
-    halfWidth: {
-        width: '48%'
-    },
-    optional: {
+    videoCardDesc: {
+        ...TYPOGRAPHY.bodySmall,
         fontSize: 12,
-        color: '#999',
-        fontWeight: 'normal'
+        color: COLORS.gray[500]
+    },
+    videoCardDescActive: {
+        color: COLORS.gray[300]
     }
 });
 

@@ -15,7 +15,9 @@ import SessionService from '../../services/sessionService';
 import ExerciseService from '../../services/exerciseService';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import API_URL from '../../config/api';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Button from '../UI/Button';
+import Card from '../UI/Card';
 
 const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
     const [loading, setLoading] = useState(true);
@@ -34,19 +36,12 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
             if (!session) return;
             setLoading(true);
 
-            // Logic: 
-            // 1. If we have a session_id, it's a link to a template. Fetch it.
-            // 2. If no session_id, but the object itself has exercises, it might already be a template.
-            // 3. Otherwise, it's a planning record without a template link. Skip fetch.
-
             let targetId = null;
             if (session.session_id) {
                 targetId = session.session_id;
             } else if (session.exercises && Array.isArray(session.exercises)) {
-                // It's probably already a template object
                 targetId = session.id;
             } else {
-                // It's a planning record without a linked template
                 setFullSession(session);
                 setLoading(false);
                 return;
@@ -54,14 +49,12 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
 
             const response = await SessionService.getSessionById(targetId);
             if (response.success) {
-                // Merge planning data (date, time, lieu) with template data (exercises, objective)
                 setFullSession({
                     ...response.data,
-                    ...session, // Keep planning specific data
-                    id: response.data.id || session.id // Ensure we have an ID for PDF export
+                    ...session,
+                    id: response.data.id || session.id
                 });
 
-                // Fetch exercise details
                 if (response.data.exercises && response.data.exercises.length > 0) {
                     const exercisePromises = response.data.exercises.map(id =>
                         ExerciseService.getExerciseById(id)
@@ -91,50 +84,181 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
                 <head>
                     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
                     <style>
-                        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; }
-                        .header { border-bottom: 2px solid #f97316; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
-                        .club-name { font-size: 24px; font-weight: bold; color: #1e293b; }
-                        .fiche-title { font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 2px; }
-                        .session-title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
-                        .meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #f8fafc; padding: 15px; border-radius: 10px; }
-                        .meta-item { display: flex; flex-direction: column; }
-                        .meta-label { font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-                        .meta-value { font-size: 16px; font-weight: 600; }
-                        .section { margin-bottom: 30px; }
-                        .section-title { font-size: 18px; font-weight: bold; border-left: 4px solid #f97316; padding-left: 12px; margin-bottom: 15px; text-transform: uppercase; }
-                        .objective-box { background: #fff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; line-height: 1.6; }
-                        .structure-table { width: 100%; border-collapse: collapse; }
-                        .structure-row { border-bottom: 1px solid #e2e8f0; }
-                        .structure-cell { padding: 12px 0; }
-                        .structure-label { font-weight: bold; width: 150px; color: #f97316; font-size: 12px; }
-                        .exercise-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; page-break-inside: avoid; }
-                        .ex-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-                        .ex-title { font-size: 18px; font-weight: bold; margin: 0; }
-                        .ex-meta { color: #64748b; font-size: 13px; }
-                        .ex-desc { color: #334155; line-height: 1.5; font-size: 14px; }
-                        .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; pt: 20px; }
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+                        body { 
+                            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+                            padding: 40px; 
+                            color: #1F2937; 
+                            line-height: 1.5;
+                        }
+                        .header { 
+                            border-bottom: 3px solid #E35412; 
+                            padding-bottom: 24px; 
+                            margin-bottom: 32px; 
+                            display: flex; 
+                            justify-content: space-between; 
+                            align-items: flex-end; 
+                        }
+                        .brand {
+                            display: flex;
+                            flex-direction: column;
+                        }
+                        .club-name { 
+                            font-size: 24px; 
+                            font-weight: 800; 
+                            color: #111827;
+                            letter-spacing: -0.5px;
+                        }
+                        .fiche-title { 
+                            font-size: 12px; 
+                            color: #6B7280; 
+                            text-transform: uppercase; 
+                            letter-spacing: 3px;
+                            font-weight: 600;
+                        }
+                        .session-title { 
+                            font-size: 32px; 
+                            font-weight: 800; 
+                            margin-bottom: 8px; 
+                            color: #111827;
+                            letter-spacing: -1px;
+                        }
+                        .meta-grid { 
+                            display: grid; 
+                            grid-template-columns: repeat(3, 1fr); 
+                            gap: 1px; 
+                            margin-bottom: 32px; 
+                            background: #E5E7EB; 
+                            border: 1px solid #E5E7EB;
+                            border-radius: 12px;
+                            overflow: hidden;
+                        }
+                        .meta-item { 
+                            display: flex; 
+                            flex-direction: column; 
+                            background: #F9FAFB;
+                            padding: 16px;
+                        }
+                        .meta-label { 
+                            font-size: 10px; 
+                            font-weight: 700; 
+                            color: #9CA3AF; 
+                            text-transform: uppercase; 
+                            margin-bottom: 4px; 
+                            letter-spacing: 1px;
+                        }
+                        .meta-value { 
+                            font-size: 16px; 
+                            font-weight: 600; 
+                            color: #1F2937;
+                        }
+                        .section { margin-bottom: 40px; }
+                        .section-title { 
+                            font-size: 14px; 
+                            font-weight: 700; 
+                            color: #E35412;
+                            margin-bottom: 16px; 
+                            text-transform: uppercase; 
+                            letter-spacing: 2px;
+                            display: flex;
+                            align-items: center;
+                        }
+                        .section-title::after {
+                            content: '';
+                            flex: 1;
+                            height: 1px;
+                            background: #F3F4F6;
+                            margin-left: 16px;
+                        }
+                        .objective-box { 
+                            background: #F3F4F6; 
+                            padding: 20px; 
+                            border-radius: 12px; 
+                            font-size: 15px;
+                            color: #374151;
+                            font-style: italic;
+                            border-left: 4px solid #E35412;
+                        }
+                        .structure-card {
+                            border: 1px solid #F3F4F6;
+                            border-radius: 12px;
+                            overflow: hidden;
+                        }
+                        .structure-item {
+                            padding: 20px;
+                            border-bottom: 1px solid #F3F4F6;
+                        }
+                        .structure-item:last-child { border-bottom: 0; }
+                        .structure-label { 
+                            font-weight: 700; 
+                            color: #111827; 
+                            font-size: 12px; 
+                            margin-bottom: 8px;
+                            display: block;
+                        }
+                        .structure-text {
+                            font-size: 14px;
+                            color: #4B5563;
+                        }
+                        .exercise-card { 
+                            border: 1px solid #E5E7EB; 
+                            border-radius: 16px; 
+                            padding: 24px; 
+                            margin-bottom: 24px; 
+                            page-break-inside: avoid;
+                            background: #fff;
+                        }
+                        .ex-header { 
+                            display: flex; 
+                            justify-content: space-between; 
+                            align-items: flex-start; 
+                            margin-bottom: 12px; 
+                            border-bottom: 1px solid #F3F4F6;
+                            padding-bottom: 12px;
+                        }
+                        .ex-title { font-size: 20px; font-weight: 800; margin: 0; color: #111827; }
+                        .ex-meta { 
+                            color: #E35412; 
+                            font-size: 12px; 
+                            font-weight: 700;
+                            background: #FFF7ED;
+                            padding: 4px 12px;
+                            border-radius: 20px;
+                        }
+                        .ex-desc { color: #4B5563; line-height: 1.6; font-size: 14px; }
+                        .footer { 
+                            margin-top: 60px; 
+                            text-align: center; 
+                            font-size: 11px; 
+                            color: #9CA3AF; 
+                            border-top: 1px solid #F3F4F6; 
+                            padding-top: 24px; 
+                        }
                     </style>
                 </head>
                 <body>
                     <div class="header">
-                        <div class="club-name">COACH ASSISTANT BASKET</div>
-                        <div class="fiche-title">Fiche de Séance</div>
+                        <div class="brand">
+                            <div class="club-name">CABASKET</div>
+                            <div class="fiche-title">Feuille de Route</div>
+                        </div>
+                        <div style="font-weight: 700; font-size: 14px;">${new Date(fullSession.date).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
                     </div>
 
                     <h1 class="session-title">${fullSession.title || fullSession.theme}</h1>
                     
                     <div class="meta-grid">
                         <div class="meta-item">
-                            <span class="meta-label">Date</span>
-                            <span class="meta-value">${new Date(fullSession.date).toLocaleDateString()}</span>
-                        </div>
-                        <div class="meta-item">
                             <span class="meta-label">Horaire</span>
                             <span class="meta-value">${fullSession.heure || fullSession.time}</span>
                         </div>
                         <div class="meta-item">
-                            <span class="meta-label">Durée Totale</span>
+                            <span class="meta-label">Durée</span>
                             <span class="meta-value">${fullSession.total_duration || fullSession.duree || 0} min</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Lieu</span>
+                            <span class="meta-value">${fullSession.lieu || 'Non spécifié'}</span>
                         </div>
                     </div>
 
@@ -144,41 +268,42 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
                     </div>
 
                     <div class="section">
-                        <div class="section-title">Structure</div>
-                        <table class="structure-table">
+                        <div class="section-title">Déroulement</div>
+                        <div class="structure-card">
                             ${fullSession.warmup ? `
-                            <tr class="structure-row">
-                                <td class="structure-cell structure-label">ÉCHAUFFEMENT</td>
-                                <td class="structure-cell">${fullSession.warmup}</td>
-                            </tr>` : ''}
+                            <div class="structure-item">
+                                <span class="structure-label">01. ÉCHAUFFEMENT</span>
+                                <div class="structure-text">${fullSession.warmup}</div>
+                            </div>` : ''}
                             ${fullSession.main_content ? `
-                            <tr class="structure-row">
-                                <td class="structure-cell structure-label">FOND PRINCIPAL</td>
-                                <td class="structure-cell">${fullSession.main_content}</td>
-                            </tr>` : ''}
+                            <div class="structure-item">
+                                <span class="structure-label">02. CORPS DE SÉANCE</span>
+                                <div class="structure-text">${fullSession.main_content}</div>
+                            </div>` : ''}
                             ${(fullSession.cooldown || fullSession.cool_down) ? `
-                            <tr class="structure-row">
-                                <td class="structure-cell structure-label">FIN DE SÉANCE</td>
-                                <td class="structure-cell">${fullSession.cooldown || fullSession.cool_down}</td>
-                            </tr>` : ''}
-                        </table>
+                            <div class="structure-item">
+                                <span class="structure-label">03. RETOUR AU CALME</span>
+                                <div class="structure-text">${fullSession.cooldown || fullSession.cool_down}</div>
+                            </div>` : ''}
+                        </div>
                     </div>
 
+                    ${exercises.length > 0 ? `
                     <div class="section">
-                        <div class="section-title">Exercices (${exercises.length})</div>
+                        <div class="section-title">Exercices Spécifiques</div>
                         ${exercises.map((ex, index) => `
                             <div class="exercise-card">
                                 <div class="ex-header">
                                     <h3 class="ex-title">${index + 1}. ${ex.name}</h3>
-                                    <span class="ex-meta">${ex.duration} min | ${ex.players_min}-${ex.players_max} joueurs</span>
+                                    <span class="ex-meta">${ex.duration} MIN</span>
                                 </div>
                                 <div class="ex-desc">${ex.description}</div>
                             </div>
                         `).join('')}
-                    </div>
+                    </div>` : ''}
 
                     <div class="footer">
-                        Généré le ${new Date().toLocaleString()} par Coach Assistant Basket
+                        Généré par Coach Assistant Basket &copy; ${new Date().getFullYear()}
                     </div>
                 </body>
                 </html>
@@ -189,7 +314,6 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
             if (Platform.OS === 'ios') {
                 await Sharing.shareAsync(uri);
             } else {
-                // Sur Android, on partage directement aussi
                 await Sharing.shareAsync(uri, {
                     mimeType: 'application/pdf',
                     dialogTitle: 'Exporter la fiche de séance',
@@ -207,7 +331,8 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
     if (loading) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color="#f97316" />
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={styles.loadingText}>Chargement de la séance...</Text>
             </View>
         );
     }
@@ -215,123 +340,127 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
     if (!fullSession) {
         return (
             <View style={styles.center}>
-                <Text>Détails non disponibles</Text>
-                <TouchableOpacity onPress={onBack} style={{ marginTop: 20 }}>
-                    <Text style={{ color: '#f97316' }}>Retour</Text>
-                </TouchableOpacity>
+                <Icon name="alert-circle-outline" size={64} color={COLORS.gray[200]} />
+                <Text style={styles.emptyText}>Séance introuvable</Text>
+                <Button title="Retour" onPress={onBack} variant="secondary" style={{ marginTop: 20 }} />
             </View>
         );
     }
 
     return (
         <View style={styles.container}>
-            {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                    <Icon name="arrow-left" size={24} color="#1e293b" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Détails de la séance</Text>
-                <TouchableOpacity style={styles.editButton} onPress={() => onEdit && onEdit(fullSession)}>
-                    <Icon name="pencil-outline" size={22} color="#f97316" />
-                </TouchableOpacity>
+                <View style={styles.headerTop}>
+                    <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+                        <Icon name="chevron-left" size={32} color={COLORS.gray[900]} />
+                    </TouchableOpacity>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.headerTitle} numberOfLines={1}>Détails Séance</Text>
+                        <Text style={styles.headerSubtitle}>{new Date(fullSession.date).toLocaleDateString()}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.actionBtn} onPress={() => onEdit && onEdit(fullSession)}>
+                        <View style={styles.editBtnContainer}>
+                            <Icon name="pencil-outline" size={20} color={COLORS.primary} />
+                        </View>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Session Card */}
-                <View style={styles.sessionOverview}>
-                    <Text style={styles.title}>{fullSession.title || fullSession.theme}</Text>
-                    <View style={styles.metaContainer}>
-                        <View style={styles.metaItem}>
-                            <Icon name="calendar" size={16} color="#64748b" />
-                            <Text style={styles.metaText}>{new Date(fullSession.date).toLocaleDateString()}</Text>
+                <View style={styles.scrollPadding}>
+                    <Card style={styles.mainCard} padding="lg">
+                        <Text style={styles.sessionTitle}>{fullSession.title || fullSession.theme}</Text>
+                        <View style={styles.badgesRow}>
+                            <View style={styles.badge}>
+                                <Icon name="clock-outline" size={14} color={COLORS.primary} />
+                                <Text style={styles.badgeText}>{fullSession.heure || fullSession.time}</Text>
+                            </View>
+                            <View style={styles.badge}>
+                                <Icon name="timer-outline" size={14} color={COLORS.primary} />
+                                <Text style={styles.badgeText}>{fullSession.total_duration || fullSession.duree || 0} min</Text>
+                            </View>
+                            <View style={styles.badge}>
+                                <Icon name="map-marker-outline" size={14} color={COLORS.primary} />
+                                <Text style={styles.badgeText}>{fullSession.lieu || 'Salle'}</Text>
+                            </View>
                         </View>
-                        <View style={styles.metaItem}>
-                            <Icon name="clock-outline" size={16} color="#64748b" />
-                            <Text style={styles.metaText}>{fullSession.heure || fullSession.time}</Text>
-                        </View>
-                        <View style={styles.metaItem}>
-                            <Icon name="timer-outline" size={16} color="#64748b" />
-                            <Text style={styles.metaText}>{fullSession.total_duration || fullSession.duree || 0} min</Text>
-                        </View>
-                    </View>
-                </View>
+                    </Card>
 
-                {/* Objective */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Objectif</Text>
-                    <View style={styles.card}>
-                        <Text style={styles.sectionContent}>{fullSession.objective || 'Aucun objectif défini'}</Text>
-                    </View>
-                </View>
-
-                {/* Structure */}
-                {(fullSession.warmup || fullSession.main_content || fullSession.cooldown || fullSession.cool_down) && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Structure de la séance</Text>
-                        <View style={styles.card}>
-                            {fullSession.warmup && (
-                                <View style={styles.structureItem}>
-                                    <Text style={styles.structureLabel}>ÉCHAUFFEMENT</Text>
-                                    <Text style={styles.structureText}>{fullSession.warmup}</Text>
-                                </View>
-                            )}
-                            {fullSession.main_content && (
-                                <View style={styles.structureItem}>
-                                    <Text style={styles.structureLabel}>FOND PRINCIPAL</Text>
-                                    <Text style={styles.structureText}>{fullSession.main_content}</Text>
-                                </View>
-                            )}
-                            {(fullSession.cooldown || fullSession.cool_down) && (
-                                <View style={styles.structureItem}>
-                                    <Text style={styles.structureLabel}>FIN DE SÉANCE</Text>
-                                    <Text style={styles.structureText}>{fullSession.cooldown || fullSession.cool_down}</Text>
-                                </View>
-                            )}
-                        </View>
+                        <Text style={styles.sectionLabel}>OBJECTIF</Text>
+                        <Card style={styles.objectiveCard} padding="lg">
+                            <Icon name="format-quote-open" size={24} color={COLORS.primary + '30'} style={styles.quoteIcon} />
+                            <Text style={styles.objectiveText}>{fullSession.objective || 'Aucun objectif défini'}</Text>
+                        </Card>
                     </View>
-                )}
 
-                {/* Exercises */}
-                {exercises.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Exercices ({exercises.length})</Text>
-                        {exercises.map((ex, index) => (
-                            <View key={ex.id} style={styles.exerciseCard}>
-                                <View style={styles.exerciseHeader}>
-                                    <Text style={styles.exerciseIndex}>{index + 1}</Text>
-                                    <View style={styles.exerciseInfo}>
-                                        <Text style={styles.exerciseName}>{ex.name}</Text>
-                                        <Text style={styles.exerciseMeta}>
-                                            {ex.duration} min • {ex.players_min}-{ex.players_max} joueurs
-                                        </Text>
+                        <Text style={styles.sectionLabel}>DÉROULEMENT</Text>
+                        <Card padding="none" style={styles.structureCard}>
+                            {Boolean(fullSession.warmup) && (
+                                <View style={styles.stepItem}>
+                                    <View style={[styles.stepDot, { backgroundColor: '#FCD34D' }]} />
+                                    <View style={styles.stepContent}>
+                                        <Text style={styles.stepTitle}>Échauffement</Text>
+                                        <Text style={styles.stepDescription}>{fullSession.warmup}</Text>
                                     </View>
                                 </View>
-                                <Text style={styles.exerciseDescription} numberOfLines={3}>
-                                    {ex.description}
-                                </Text>
-                            </View>
-                        ))}
+                            )}
+                            {Boolean(fullSession.main_content) && (
+                                <View style={styles.stepItem}>
+                                    <View style={[styles.stepDot, { backgroundColor: COLORS.primary }]} />
+                                    <View style={styles.stepContent}>
+                                        <Text style={styles.stepTitle}>Corps de séance</Text>
+                                        <Text style={styles.stepDescription}>{fullSession.main_content}</Text>
+                                    </View>
+                                </View>
+                            )}
+                            {Boolean(fullSession.cooldown || fullSession.cool_down) && (
+                                <View style={styles.stepItem}>
+                                    <View style={[styles.stepDot, { backgroundColor: '#60A5FA' }]} />
+                                    <View style={styles.stepContent}>
+                                        <Text style={styles.stepTitle}>Retour au calme</Text>
+                                        <Text style={styles.stepDescription}>{fullSession.cooldown || fullSession.cool_down}</Text>
+                                    </View>
+                                </View>
+                            )}
+                        </Card>
                     </View>
-                )}
 
-                <View style={{ height: 100 }} />
+                    {exercises.length > 0 && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionLabel}>EXERCICES ({exercises.length})</Text>
+                            {exercises.map((ex, index) => (
+                                <Card key={ex.id} style={styles.exerciseCard} padding="lg">
+                                    <View style={styles.exerciseHeader}>
+                                        <View style={styles.exerciseIndexContainer}>
+                                            <Text style={styles.exerciseIndex}>{index + 1}</Text>
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.exerciseName}>{ex.name}</Text>
+                                            <Text style={styles.exerciseSub}>{ex.duration} min • {ex.players_min}-{ex.players_max} joueurs</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.exerciseDivider} />
+                                    <Text style={styles.exerciseDesc}>{ex.description}</Text>
+                                </Card>
+                            ))}
+                        </View>
+                    )}
+                </View>
+                <View style={{ height: 120 }} />
             </ScrollView>
 
-            {/* Floating Action Button for Export */}
-            <TouchableOpacity
-                style={[styles.exportFab, exporting && { opacity: 0.7 }]}
-                onPress={handleExportPDF}
-                disabled={exporting}
-            >
-                {exporting ? (
-                    <ActivityIndicator color="white" />
-                ) : (
-                    <Icon name="file-pdf-box" size={24} color="white" />
-                )}
-                <Text style={styles.exportText}>
-                    {exporting ? 'GÉNÉRATION...' : 'EXPORTER PDF'}
-                </Text>
-            </TouchableOpacity>
+            <View style={styles.footer}>
+                <Button
+                    title={exporting ? "Génération..." : "Exporter en PDF"}
+                    onPress={handleExportPDF}
+                    loading={exporting}
+                    variant="primary"
+                    leftIcon="file-pdf-box"
+                    style={styles.exportButton}
+                />
+            </View>
         </View>
     );
 };
@@ -339,165 +468,229 @@ const SessionDetailsScreen = ({ session, onBack, onEdit }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: COLORS.gray[50],
     },
     header: {
+        backgroundColor: COLORS.white,
+        paddingHorizontal: SPACING.lg,
+        paddingTop: Platform.OS === 'ios' ? 60 : 30,
+        paddingBottom: SPACING.md,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.gray[100],
+        ...SHADOWS.sm,
+    },
+    headerTop: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingTop: 50,
-        paddingBottom: 20,
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
     },
-    backButton: {
-        padding: 5,
+    backBtn: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        marginLeft: -10,
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[900],
     },
-    editButton: {
-        padding: 5,
+    headerSubtitle: {
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
+        marginTop: 2,
+    },
+    actionBtn: {
+        padding: 4,
+    },
+    editBtnContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: COLORS.gray[50],
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.gray[100],
     },
     content: {
         flex: 1,
     },
-    sessionOverview: {
-        backgroundColor: 'white',
-        padding: 24,
-        marginBottom: 20,
+    scrollPadding: {
+        padding: SPACING.lg,
     },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1e293b',
-        marginBottom: 12,
-    },
-    metaContainer: {
-        flexDirection: 'row',
-        gap: 20,
-    },
-    metaItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    metaText: {
-        fontSize: 14,
-        color: '#64748b',
-    },
-    section: {
-        paddingHorizontal: 20,
+    mainCard: {
+        borderRadius: 24,
         marginBottom: 24,
+        ...SHADOWS.md,
     },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#1e293b',
-        marginBottom: 12,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    card: {
-        backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
-    },
-    sectionContent: {
-        fontSize: 15,
-        color: '#334155',
-        lineHeight: 22,
-    },
-    structureItem: {
+    sessionTitle: {
+        ...TYPOGRAPHY.h2,
+        fontSize: 24,
+        color: COLORS.gray[900],
         marginBottom: 16,
     },
-    structureLabel: {
-        fontSize: 11,
-        fontWeight: '800',
-        color: '#f97316',
-        marginBottom: 4,
+    badgesRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
     },
-    structureText: {
+    badge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.gray[50],
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: COLORS.gray[100],
+    },
+    badgeText: {
+        ...TYPOGRAPHY.label,
+        fontSize: 11,
+        color: COLORS.gray[600],
+        marginLeft: 6,
+    },
+    section: {
+        marginBottom: 32,
+    },
+    sectionLabel: {
+        ...TYPOGRAPHY.label,
+        fontSize: 11,
+        color: COLORS.gray[400],
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        marginBottom: 12,
+        marginLeft: 4,
+    },
+    objectiveCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: 20,
+        borderLeftWidth: 4,
+        borderLeftColor: COLORS.primary,
+    },
+    quoteIcon: {
+        position: 'absolute',
+        top: 12,
+        right: 16,
+        opacity: 0.1,
+    },
+    objectiveText: {
+        ...TYPOGRAPHY.body,
+        fontSize: 15,
+        color: COLORS.gray[700],
+        lineHeight: 24,
+    },
+    structureCard: {
+        borderRadius: 20,
+        overflow: 'hidden',
+    },
+    stepItem: {
+        flexDirection: 'row',
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.gray[50],
+    },
+    stepDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        marginTop: 6,
+        marginRight: 16,
+    },
+    stepContent: {
+        flex: 1,
+    },
+    stepTitle: {
+        ...TYPOGRAPHY.label,
+        fontSize: 12,
+        color: COLORS.gray[900],
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 6,
+    },
+    stepDescription: {
+        ...TYPOGRAPHY.bodySmall,
         fontSize: 14,
-        color: '#334155',
+        color: COLORS.gray[600],
         lineHeight: 20,
     },
     exerciseCard: {
-        backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
+        marginBottom: 16,
+        borderRadius: 20,
+        ...SHADOWS.sm,
     },
     exerciseHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
+    },
+    exerciseIndexContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        backgroundColor: COLORS.gray[900],
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 14,
     },
     exerciseIndex: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: '#f1f5f9',
-        textAlign: 'center',
-        lineHeight: 28,
-        fontSize: 14,
+        color: COLORS.white,
+        fontSize: 15,
         fontWeight: 'bold',
-        color: '#64748b',
-        marginRight: 12,
-    },
-    exerciseInfo: {
-        flex: 1,
     },
     exerciseName: {
+        ...TYPOGRAPHY.h4,
         fontSize: 16,
-        fontWeight: '700',
-        color: '#1e293b',
+        color: COLORS.gray[900],
     },
-    exerciseMeta: {
+    exerciseSub: {
+        ...TYPOGRAPHY.bodySmall,
         fontSize: 12,
-        color: '#64748b',
+        color: COLORS.primary,
+        fontWeight: '700',
         marginTop: 2,
     },
-    exerciseDescription: {
+    exerciseDivider: {
+        height: 1,
+        backgroundColor: COLORS.gray[50],
+        marginVertical: 16,
+    },
+    exerciseDesc: {
+        ...TYPOGRAPHY.bodySmall,
         fontSize: 14,
-        color: '#64748b',
-        lineHeight: 20,
+        color: COLORS.gray[500],
+        lineHeight: 22,
     },
-    exportFab: {
+    footer: {
         position: 'absolute',
-        bottom: 30,
-        left: 20,
-        right: 20,
-        backgroundColor: '#3b82f6',
-        borderRadius: 16,
-        height: 56,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 12,
-        shadowColor: '#3b82f6',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 10,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: COLORS.white,
+        padding: 24,
+        paddingBottom: Platform.OS === 'ios' ? 44 : 24,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.gray[100],
+        ...SHADOWS.lg,
     },
-    exportText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: '800',
+    exportButton: {
+        height: 56,
+        borderRadius: 16,
+        ...SHADOWS.md,
     },
     center: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: COLORS.white,
+    },
+    loadingText: {
+        marginTop: 16,
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
+    },
+    emptyText: {
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[300],
+        marginTop: 16,
     }
 });
 

@@ -2,16 +2,20 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   FlatList,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Platform
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import SessionService from '../../services/sessionService';
 import PlanningService from '../../services/planningService';
-import { TextInput } from 'react-native-gesture-handler';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Card from '../UI/Card';
+import Input from '../UI/Input';
 
 const SessionsListScreen = ({ onCreateSession, onReuseSession, onViewSession }) => {
   const [sessions, setSessions] = useState([]);
@@ -46,7 +50,7 @@ const SessionsListScreen = ({ onCreateSession, onReuseSession, onViewSession }) 
   const handleDeleteSession = (sessionId) => {
     Alert.alert(
       'Supprimer la séance',
-      'Voulez-vous vraiment supprimer cette séance du planning ?',
+      'Voulez-vous vraiment supprimer ce modèle de séance ?',
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -69,72 +73,99 @@ const SessionsListScreen = ({ onCreateSession, onReuseSession, onViewSession }) 
   };
 
   const renderSessionItem = ({ item }) => (
-    <TouchableOpacity
+    <Card
       style={styles.sessionCard}
       onPress={() => onViewSession && onViewSession(item)}
+      padding="none"
     >
-      <View style={styles.sessionHeader}>
-        <View style={styles.sessionTitleContainer}>
-          <View style={[
-            styles.statusIndicator,
-            { backgroundColor: '#3b82f6' }
-          ]} />
-          <Text style={styles.sessionTitle}>{item.title}</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => handleDeleteSession(item.id)}
-          >
-            <Icon name="delete-outline" size={20} color="#ef4444" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <Text style={styles.sessionObjective} numberOfLines={2}>{item.objective}</Text>
-
-      <View style={styles.sessionDetails}>
-        <View style={styles.detailRow}>
-          <View style={styles.detailItem}>
-            <Icon name="clock-outline" size={16} color="#6b7280" />
-            <Text style={styles.detailText}>{item.total_duration} min</Text>
+      <View style={styles.sessionItemContent}>
+        <View style={styles.sessionMainInfo}>
+          <View style={styles.sessionBadgeRow}>
+            <View style={styles.timeBadge}>
+              <Icon name="clock-outline" size={12} color={COLORS.primary} />
+              <Text style={styles.timeBadgeText}>{item.total_duration} min</Text>
+            </View>
+            <View style={styles.typeBadge}>
+              <Text style={styles.typeBadgeText}>MODÈLE</Text>
+            </View>
           </View>
-          <View style={styles.detailItem}>
-            <Icon name="map-marker-outline" size={16} color="#6b7280" />
-            <Text style={styles.detailText}>{item.lieu || 'Non spécifié'}</Text>
+
+          <Text style={styles.sessionTitleText} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.sessionObjText} numberOfLines={2}>
+            {item.objective || "Aucun objectif spécifique"}
+          </Text>
+
+          <View style={styles.sessionMetaFooter}>
+            <View style={styles.metaItem}>
+              <Icon name="map-marker-outline" size={14} color={COLORS.gray[400]} />
+              <Text style={styles.metaText}>{item.lieu || 'Non spécifié'}</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Icon name="basketball" size={14} color={COLORS.gray[400]} />
+              <Text style={styles.metaText}>{item.exercises?.length || 0} ex.</Text>
+            </View>
           </View>
         </View>
+
+        <TouchableOpacity
+          style={styles.deleteAction}
+          onPress={() => handleDeleteSession(item.id)}
+        >
+          <Icon name="dots-vertical" size={20} color={COLORS.gray[300]} />
+        </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </Card>
   );
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Bibliothèque de séances</Text>
-        <View style={styles.searchBar}>
-          <Icon name="magnify" size={20} color="#94a3b8" />
+      {/* Header with Search */}
+      <View style={styles.screenHeader}>
+        <Text style={styles.screenTitle}>Bibliothèque</Text>
+        <Text style={styles.screenSub}>Gérez vos modèles de séances types</Text>
+
+        <View style={styles.searchWrapper}>
+          <Icon name="magnify" size={20} color={COLORS.primary} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
-            placeholder="Rechercher un modèle..."
+            style={styles.searchInputField}
+            placeholder="Rechercher une séance..."
+            placeholderTextColor={COLORS.gray[400]}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          {Boolean(searchQuery) && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClearBtn}>
+              <Icon name="close-circle" size={16} color={COLORS.gray[400]} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#f97316" />
-          <Text style={styles.loadingText}>Chargement des modèles...</Text>
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingTxt}>Chargement de la bibliothèque...</Text>
         </View>
       ) : filteredSessions.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Icon name="clipboard-text-outline" size={64} color="#d1d5db" />
-          <Text style={styles.emptyStateTitle}>Aucun modèle de séance</Text>
-          <Text style={styles.emptyStateText}>
-            Créez vos modèles ici pour les réutiliser dans le planning
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIllustration}>
+            <Icon name="folder-open-outline" size={64} color={COLORS.gray[100]} />
+          </View>
+          <Text style={styles.emptyTitle}>
+            {searchQuery ? "Aucun modèle trouvé" : "Bibliothèque vide"}
           </Text>
+          <Text style={styles.emptyDescription}>
+            {searchQuery
+              ? "Ajustez votre recherche pour trouver ce que vous cherchez."
+              : "Créez vos séances préférées une seule fois et réutilisez-les à volonté dans votre calendrier."}
+          </Text>
+          {!searchQuery && (
+            <Button
+              title="CRÉER MON PREMIER MODÈLE"
+              onPress={() => onCreateSession && onCreateSession()}
+              style={styles.firstBtn}
+            />
+          )}
         </View>
       ) : (
         <FlatList
@@ -148,12 +179,16 @@ const SessionsListScreen = ({ onCreateSession, onReuseSession, onViewSession }) 
         />
       )}
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => onCreateSession && onCreateSession()}
-      >
-        <Icon name="plus" size={30} color="white" />
-      </TouchableOpacity>
+      {/* Modern Floating Button */}
+      {!loading && (
+        <TouchableOpacity
+          style={styles.mainFab}
+          onPress={() => onCreateSession && onCreateSession()}
+          activeOpacity={0.9}
+        >
+          <Icon name="plus" size={32} color={COLORS.white} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -161,165 +196,202 @@ const SessionsListScreen = ({ onCreateSession, onReuseSession, onViewSession }) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff7ed',
+    backgroundColor: COLORS.gray[50],
   },
-  header: {
-    backgroundColor: 'white',
-    paddingHorizontal: 30,
-    paddingVertical: 20,
+  screenHeader: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: Platform.OS === 'ios' ? 60 : 30,
+    paddingBottom: 24,
+    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: COLORS.gray[100],
+    ...SHADOWS.sm,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 16,
+  screenTitle: {
+    ...TYPOGRAPHY.h1,
+    fontSize: 28,
+    color: COLORS.gray[900],
   },
-  searchBar: {
+  screenSub: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.gray[400],
+    marginTop: 4,
+  },
+  searchWrapper: {
+    marginTop: 20,
+    marginHorizontal: -SPACING.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
+    backgroundColor: COLORS.gray[50],
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: COLORS.gray[100],
+    paddingLeft: SPACING.lg,
+    paddingRight: 8,
+    height: 48,
   },
-  searchInput: {
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInputField: {
     flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#1f2937',
+    fontSize: 14,
+    color: COLORS.gray[900],
+    height: '100%',
+  },
+  searchClearBtn: {
+    padding: 8,
   },
   listContainer: {
-    padding: 20,
-    paddingBottom: 100,
+    padding: SPACING.lg,
+    paddingBottom: 120,
+    gap: 16,
   },
   sessionCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    ...SHADOWS.sm,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: COLORS.gray[50],
   },
-  sessionHeader: {
+  sessionItemContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+  },
+  sessionMainInfo: {
+    flex: 1,
+    padding: 16,
+  },
+  sessionBadgeRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
   },
-  sessionTitleContainer: {
+  timeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-  },
-  statusIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  sessionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    flex: 1,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  reuseButton: {
-    padding: 4,
-    marginRight: 12,
-  },
-  deleteButton: {
-    padding: 4,
-  },
-  sessionObjective: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  sessionDetails: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  detailText: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginLeft: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
+    gap: 5,
+    backgroundColor: COLORS.gray[50],
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.gray[100],
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
+  timeBadgeText: {
+    ...TYPOGRAPHY.label,
+    fontSize: 10,
+    color: COLORS.gray[700],
+    fontWeight: '800',
   },
-  emptyState: {
+  typeBadge: {
+    backgroundColor: COLORS.primary + '10',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  typeBadgeText: {
+    ...TYPOGRAPHY.label,
+    fontSize: 9,
+    color: COLORS.primary,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  sessionTitleText: {
+    ...TYPOGRAPHY.h3,
+    fontSize: 17,
+    color: COLORS.gray[900],
+    marginBottom: 6,
+  },
+  sessionObjText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.gray[500],
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  sessionMetaFooter: {
+    flexDirection: 'row',
+    gap: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.gray[50],
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaText: {
+    ...TYPOGRAPHY.bodySmall,
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.gray[400],
+  },
+  deleteAction: {
+    padding: 12,
+    justifyContent: 'flex-start',
+  },
+  loadingBox: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
   },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#6b7280',
+  loadingTxt: {
+    ...TYPOGRAPHY.bodySmall,
     marginTop: 16,
+    color: COLORS.gray[400],
   },
-  emptyStateText: {
-    fontSize: 14,
-    color: '#9ca3af',
-    marginTop: 4,
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    paddingBottom: 80,
+  },
+  emptyIllustration: {
+    width: 100,
+    height: 100,
+    borderRadius: 30,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+    ...SHADOWS.md,
+  },
+  emptyTitle: {
+    ...TYPOGRAPHY.h2,
+    fontSize: 22,
+    color: COLORS.gray[900],
     textAlign: 'center',
   },
-  fab: {
-    position: 'absolute',
-    bottom: 80,
-    right: 20,
-    width: 56,
-    height: 56,
-    backgroundColor: '#f97316',
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    zIndex: 1000,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    color: '#6b7280',
+  emptyDescription: {
+    ...TYPOGRAPHY.bodySmall,
     fontSize: 14,
+    color: COLORS.gray[400],
+    textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 22,
+    paddingHorizontal: 20,
+  },
+  firstBtn: {
+    marginTop: 32,
+    height: 54,
+    borderRadius: 16,
+    paddingHorizontal: 32,
+    ...SHADOWS.md,
+  },
+  mainFab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: COLORS.gray[900],
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.lg,
+    elevation: 8,
   },
 });
 

@@ -4,16 +4,20 @@ import {
     Text,
     StyleSheet,
     ScrollView,
-    TextInput,
     TouchableOpacity,
     ActivityIndicator,
     Alert,
-    Switch
+    Switch,
+    Platform
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import MedicalRecordService from '../../services/medicalRecordService';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Linking from 'expo-linking';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Card from '../UI/Card';
+import Button from '../UI/Button';
+import Input from '../UI/Input';
 
 const MedicalRecordScreen = ({ athlete, onBack }) => {
     const [loading, setLoading] = useState(true);
@@ -106,7 +110,7 @@ const MedicalRecordScreen = ({ athlete, onBack }) => {
     if (loading) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color="#f97316" />
+                <ActivityIndicator size="large" color={COLORS.primary} />
             </View>
         );
     }
@@ -115,7 +119,7 @@ const MedicalRecordScreen = ({ athlete, onBack }) => {
         <View style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                    <Icon name="arrow-left" size={24} color="#1e293b" />
+                    <Icon name="chevron-left" size={32} color={COLORS.gray[900]} />
                 </TouchableOpacity>
                 <View style={styles.titleContainer}>
                     <Text style={styles.title}>Dossier Médical</Text>
@@ -124,28 +128,35 @@ const MedicalRecordScreen = ({ athlete, onBack }) => {
                 <View style={{ width: 44 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.formContent}>
-                <View style={styles.infoCard}>
+            <ScrollView
+                contentContainerStyle={styles.formContent}
+                showsVerticalScrollIndicator={false}
+            >
+                <Card style={styles.statusCard}>
                     <View style={styles.statusRow}>
                         <View style={styles.statusInfo}>
-                            <Icon
-                                name={aptitudeSportive ? "check-circle" : "alert-circle"}
-                                size={24}
-                                color={aptitudeSportive ? "#10b981" : "#ef4444"}
-                            />
-                            <Text style={styles.statusLabel}>Aptitude Sportive</Text>
+                            <View style={[
+                                styles.statusDot,
+                                { backgroundColor: aptitudeSportive ? COLORS.success : COLORS.error }
+                            ]} />
+                            <View>
+                                <Text style={styles.statusLabel}>Aptitude Sportive</Text>
+                                <Text style={styles.statusSubLabel}>
+                                    {aptitudeSportive ? "Autorisé à la pratique" : "Pratique restreinte / Non autorisé"}
+                                </Text>
+                            </View>
                         </View>
                         <Switch
                             value={aptitudeSportive}
                             onValueChange={setAptitudeSportive}
-                            trackColor={{ false: '#e2e8f0', true: '#fed7aa' }}
-                            thumbColor={aptitudeSportive ? '#f97316' : '#94a3b8'}
+                            trackColor={{ false: COLORS.gray[200], true: COLORS.primary + '40' }}
+                            thumbColor={aptitudeSportive ? COLORS.primary : COLORS.gray[400]}
                         />
                     </View>
-                </View>
+                </Card>
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Informations de Santé</Text>
+                    <Text style={styles.sectionTitle}>Données Vitales</Text>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Groupe Sanguin</Text>
@@ -158,6 +169,7 @@ const MedicalRecordScreen = ({ athlete, onBack }) => {
                                         groupeSanguin === type && styles.activeBloodType
                                     ]}
                                     onPress={() => setGroupeSanguin(type)}
+                                    activeOpacity={0.7}
                                 >
                                     <Text style={[
                                         styles.bloodTypeText,
@@ -170,166 +182,169 @@ const MedicalRecordScreen = ({ athlete, onBack }) => {
                         </View>
                     </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Certificat Médical (PDF)</Text>
-
-                        {record?.certificat_pdf_url && (
+                    <Text style={styles.label}>Certificat Médical (PDF)</Text>
+                    <Card style={styles.fileCard} padding="none">
+                        {Boolean(record?.certificat_pdf_url) && (
                             <TouchableOpacity
                                 style={styles.viewFileButton}
                                 onPress={handleViewCertificate}
+                                activeOpacity={0.6}
                             >
-                                <Icon name="file-pdf-box" size={24} color="#ef4444" />
-                                <Text style={styles.viewFileText}>Voir le certificat actuel</Text>
-                                <Icon name="open-in-new" size={18} color="#94a3b8" />
+                                <View style={styles.pdfIcon}>
+                                    <Icon name="file-pdf-box" size={32} color={COLORS.error} />
+                                </View>
+                                <View style={styles.fileInfo}>
+                                    <Text style={styles.fileName}>Certificat médical actuel</Text>
+                                    <Text style={styles.fileDate}>Mise à jour le {new Date(record.updated_at).toLocaleDateString('fr-FR')}</Text>
+                                </View>
+                                <Icon name="chevron-right" size={20} color={COLORS.gray[300]} />
                             </TouchableOpacity>
                         )}
 
                         <TouchableOpacity
-                            style={[styles.uploadButton, certificate && styles.uploadButtonActive]}
+                            style={[styles.uploadArea, certificate && styles.uploadAreaActive]}
                             onPress={handlePickDocument}
                         >
                             <Icon
-                                name={certificate ? "file-check" : "file-upload-outline"}
+                                name={certificate ? "file-check" : "cloud-upload-outline"}
                                 size={24}
-                                color={certificate ? "#10b981" : "#64748b"}
+                                color={certificate ? COLORS.success : COLORS.gray[400]}
                             />
                             <View style={styles.uploadInfo}>
                                 <Text style={[styles.uploadText, certificate && styles.uploadTextActive]}>
-                                    {certificate ? certificate.name : "Télécharger un nouveau certificat"}
+                                    {certificate ? certificate.name : "Télécharger un nouveau PDF"}
                                 </Text>
-                                {certificate && (
+                                {Boolean(certificate) && (
                                     <Text style={styles.uploadSize}>
                                         {(certificate.size / 1024 / 1024).toFixed(2)} MB
                                     </Text>
                                 )}
                             </View>
+                            {!Boolean(certificate) && (
+                                <View style={styles.uploadBtn}>
+                                    <Text style={styles.uploadBtnText}>Parcourir</Text>
+                                </View>
+                            )}
                         </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Allergies</Text>
-                        <TextInput
-                            style={[styles.input, styles.textArea]}
-                            value={allergies}
-                            onChangeText={setAllergies}
-                            placeholder="Ex: Pénicilline, Arachides..."
-                            multiline
-                            numberOfLines={3}
-                            placeholderTextColor="#94a3b8"
-                        />
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Traitements en cours</Text>
-                        <TextInput
-                            style={[styles.input, styles.textArea]}
-                            value={traitements}
-                            onChangeText={setTraitements}
-                            placeholder="Médicaments, doses..."
-                            multiline
-                            numberOfLines={3}
-                            placeholderTextColor="#94a3b8"
-                        />
-                    </View>
-                </View >
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Historique & Notes</Text>
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Antécédents médicaux</Text>
-                        <TextInput
-                            style={[styles.input, styles.textArea]}
-                            value={antecedents}
-                            onChangeText={setAntecedents}
-                            placeholder="Opérations, blessures graves..."
-                            multiline
-                            numberOfLines={4}
-                            placeholderTextColor="#94a3b8"
-                        />
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Notes du coach (privé)</Text>
-                        <TextInput
-                            style={[styles.input, styles.textArea]}
-                            value={notesCoach}
-                            onChangeText={setNotesCoach}
-                            placeholder="Observations sur la forme, précautions..."
-                            multiline
-                            numberOfLines={4}
-                            placeholderTextColor="#94a3b8"
-                        />
-                    </View>
+                    </Card>
                 </View>
 
-                <TouchableOpacity
-                    style={[styles.saveButton, saving && styles.disabledButton]}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Antécédents & Alertes</Text>
+
+                    <Input
+                        label="Allergies"
+                        value={allergies}
+                        onChangeText={setAllergies}
+                        placeholder="Ex: Pénicilline, Arachides..."
+                        multiline
+                        numberOfLines={3}
+                        icon="alert-decagram-outline"
+                    />
+
+                    <Input
+                        label="Traitements en cours"
+                        value={traitements}
+                        onChangeText={setTraitements}
+                        placeholder="Médicaments, doses..."
+                        multiline
+                        numberOfLines={3}
+                        icon="pill"
+                    />
+
+                    <Input
+                        label="Antécédents médicaux"
+                        value={antecedents}
+                        onChangeText={setAntecedents}
+                        placeholder="Opérations, blessures graves..."
+                        multiline
+                        numberOfLines={4}
+                        icon="history"
+                    />
+                </View>
+
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Icon name="shield-lock-outline" size={20} color={COLORS.gray[400]} />
+                        <Text style={styles.sectionTitleSmall}>Espace Entraîneur (Privé)</Text>
+                    </View>
+
+                    <Input
+                        label="Notes confidentielles"
+                        value={notesCoach}
+                        onChangeText={setNotesCoach}
+                        placeholder="Observations sur la forme, précautions particulières..."
+                        multiline
+                        numberOfLines={4}
+                        icon="notebook-edit-outline"
+                    />
+                </View>
+
+                <Button
+                    title="Enregistrer les modifications"
                     onPress={handleSave}
-                    disabled={saving}
-                >
-                    {saving ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <>
-                            <Icon name="content-save" size={20} color="white" style={{ marginRight: 8 }} />
-                            <Text style={styles.saveButtonText}>Mettre à jour le dossier</Text>
-                        </>
-                    )}
-                </TouchableOpacity>
-            </ScrollView >
-        </View >
+                    loading={saving}
+                    icon="content-save"
+                    style={styles.saveBtn}
+                />
+
+                <View style={{ height: 20 }} />
+            </ScrollView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: COLORS.gray[50],
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 24,
-        backgroundColor: 'white',
+        paddingVertical: SPACING.md,
+        paddingHorizontal: SPACING.lg,
+        paddingTop: Platform.OS === 'ios' ? 60 : 30,
+        backgroundColor: COLORS.white,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        borderBottomColor: COLORS.gray[100],
+        ...SHADOWS.sm,
     },
     backButton: {
-        width: 44,
-        height: 44,
+        width: 40,
+        height: 40,
         justifyContent: 'center',
+        marginLeft: -10,
     },
     titleContainer: {
         flex: 1,
         alignItems: 'center',
     },
     title: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[900],
     },
     subtitle: {
-        fontSize: 14,
-        color: '#64748b',
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
+        marginTop: 2,
     },
     formContent: {
-        padding: 24,
+        padding: SPACING.lg,
+        paddingBottom: 40,
     },
     center: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: COLORS.white,
     },
-    infoCard: {
-        backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 20,
+    statusCard: {
         marginBottom: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: COLORS.gray[50],
+        ...SHADOWS.xs,
     },
     statusRow: {
         flexDirection: 'row',
@@ -339,43 +354,57 @@ const styles = StyleSheet.create({
     statusInfo: {
         flexDirection: 'row',
         alignItems: 'center',
+        flex: 1,
+    },
+    statusDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        marginRight: 12,
     },
     statusLabel: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1e293b',
-        marginLeft: 12,
+        ...TYPOGRAPHY.h4,
+        fontSize: 15,
+        color: COLORS.gray[900],
+    },
+    statusSubLabel: {
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
+        fontSize: 11,
+        marginTop: 2,
     },
     section: {
         marginBottom: 32,
     },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
     sectionTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#1e293b',
-        marginBottom: 20,
+        ...TYPOGRAPHY.label,
+        fontSize: 12,
+        color: COLORS.gray[400],
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        marginBottom: 16,
+    },
+    sectionTitleSmall: {
+        ...TYPOGRAPHY.label,
+        fontSize: 11,
+        color: COLORS.gray[400],
+        marginLeft: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     inputGroup: {
-        marginBottom: 20,
+        marginBottom: 24,
     },
     label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#64748b',
-        marginBottom: 8,
-    },
-    input: {
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 12,
-        padding: 12,
-        fontSize: 16,
-        color: '#1e293b',
-    },
-    textArea: {
-        minHeight: 80,
-        textAlignVertical: 'top',
+        ...TYPOGRAPHY.label,
+        fontSize: 12,
+        color: COLORS.gray[500],
+        marginBottom: 12,
     },
     bloodTypeContainer: {
         flexDirection: 'row',
@@ -383,97 +412,112 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     bloodTypeChip: {
-        width: 50,
-        height: 40,
-        borderRadius: 10,
-        backgroundColor: 'white',
+        width: '22.5%',
+        height: 48,
+        borderRadius: 14,
+        backgroundColor: COLORS.white,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
+        borderColor: COLORS.gray[100],
         justifyContent: 'center',
         alignItems: 'center',
+        ...SHADOWS.xs,
     },
     activeBloodType: {
-        backgroundColor: '#ef4444',
-        borderColor: '#ef4444',
+        backgroundColor: COLORS.gray[900],
+        borderColor: COLORS.gray[900],
     },
     bloodTypeText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#64748b',
+        ...TYPOGRAPHY.h4,
+        fontSize: 13,
+        color: COLORS.gray[600],
     },
     activeBloodTypeText: {
-        color: 'white',
+        color: COLORS.white,
     },
-    saveButton: {
-        backgroundColor: '#f97316',
+    fileCard: {
         borderRadius: 16,
-        padding: 18,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 40,
-        shadowColor: '#f97316',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 8,
-    },
-    disabledButton: {
-        opacity: 0.7,
-    },
-    saveButtonText: {
-        color: 'white',
-        fontSize: 18,
-        fontWeight: '700',
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: COLORS.gray[100],
+        backgroundColor: COLORS.white,
     },
     viewFileButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fef2f2',
-        padding: 12,
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.gray[50],
+    },
+    pdfIcon: {
+        width: 44,
+        height: 44,
         borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#fee2e2',
-        marginBottom: 12,
+        backgroundColor: COLORS.error + '10',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
     },
-    viewFileText: {
+    fileInfo: {
         flex: 1,
-        marginLeft: 12,
-        fontSize: 15,
-        color: '#ef4444',
-        fontWeight: '600',
     },
-    uploadButton: {
+    fileName: {
+        ...TYPOGRAPHY.h4,
+        fontSize: 14,
+        color: COLORS.gray[900],
+    },
+    fileDate: {
+        ...TYPOGRAPHY.bodySmall,
+        fontSize: 11,
+        color: COLORS.gray[400],
+        marginTop: 2,
+    },
+    uploadArea: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'white',
         padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderStyle: 'dashed',
-        borderColor: '#cbd5e1',
+        backgroundColor: COLORS.gray[50],
     },
-    uploadButtonActive: {
-        borderColor: '#10b981',
-        backgroundColor: '#f0fdf4',
-        borderStyle: 'solid',
+    uploadAreaActive: {
+        backgroundColor: COLORS.success + '10',
     },
     uploadInfo: {
         flex: 1,
         marginLeft: 12,
     },
     uploadText: {
-        fontSize: 14,
-        color: '#64748b',
+        ...TYPOGRAPHY.bodySmall,
+        fontSize: 13,
+        fontWeight: '600',
+        color: COLORS.gray[500],
     },
     uploadTextActive: {
-        color: '#065f46',
-        fontWeight: '600',
+        color: COLORS.success,
     },
     uploadSize: {
-        fontSize: 12,
-        color: '#94a3b8',
+        ...TYPOGRAPHY.bodySmall,
+        fontSize: 10,
+        color: COLORS.gray[400],
         marginTop: 2,
+    },
+    uploadBtn: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        backgroundColor: COLORS.white,
+        borderWidth: 1,
+        borderColor: COLORS.gray[200],
+        ...SHADOWS.xs,
+    },
+    uploadBtnText: {
+        ...TYPOGRAPHY.label,
+        fontSize: 10,
+        color: COLORS.gray[600],
+    },
+    saveBtn: {
+        borderRadius: 16,
+        marginTop: 10,
+        height: 56,
+        ...SHADOWS.md,
     }
 });
 

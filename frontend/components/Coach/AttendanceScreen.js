@@ -7,10 +7,14 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Alert,
+    Platform
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AttendanceService from '../../services/attendanceService';
 import AthleteService from '../../services/athleteService';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Button from '../UI/Button';
+import Card from '../UI/Card';
 
 const AttendanceScreen = ({ session, onBack }) => {
     const [athletes, setAthletes] = useState([]);
@@ -81,11 +85,6 @@ const AttendanceScreen = ({ session, onBack }) => {
                 notes: attendance[a.id]?.notes || ''
             }));
 
-            console.log('--- ATTENDANCE SAVE DEBUG ---');
-            console.log('Session ID:', session.id);
-            console.log('Records to save:', records.length);
-
-            // Filter records to only include real athletes (ignore temp_ ID for unlinked players)
             const validRecords = records.filter(r =>
                 r.athlete_id && !r.athlete_id.toString().startsWith('temp_')
             );
@@ -100,12 +99,11 @@ const AttendanceScreen = ({ session, onBack }) => {
                 await AttendanceService.recordAttendance(record);
             }
 
-            Alert.alert('Succès', 'Appel enregistré avec succès pour tous les athlètes');
+            Alert.alert('Succès', 'Appel enregistré avec succès');
             onBack();
         } catch (error) {
             console.error('Error recording attendance:', error);
-            const errorMsg = error.response?.data?.message || error.message || 'Une erreur est survenue';
-            Alert.alert('Erreur', `Impossible d'enregistrer l'appel: ${errorMsg}`);
+            Alert.alert('Erreur', 'Impossible d\'enregistrer l\'appel');
         } finally {
             setSaving(false);
         }
@@ -115,72 +113,79 @@ const AttendanceScreen = ({ session, onBack }) => {
         const currentStatus = attendance[item.id]?.status || 'absent';
 
         return (
-            <View style={styles.athleteCard}>
-                <TouchableOpacity
-                    style={styles.athleteInfo}
-                    onPress={() => {
-                        const newStatus = currentStatus === 'present' ? 'absent' : 'present';
-                        handleUpdateStatus(item.id, newStatus);
-                    }}
-                >
-                    <Text style={styles.athleteName}>{item.prenom} {item.nom}</Text>
-                    <Text style={styles.athletePoste}>{item.poste}</Text>
-                </TouchableOpacity>
+            <Card style={styles.athleteCard} padding="sm">
+                <View style={styles.athleteRow}>
+                    <View style={styles.avatarContainer}>
+                        <Text style={styles.avatarText}>{item.prenom[0]}{item.nom[0]}</Text>
+                    </View>
 
-                <View style={styles.statusContainer}>
-                    <View style={styles.statusGroup}>
+                    <View style={styles.athleteMain}>
+                        <Text style={styles.athleteName}>{item.prenom} {item.nom}</Text>
+                        <Text style={styles.athletePoste}>{item.poste || 'Poste non défini'}</Text>
+                    </View>
+
+                    <View style={styles.statusSelectors}>
                         <TouchableOpacity
-                            style={[styles.statusBtn, currentStatus === 'present' && styles.presentActive]}
+                            style={[styles.statusToggle, currentStatus === 'present' && styles.statusPresent]}
                             onPress={() => handleUpdateStatus(item.id, 'present')}
                         >
-                            <Icon name="check" size={18} color={currentStatus === 'present' ? 'white' : '#10b981'} />
+                            <Icon
+                                name={currentStatus === 'present' ? "check-circle" : "check-circle-outline"}
+                                size={22}
+                                color={currentStatus === 'present' ? COLORS.white : COLORS.gray[200]}
+                            />
                         </TouchableOpacity>
-                        <Text style={styles.statusLabel}>P</Text>
-                    </View>
 
-                    <View style={styles.statusGroup}>
                         <TouchableOpacity
-                            style={[styles.statusBtn, currentStatus === 'retard' && styles.retardActive]}
+                            style={[styles.statusToggle, currentStatus === 'retard' && styles.statusLate]}
                             onPress={() => handleUpdateStatus(item.id, 'retard')}
                         >
-                            <Icon name="clock-outline" size={18} color={currentStatus === 'retard' ? 'white' : '#f59e0b'} />
+                            <Icon
+                                name={currentStatus === 'retard' ? "clock-check" : "clock-outline"}
+                                size={22}
+                                color={currentStatus === 'retard' ? COLORS.white : COLORS.gray[200]}
+                            />
                         </TouchableOpacity>
-                        <Text style={styles.statusLabel}>R</Text>
-                    </View>
 
-                    <View style={styles.statusGroup}>
                         <TouchableOpacity
-                            style={[styles.statusBtn, currentStatus === 'absent' && styles.absentActive]}
+                            style={[styles.statusToggle, currentStatus === 'absent' && styles.statusAbsent]}
                             onPress={() => handleUpdateStatus(item.id, 'absent')}
                         >
-                            <Icon name="close" size={18} color={currentStatus === 'absent' ? 'white' : '#ef4444'} />
+                            <Icon
+                                name={currentStatus === 'absent' ? "close-circle" : "close-circle-outline"}
+                                size={22}
+                                color={currentStatus === 'absent' ? COLORS.white : COLORS.gray[200]}
+                            />
                         </TouchableOpacity>
-                        <Text style={styles.statusLabel}>A</Text>
                     </View>
                 </View>
-            </View>
+            </Card>
         );
     };
 
     if (loading) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color="#f97316" />
+                <ActivityIndicator size="large" color={COLORS.primary} />
             </View>
         );
     }
+
+    const presentCount = Object.values(attendance).filter(a => a.status === 'present').length;
+    const lateCount = Object.values(attendance).filter(a => a.status === 'retard').length;
+    const absentCount = Object.values(attendance).filter(a => a.status === 'absent').length;
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                    <Icon name="arrow-left" size={24} color="#1e293b" />
+                    <Icon name="chevron-left" size={28} color={COLORS.gray[900]} />
                 </TouchableOpacity>
                 <View style={styles.titleContainer}>
-                    <Text style={styles.title}>Faire l'appel</Text>
-                    <Text style={styles.subtitle}>{session?.theme || session?.title} • {session?.groupe}</Text>
+                    <Text style={styles.title}>Appel</Text>
+                    <Text style={styles.subtitle} numberOfLines={1}>{session?.theme || session?.title} • {session?.groupe}</Text>
                 </View>
-                <View style={{ width: 44 }} />
+                <View style={{ width: 32 }} />
             </View>
 
             <FlatList
@@ -188,53 +193,45 @@ const AttendanceScreen = ({ session, onBack }) => {
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={renderAthleteItem}
                 contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
                 ListHeaderComponent={
-                    <View>
-                        <TouchableOpacity
-                            style={styles.bigMarkAllBtn}
-                            onPress={handleMarkAllPresent}
-                        >
-                            <Icon name="check-all" size={28} color="white" />
-                            <Text style={styles.bigMarkAllText}>MARQUER TOUT LE MONDE PRÉSENT</Text>
-                        </TouchableOpacity>
-
-                        <View style={styles.summaryCard}>
-                            <View style={styles.summaryItem}>
-                                <Text style={styles.summaryVal}>{Object.values(attendance).filter(a => a.status === 'present').length}</Text>
-                                <Text style={styles.summaryLabel}>P</Text>
+                    <View style={styles.listHeader}>
+                        <View style={styles.statsOverview}>
+                            <View style={[styles.statBox, { borderColor: COLORS.success + '30' }]}>
+                                <Text style={[styles.statVal, { color: COLORS.success }]}>{presentCount}</Text>
+                                <Text style={styles.statLabel}>Présents</Text>
                             </View>
-                            <View style={styles.summaryItem}>
-                                <Text style={styles.summaryVal}>{Object.values(attendance).filter(a => a.status === 'retard').length}</Text>
-                                <Text style={styles.summaryLabel}>R</Text>
+                            <View style={[styles.statBox, { borderColor: COLORS.warning + '30' }]}>
+                                <Text style={[styles.statVal, { color: COLORS.warning }]}>{lateCount}</Text>
+                                <Text style={styles.statLabel}>Retards</Text>
                             </View>
-                            <View style={styles.summaryItem}>
-                                <Text style={styles.summaryVal}>{Object.values(attendance).filter(a => a.status === 'absent').length}</Text>
-                                <Text style={styles.summaryLabel}>A</Text>
-                            </View>
-                            <View style={styles.summaryItem}>
-                                <Text style={styles.summaryVal}>{athletes.length}</Text>
-                                <Text style={styles.summaryLabel}>Total</Text>
+                            <View style={[styles.statBox, { borderColor: COLORS.error + '30' }]}>
+                                <Text style={[styles.statVal, { color: COLORS.error }]}>{absentCount}</Text>
+                                <Text style={styles.statLabel}>Absents</Text>
                             </View>
                         </View>
+
+                        <Button
+                            title="Tout le monde est présent"
+                            onPress={handleMarkAllPresent}
+                            variant="outline"
+                            icon="check-all"
+                            style={styles.markAllBtn}
+                        />
+
+                        <Text style={styles.listTitle}>Liste des joueurs ({athletes.length})</Text>
                     </View>
                 }
             />
 
             <View style={styles.footer}>
-                <TouchableOpacity
-                    style={[styles.saveButton, saving && styles.disabledButton]}
+                <Button
+                    title="Enregistrer l'appel"
                     onPress={handleSaveAll}
-                    disabled={saving}
-                >
-                    {saving ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <>
-                            <Icon name="check-all" size={20} color="white" style={{ marginRight: 8 }} />
-                            <Text style={styles.saveButtonText}>Valider l'appel</Text>
-                        </>
-                    )}
-                </TouchableOpacity>
+                    loading={saving}
+                    icon="cloud-upload-outline"
+                    style={styles.saveButton}
+                />
             </View>
         </View>
     );
@@ -243,16 +240,17 @@ const AttendanceScreen = ({ session, onBack }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: COLORS.gray[50],
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 16,
-        paddingHorizontal: 20,
-        backgroundColor: 'white',
+        paddingVertical: SPACING.md,
+        paddingHorizontal: SPACING.lg,
+        paddingTop: 60,
+        backgroundColor: COLORS.white,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        borderBottomColor: COLORS.gray[100],
     },
     backButton: {
         width: 44,
@@ -264,129 +262,121 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     title: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[900],
     },
     subtitle: {
-        fontSize: 13,
-        color: '#64748b',
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
+    },
+    listHeader: {
+        marginBottom: SPACING.lg,
+    },
+    statsOverview: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: SPACING.lg,
+    },
+    statBox: {
+        flex: 1,
+        backgroundColor: COLORS.white,
+        borderRadius: BORDER_RADIUS.md,
+        padding: SPACING.md,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.gray[100],
+    },
+    statVal: {
+        ...TYPOGRAPHY.h2,
+        fontSize: 24,
+    },
+    statLabel: {
+        ...TYPOGRAPHY.label,
+        fontSize: 10,
+        color: COLORS.gray[400],
+        marginTop: 2,
+    },
+    markAllBtn: {
+        marginBottom: SPACING.xl,
+    },
+    listTitle: {
+        ...TYPOGRAPHY.h3,
+        fontSize: 16,
+        color: COLORS.gray[900],
     },
     listContent: {
-        padding: 20,
+        padding: SPACING.lg,
+        paddingBottom: 100,
+    },
+    athleteCard: {
+        marginBottom: SPACING.sm,
+    },
+    athleteRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    avatarContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: COLORS.gray[100],
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: SPACING.md,
+    },
+    avatarText: {
+        ...TYPOGRAPHY.label,
+        color: COLORS.gray[500],
+    },
+    athleteMain: {
+        flex: 1,
+    },
+    athleteName: {
+        ...TYPOGRAPHY.h4,
+        color: COLORS.gray[900],
+    },
+    athletePoste: {
+        ...TYPOGRAPHY.bodySmall,
+        fontSize: 11,
+        color: COLORS.gray[400],
+    },
+    statusSelectors: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    statusToggle: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.gray[50],
+    },
+    statusPresent: {
+        backgroundColor: COLORS.success,
+    },
+    statusLate: {
+        backgroundColor: COLORS.warning,
+    },
+    statusAbsent: {
+        backgroundColor: COLORS.error,
+    },
+    footer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: SPACING.lg,
+        paddingBottom: 30,
+        backgroundColor: COLORS.white,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.gray[100],
+        ...SHADOWS.md,
     },
     center: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    summaryCard: {
-        flexDirection: 'row',
-        backgroundColor: '#1e293b',
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 24,
-        justifyContent: 'space-around',
-    },
-    summaryItem: {
-        alignItems: 'center',
-    },
-    summaryVal: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: 'white',
-    },
-    summaryLabel: {
-        fontSize: 12,
-        color: '#94a3b8',
-        marginTop: 4,
-    },
-    athleteCard: {
-        backgroundColor: 'white',
-        borderRadius: 12,
-        padding: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
-    },
-    athleteInfo: {
-        flex: 1,
-    },
-    athleteName: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#1e293b',
-    },
-    athletePoste: {
-        fontSize: 12,
-        color: '#64748b',
-        marginTop: 2,
-    },
-    statusContainer: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    statusGroup: {
-        alignItems: 'center',
-        gap: 4,
-    },
-    statusLabel: {
-        fontSize: 10,
-        color: '#64748b',
-        fontWeight: '700',
-    },
-    statusBtn: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    bigMarkAllBtn: {
-        backgroundColor: '#10b981',
-        borderRadius: 12,
-        padding: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 12,
-        marginBottom: 20,
-    },
-    bigMarkAllText: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: '800',
-    },
-    presentActive: { backgroundColor: '#10b981', borderColor: '#10b981' },
-    absentActive: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
-    retardActive: { backgroundColor: '#f59e0b', borderColor: '#f59e0b' },
-    excuseActive: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
-    footer: {
-        padding: 20,
-        backgroundColor: 'white',
-        borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
-    },
-    saveButton: {
-        backgroundColor: '#f97316',
-        borderRadius: 12,
-        padding: 16,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    disabledButton: {
-        opacity: 0.7,
-    },
-    saveButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: '700',
     }
 });
 

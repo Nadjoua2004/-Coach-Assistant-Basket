@@ -9,13 +9,18 @@ import {
     ActivityIndicator,
     Alert,
     RefreshControl,
-    ScrollView
+    ScrollView,
+    Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import ExerciseService from '../../services/exerciseService';
 import ExerciseFormModal from './ExerciseFormModal';
 import ExerciseDetailsModal from './ExerciseDetailsModal';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Button from '../UI/Button';
+import Card from '../UI/Card';
+import Input from '../UI/Input';
 
 const ExerciseManagerScreen = ({ onBack, isAdmin }) => {
     const [exercises, setExercises] = useState([]);
@@ -32,15 +37,15 @@ const ExerciseManagerScreen = ({ onBack, isAdmin }) => {
     const [selectedExercise, setSelectedExercise] = useState(null);
     const [editMode, setEditMode] = useState(false);
 
-    // Categories configuration (from US-10)
+    // Categories configuration
     const categories = [
-        { id: 'all', label: 'Tous', icon: 'view-grid' },
-        { id: 'shoot', label: 'Shoot', icon: 'basketball' },
-        { id: 'dribble', label: 'Conduite', icon: 'run' },
-        { id: 'defense', label: 'Défense', icon: 'shield' },
-        { id: 'system', label: 'Système', icon: 'strategy' },
-        { id: 'physical', label: 'Physique', icon: 'dumbbell' },
-        { id: 'mental', label: 'Mental', icon: 'brain' }
+        { id: 'all', label: 'Tous', icon: 'view-grid', color: COLORS.gray[500] },
+        { id: 'shoot', label: 'Shoot', icon: 'basketball', color: '#f97316' },
+        { id: 'dribble', label: 'Conduite', icon: 'run', color: '#3b82f6' },
+        { id: 'defense', label: 'Défense', icon: 'shield', color: '#10b981' },
+        { id: 'system', label: 'Système', icon: 'strategy', color: '#8b5cf6' },
+        { id: 'physical', label: 'Physique', icon: 'dumbbell', color: '#ef4444' },
+        { id: 'mental', label: 'Mental', icon: 'brain', color: '#f59e0b' }
     ];
 
     const subcategories = {
@@ -101,17 +106,14 @@ const ExerciseManagerScreen = ({ onBack, isAdmin }) => {
     const filterExercises = () => {
         let filtered = [...exercises];
 
-        // Filter by category
         if (selectedCategory !== 'all') {
             filtered = filtered.filter(ex => ex.category === selectedCategory);
         }
 
-        // Filter by subcategory
         if (selectedSubcategory !== 'all') {
             filtered = filtered.filter(ex => ex.subcategory === selectedSubcategory);
         }
 
-        // Filter by search query
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             filtered = filtered.filter(ex =>
@@ -137,6 +139,13 @@ const ExerciseManagerScreen = ({ onBack, isAdmin }) => {
         setFormModalVisible(true);
     };
 
+    const handleFormSuccess = () => {
+        setFormModalVisible(false);
+        setEditMode(false);
+        setSelectedExercise(null);
+        loadExercises();
+    };
+
     const handleDeleteExercise = (exercise) => {
         Alert.alert(
             'Supprimer l\'exercice',
@@ -149,7 +158,6 @@ const ExerciseManagerScreen = ({ onBack, isAdmin }) => {
                     onPress: async () => {
                         try {
                             await ExerciseService.deleteExercise(exercise.id);
-                            Alert.alert('Succès', 'Exercice supprimé');
                             loadExercises();
                         } catch (error) {
                             Alert.alert('Erreur', 'Impossible de supprimer l\'exercice');
@@ -165,224 +173,197 @@ const ExerciseManagerScreen = ({ onBack, isAdmin }) => {
         setDetailsModalVisible(true);
     };
 
-    const handleFormSuccess = () => {
-        setFormModalVisible(false);
-        loadExercises();
-    };
+    const renderExerciseCard = ({ item }) => {
+        const category = categories.find(c => c.id === item.category) || categories[0];
 
-    const renderExerciseCard = ({ item }) => (
-        <TouchableOpacity
-            style={styles.exerciseCard}
-            onPress={() => handleViewDetails(item)}
-        >
-            <View style={styles.cardHeader}>
-                <View style={styles.cardHeaderLeft}>
-                    <Icon
-                        name={categories.find(c => c.id === item.category)?.icon || 'dumbbell'}
-                        size={24}
-                        color="#FF6B35"
-                    />
-                    <View style={styles.cardHeaderText}>
-                        <Text style={styles.exerciseName}>{item.name}</Text>
-                        <Text style={styles.exerciseCategory}>
-                            {categories.find(c => c.id === item.category)?.label || item.category}
-                            {item.subcategory && ` • ${item.subcategory}`}
-                        </Text>
+        return (
+            <Card
+                style={styles.exerciseCard}
+                padding="none"
+                onPress={() => handleViewDetails(item)}
+            >
+                <View style={styles.cardContent}>
+                    <View style={[styles.categoryStrip, { backgroundColor: category.color }]} />
+                    <View style={styles.cardMain}>
+                        <View style={styles.cardTop}>
+                            <View style={styles.cardTitleArea}>
+                                <Text style={styles.exerciseName} numberOfLines={1}>{item.name}</Text>
+                                <Text style={styles.exerciseSub}>
+                                    {category.label} {item.subcategory ? `• ${item.subcategory}` : ''}
+                                </Text>
+                            </View>
+                            <Icon name={category.icon} size={20} color={category.color} />
+                        </View>
+
+                        {Boolean(item.description) && (
+                            <Text style={styles.exerciseDescription} numberOfLines={2}>
+                                {item.description}
+                            </Text>
+                        )}
+
+                        <View style={styles.cardFooter}>
+                            <View style={styles.metaRow}>
+                                {Boolean(item.duration) && (
+                                    <View style={styles.metaItem}>
+                                        <Icon name="clock-outline" size={14} color={COLORS.gray[400]} />
+                                        <Text style={styles.metaText}>{item.duration} min</Text>
+                                    </View>
+                                )}
+                                {Boolean(item.players_min) && (
+                                    <View style={styles.metaItem}>
+                                        <Icon name="account-group-outline" size={14} color={COLORS.gray[400]} />
+                                        <Text style={styles.metaText}>{item.players_min}-{item.players_max || '+'}</Text>
+                                    </View>
+                                )}
+                            </View>
+
+                            <View style={styles.actions}>
+                                <TouchableOpacity onPress={() => handleEditExercise(item)} style={styles.actionBtn}>
+                                    <Icon name="pencil-outline" size={18} color={COLORS.gray[400]} />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => handleDeleteExercise(item)} style={styles.actionBtn}>
+                                    <Icon name="trash-can-outline" size={18} color={COLORS.error + '80'} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
                     </View>
                 </View>
-
-            </View>
-
-            {item.description && (
-                <Text style={styles.exerciseDescription} numberOfLines={2}>
-                    {item.description}
-                </Text>
-            )}
-
-            <View style={styles.cardFooter}>
-                <View style={styles.cardFooterInfo}>
-                    {item.duration && (
-                        <View style={styles.infoTag}>
-                            <Icon name="clock-outline" size={14} color="#666" />
-                            <Text style={styles.infoText}>{item.duration} min</Text>
-                        </View>
-                    )}
-                    {item.players_min && item.players_max && (
-                        <View style={styles.infoTag}>
-                            <Icon name="account-group" size={14} color="#666" />
-                            <Text style={styles.infoText}>
-                                {item.players_min}-{item.players_max} joueurs
-                            </Text>
-                        </View>
-                    )}
-                </View>
-
-                <View style={styles.cardActions}>
-                    <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => handleEditExercise(item)}
-                    >
-                        <Icon name="pencil" size={18} color="#4ECDC4" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => handleDeleteExercise(item)}
-                    >
-                        <Icon name="delete" size={18} color="#FF6B35" />
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
-
-    const renderEmptyState = () => (
-        <View style={styles.emptyState}>
-            <Icon name="dumbbell" size={64} color="#CCC" />
-            <Text style={styles.emptyStateText}>Aucun exercice trouvé</Text>
-            <Text style={styles.emptyStateSubtext}>
-                {searchQuery || selectedCategory !== 'all'
-                    ? 'Essayez de modifier vos filtres'
-                    : 'Créez votre premier exercice'}
-            </Text>
-        </View>
-    );
+            </Card>
+        );
+    };
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#FF6B35" />
-                <Text style={styles.loadingText}>Chargement des exercices...</Text>
+            <View style={styles.center}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={styles.loadingText}>Chargement de la bibliothèque...</Text>
             </View>
         );
     }
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* Header */}
             <View style={styles.header}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={styles.headerTop}>
                     {onBack && (
-                        <TouchableOpacity onPress={onBack} style={{ marginRight: 16 }}>
-                            <Icon name="arrow-left" size={24} color="#1A1A1A" />
+                        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+                            <Icon name="chevron-left" size={32} color={COLORS.gray[900]} />
                         </TouchableOpacity>
                     )}
                     <View>
-                        <Text style={styles.headerTitle}>{isAdmin ? 'Gestion Exercices' : 'Exercices'}</Text>
-                        <Text style={styles.headerSubtitle}>
-                            {filteredExercises.length} exercice{filteredExercises.length > 1 ? 's' : ''}
-                        </Text>
+                        <Text style={styles.headerTitle}>{isAdmin ? 'Catalogue' : 'Ma Bibliothèque'}</Text>
+                        <Text style={styles.headerSubtitle}>{filteredExercises.length} exercices disponibles</Text>
                     </View>
+                </View>
+
+                <View style={styles.searchInput}>
+                    <Icon name="magnify" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
+                    <TextInput
+                        style={styles.searchInputText}
+                        placeholder="Rechercher un exercice..."
+                        placeholderTextColor={COLORS.gray[400]}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {Boolean(searchQuery) && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 6 }}>
+                            <Icon name="close-circle" size={16} color={COLORS.gray[400]} />
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
 
-            {/* Search Bar */}
-            <View style={styles.searchContainer}>
-                <Icon name="magnify" size={20} color="#999" style={styles.searchIcon} />
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Rechercher un exercice..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholderTextColor="#999"
-                />
-                {searchQuery.length > 0 && (
-                    <TouchableOpacity onPress={() => setSearchQuery('')}>
-                        <Icon name="close-circle" size={20} color="#999" />
-                    </TouchableOpacity>
-                )}
-            </View>
-
-            {/* Category Filters */}
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.categoriesContainer}
-                contentContainerStyle={styles.categoriesContent}
-            >
-                {categories.map(category => (
-                    <TouchableOpacity
-                        key={category.id}
-                        style={[
-                            styles.categoryButton,
-                            selectedCategory === category.id && styles.categoryButtonActive
-                        ]}
-                        onPress={() => {
-                            setSelectedCategory(category.id);
-                            setSelectedSubcategory('all');
-                        }}
-                    >
-                        <Icon
-                            name={category.icon}
-                            size={18}
-                            color={selectedCategory === category.id ? '#FFF' : '#666'}
-                        />
-                        <Text
-                            style={[
-                                styles.categoryButtonText,
-                                selectedCategory === category.id && styles.categoryButtonTextActive
-                            ]}
-                        >
-                            {category.label}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
-
-            {/* Subcategory Filters */}
-            {selectedCategory !== 'all' && subcategories[selectedCategory] && (
+            <View style={styles.filterSection}>
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    style={styles.subcategoriesContainer}
-                    contentContainerStyle={styles.subcategoriesContent}
+                    contentContainerStyle={styles.filterScroll}
                 >
-                    {subcategories[selectedCategory].map(sub => (
+                    {categories.map(cat => (
                         <TouchableOpacity
-                            key={sub.id}
+                            key={cat.id}
+                            onPress={() => {
+                                setSelectedCategory(cat.id);
+                                setSelectedSubcategory('all');
+                            }}
                             style={[
-                                styles.subcategoryChip,
-                                selectedSubcategory === sub.id && styles.subcategoryChipActive
+                                styles.catBtn,
+                                selectedCategory === cat.id && { backgroundColor: cat.color, borderColor: cat.color }
                             ]}
-                            onPress={() => setSelectedSubcategory(sub.id)}
                         >
-                            <Text
-                                style={[
-                                    styles.subcategoryChipText,
-                                    selectedSubcategory === sub.id && styles.subcategoryChipTextActive
-                                ]}
-                            >
-                                {sub.label}
+                            <Icon
+                                name={cat.icon}
+                                size={16}
+                                color={selectedCategory === cat.id ? COLORS.white : COLORS.gray[400]}
+                            />
+                            <Text style={[
+                                styles.catBtnText,
+                                selectedCategory === cat.id && { color: COLORS.white }
+                            ]}>
+                                {cat.label}
                             </Text>
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
-            )}
 
-            {/* Exercise List */}
+                {selectedCategory !== 'all' && subcategories[selectedCategory] && (
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.subFilterScroll}
+                    >
+                        {subcategories[selectedCategory].map(sub => (
+                            <TouchableOpacity
+                                key={sub.id}
+                                onPress={() => setSelectedSubcategory(sub.id)}
+                                style={[
+                                    styles.subChip,
+                                    selectedSubcategory === sub.id && styles.subChipActive
+                                ]}
+                            >
+                                <Text style={[
+                                    styles.subChipText,
+                                    selectedSubcategory === sub.id && styles.subChipTextActive
+                                ]}>
+                                    {sub.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                )}
+            </View>
+
             <FlatList
                 data={filteredExercises}
                 renderItem={renderExerciseCard}
                 keyExtractor={item => item.id}
                 contentContainerStyle={styles.listContent}
-                ListEmptyComponent={renderEmptyState}
+                showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                        colors={['#FF6B35']}
-                    />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
+                }
+                ListEmptyComponent={
+                    <View style={styles.emptyState}>
+                        <View style={styles.emptyIconCircle}>
+                            <Icon name="clipboard-search-outline" size={48} color={COLORS.gray[200]} />
+                        </View>
+                        <Text style={styles.emptyTitle}>Aucun exercice</Text>
+                        <Text style={styles.emptyDesc}>
+                            {searchQuery || selectedCategory !== 'all'
+                                ? "Aucun exercice ne correspond à vos filtres."
+                                : "Commencez par ajouter votre premier exercice à votre bibliothèque."}
+                        </Text>
+                        {!searchQuery && selectedCategory === 'all' && (
+                            <Button title="Ajouter un exercice" onPress={handleCreateExercise} style={styles.emptyBtn} />
+                        )}
+                    </View>
                 }
             />
 
-            {/* Floating Action Button (FAB) at Bottom Right */}
-            <TouchableOpacity
-                style={styles.fabRight}
-                onPress={handleCreateExercise}
-            >
-                <Icon name="plus" size={32} color="#FFF" />
+            <TouchableOpacity style={styles.fab} onPress={handleCreateExercise} activeOpacity={0.9}>
+                <Icon name="plus" size={32} color={COLORS.white} />
             </TouchableOpacity>
 
-            {/* Modals */}
             <ExerciseFormModal
                 visible={formModalVisible}
                 onClose={() => setFormModalVisible(false)}
@@ -405,219 +386,253 @@ const ExerciseManagerScreen = ({ onBack, isAdmin }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA'
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#F5F7FA'
-    },
-    loadingText: {
-        marginTop: 12,
-        fontSize: 16,
-        color: '#666'
+        backgroundColor: COLORS.gray[50],
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        backgroundColor: '#FFF',
+        backgroundColor: COLORS.white,
+        paddingHorizontal: SPACING.lg,
+        paddingTop: Platform.OS === 'ios' ? 60 : 30,
+        paddingBottom: SPACING.md,
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E5E5'
+        borderBottomColor: COLORS.gray[100],
+        ...SHADOWS.sm,
+    },
+    headerTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    backBtn: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        marginLeft: -10,
     },
     headerTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#1A1A1A'
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[900],
     },
     headerSubtitle: {
-        fontSize: 14,
-        color: '#666',
-        marginTop: 4
-    },
-    fabRight: {
-        position: 'absolute',
-        bottom: 24,
-        right: 24,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: '#FF6B35',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#FF6B35',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
-        zIndex: 100
-    },
-    searchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFF',
-        marginHorizontal: 20,
-        marginVertical: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#E5E5E5'
-    },
-    searchIcon: {
-        marginRight: 8
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
+        marginTop: 2,
     },
     searchInput: {
-        flex: 1,
-        fontSize: 16,
-        color: '#1A1A1A'
-    },
-    categoriesContainer: {
-        maxHeight: 50,
-        marginBottom: 12
-    },
-    categoriesContent: {
-        paddingHorizontal: 20
-    },
-    categoryButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        marginRight: 8,
-        borderRadius: 20,
-        backgroundColor: '#FFF',
-        borderWidth: 1,
-        borderColor: '#E5E5E5'
+        backgroundColor: COLORS.gray[50],
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: COLORS.gray[100],
+        paddingHorizontal: SPACING.lg,
+        paddingRight: 8,
+        height: 48,
+        marginTop: 12,
     },
-    categoryButtonActive: {
-        backgroundColor: '#FF6B35',
-        borderColor: '#FF6B35'
-    },
-    categoryButtonText: {
-        marginLeft: 6,
+    searchInputText: {
+        flex: 1,
         fontSize: 14,
-        fontWeight: '500',
-        color: '#666'
+        color: COLORS.gray[900],
+        height: '100%',
     },
-    categoryButtonTextActive: {
-        color: '#FFF'
+    filterSection: {
+        backgroundColor: COLORS.white,
+        paddingBottom: 4,
+        ...SHADOWS.sm,
     },
-    subcategoriesContainer: {
-        maxHeight: 40,
-        marginBottom: 12
+    filterScroll: {
+        paddingHorizontal: SPACING.lg,
+        paddingVertical: 16,
+        gap: 10,
     },
-    subcategoriesContent: {
-        paddingHorizontal: 20
+    subFilterScroll: {
+        paddingHorizontal: SPACING.lg,
+        paddingBottom: 12,
+        gap: 8,
     },
-    subcategoryChip: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        marginRight: 8,
-        borderRadius: 16,
-        backgroundColor: '#F0F0F0'
+    catBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 14,
+        backgroundColor: COLORS.white,
+        borderWidth: 1,
+        borderColor: COLORS.gray[100],
+        gap: 8,
+        ...SHADOWS.xs,
     },
-    subcategoryChipActive: {
-        backgroundColor: '#4ECDC4'
+    catBtnText: {
+        ...TYPOGRAPHY.label,
+        fontSize: 13,
+        color: COLORS.gray[600],
     },
-    subcategoryChipText: {
+    subChip: {
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 10,
+        backgroundColor: COLORS.gray[50],
+        borderWidth: 1,
+        borderColor: COLORS.gray[100],
+    },
+    subChipActive: {
+        backgroundColor: COLORS.gray[900],
+        borderColor: COLORS.gray[900],
+    },
+    subChipText: {
+        ...TYPOGRAPHY.label,
         fontSize: 12,
-        fontWeight: '500',
-        color: '#666'
+        color: COLORS.gray[500],
     },
-    subcategoryChipTextActive: {
-        color: '#FFF'
+    subChipTextActive: {
+        color: COLORS.white,
     },
     listContent: {
-        paddingHorizontal: 20,
-        paddingBottom: 20
+        padding: SPACING.lg,
+        paddingBottom: 120,
+        gap: 16,
     },
     exerciseCard: {
-        backgroundColor: '#FFF',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: COLORS.gray[50],
+        ...SHADOWS.sm,
     },
-    cardHeader: {
+    cardContent: {
+        flexDirection: 'row',
+    },
+    categoryStrip: {
+        width: 6,
+    },
+    cardMain: {
+        flex: 1,
+        padding: 16,
+    },
+    cardTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 8
+        marginBottom: 10,
     },
-    cardHeaderLeft: {
-        flexDirection: 'row',
-        flex: 1
-    },
-    cardHeaderText: {
-        marginLeft: 12,
-        flex: 1
+    cardTitleArea: {
+        flex: 1,
+        marginRight: 10,
     },
     exerciseName: {
+        ...TYPOGRAPHY.h4,
         fontSize: 16,
-        fontWeight: '600',
-        color: '#1A1A1A',
-        marginBottom: 4
+        color: COLORS.gray[900],
     },
-    exerciseCategory: {
-        fontSize: 12,
-        color: '#666'
+    exerciseSub: {
+        ...TYPOGRAPHY.label,
+        fontSize: 10,
+        color: COLORS.gray[400],
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginTop: 4,
     },
     exerciseDescription: {
-        fontSize: 14,
-        color: '#666',
-        marginBottom: 12,
-        lineHeight: 20
+        ...TYPOGRAPHY.bodySmall,
+        fontSize: 13,
+        color: COLORS.gray[500],
+        marginBottom: 16,
+        lineHeight: 20,
     },
     cardFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.gray[50],
     },
-    cardFooterInfo: {
+    metaRow: {
         flexDirection: 'row',
-        flex: 1
+        gap: 12,
     },
-    infoTag: {
+    metaItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 12
+        gap: 5,
     },
-    infoText: {
-        fontSize: 12,
-        color: '#666',
-        marginLeft: 4
+    metaText: {
+        ...TYPOGRAPHY.bodySmall,
+        fontSize: 11,
+        fontWeight: '600',
+        color: COLORS.gray[400],
     },
-    cardActions: {
-        flexDirection: 'row'
+    actions: {
+        flexDirection: 'row',
+        gap: 8,
     },
-    actionButton: {
-        padding: 8,
-        marginLeft: 8
+    actionBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: COLORS.gray[50],
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.gray[50],
+    },
+    loadingText: {
+        ...TYPOGRAPHY.bodySmall,
+        marginTop: 16,
+        color: COLORS.gray[400],
     },
     emptyState: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 60
+        paddingVertical: 80,
     },
-    emptyStateText: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#999',
-        marginTop: 16
+    emptyIconCircle: {
+        width: 90,
+        height: 90,
+        borderRadius: 30,
+        backgroundColor: COLORS.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+        ...SHADOWS.md,
     },
-    emptyStateSubtext: {
+    emptyTitle: {
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[900],
+    },
+    emptyDesc: {
+        ...TYPOGRAPHY.bodySmall,
         fontSize: 14,
-        color: '#BBB',
-        marginTop: 8
-    }
+        color: COLORS.gray[400],
+        textAlign: 'center',
+        marginTop: 12,
+        paddingHorizontal: 50,
+        lineHeight: 22,
+    },
+    emptyBtn: {
+        marginTop: 32,
+        height: 50,
+        borderRadius: 14,
+        paddingHorizontal: 32,
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 30,
+        right: 20,
+        width: 60,
+        height: 60,
+        borderRadius: 20,
+        backgroundColor: COLORS.gray[900],
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...SHADOWS.lg,
+        elevation: 8,
+    },
 });
 
 export default ExerciseManagerScreen;

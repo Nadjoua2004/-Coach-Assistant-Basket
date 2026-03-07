@@ -7,13 +7,16 @@ import {
     StyleSheet,
     ActivityIndicator,
     RefreshControl,
-    TextInput,
-    Alert
+    Alert,
+    Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AuthService from '../../services/authService';
 import UserCreationModal from '../Admin/UserCreationModal';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Card from '../UI/Card';
+import Input from '../UI/Input';
 
 const CoachUsersListScreen = () => {
     const [users, setUsers] = useState([]);
@@ -30,11 +33,9 @@ const CoachUsersListScreen = () => {
         try {
             const response = await AuthService.getAllUsers();
             if (response.success) {
-                // Backend already filters for coaches, but keep filter as safety
                 const players = response.data.filter(u => u.role === 'joueur');
                 setUsers(players);
             } else {
-                // Show error message if request failed
                 Alert.alert('Erreur', response.message || 'Impossible de charger les joueurs');
             }
         } catch (error) {
@@ -62,48 +63,52 @@ const CoachUsersListScreen = () => {
                 <Text style={styles.headerTitle}>Gestion Athlètes</Text>
             </View>
 
-            <View style={styles.searchContainer}>
-                <View style={styles.searchBar}>
-                    <Icon name="magnify" size={20} color="#9ca3af" style={styles.searchIcon} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Rechercher un joueur..."
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        placeholderTextColor="#9ca3af"
-                    />
-                </View>
+            <View style={styles.searchSection}>
+                <Input
+                    placeholder="Rechercher un joueur..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    icon="magnify"
+                    containerStyle={styles.searchBar}
+                />
             </View>
 
             {loading && !refreshing ? (
-                <ActivityIndicator size="large" color="#f97316" style={{ marginTop: 20 }} />
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
             ) : (
                 <FlatList
                     data={filteredUsers}
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
-                        <View style={styles.userCard}>
-                            <View style={styles.roleIndicator} />
-                            <View style={styles.userInfo}>
-                                <Text style={styles.userName}>{item.name}</Text>
-                                <Text style={styles.userEmail}>{item.email}</Text>
-                                <View style={styles.roleBadge}>
-                                    <Text style={styles.roleText}>Joueur</Text>
+                        <Card style={styles.userCard} padding="none">
+                            <View style={styles.cardAccent} />
+                            <View style={styles.cardContent}>
+                                <View style={styles.userInfo}>
+                                    <Text style={styles.userName}>{item.name}</Text>
+                                    <Text style={styles.userEmail}>{item.email}</Text>
+                                    <View style={styles.roleBadge}>
+                                        <Text style={styles.roleText}>Joueur</Text>
+                                    </View>
+                                </View>
+                                <View style={styles.metaInfo}>
+                                    <Text style={styles.dateText}>
+                                        Inscrit le {new Date(item.created_at).toLocaleDateString('fr-FR')}
+                                    </Text>
                                 </View>
                             </View>
-                            <Text style={styles.dateText}>
-                                {new Date(item.created_at).toLocaleDateString()}
-                            </Text>
-                        </View>
+                        </Card>
                     )}
                     contentContainerStyle={styles.listContent}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
                     }
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <Icon name="account-off" size={48} color="#d1d5db" />
+                            <Icon name="account-off-outline" size={64} color={COLORS.gray[200]} />
                             <Text style={styles.emptyText}>Aucun joueur trouvé</Text>
+                            <Text style={styles.emptySubText}>La liste est vide ou aucun résultat ne correspond à votre recherche.</Text>
                         </View>
                     }
                 />
@@ -112,8 +117,9 @@ const CoachUsersListScreen = () => {
             <TouchableOpacity
                 style={styles.fab}
                 onPress={() => setShowUserModal(true)}
+                activeOpacity={0.8}
             >
-                <Icon name="plus" size={32} color="white" />
+                <Icon name="plus" size={30} color="white" />
             </TouchableOpacity>
 
             <UserCreationModal
@@ -129,124 +135,135 @@ const CoachUsersListScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: COLORS.gray[50],
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        backgroundColor: 'white',
+        paddingHorizontal: SPACING.lg,
+        paddingTop: Platform.OS === 'ios' ? 60 : 30,
+        paddingBottom: 20,
+        backgroundColor: COLORS.white,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        borderBottomColor: COLORS.gray[100],
+        ...SHADOWS.sm,
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        ...TYPOGRAPHY.h2,
+        fontSize: 24,
+        color: COLORS.gray[900],
     },
-    fab: {
-        position: 'absolute',
-        bottom: 24,
-        right: 24,
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: '#f97316',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#f97316',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 8,
-        zIndex: 100,
-    },
-    searchContainer: {
+    searchSection: {
         padding: 16,
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.gray[100],
     },
     searchBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f1f5f9',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        height: 48,
+        marginBottom: 0,
+        backgroundColor: COLORS.gray[50],
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: COLORS.gray[100],
     },
-    searchIcon: {
-        marginRight: 8,
-    },
-    searchInput: {
+    loadingContainer: {
         flex: 1,
-        fontSize: 16,
-        color: '#1e293b',
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     listContent: {
         padding: 16,
-        paddingBottom: 100,
+        paddingBottom: 120,
+        gap: 12,
     },
     userCard: {
+        marginBottom: 0,
         flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
         overflow: 'hidden',
+        borderRadius: 20,
+        backgroundColor: COLORS.white,
+        borderWidth: 1,
+        borderColor: COLORS.gray[50],
+        ...SHADOWS.sm,
     },
-    roleIndicator: {
-        width: 4,
-        height: 40,
-        borderRadius: 2,
-        marginRight: 16,
-        backgroundColor: '#3b82f6',
+    cardAccent: {
+        width: 6,
+        backgroundColor: COLORS.primary,
+    },
+    cardContent: {
+        flex: 1,
+        padding: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     userInfo: {
         flex: 1,
     },
     userName: {
+        ...TYPOGRAPHY.h4,
         fontSize: 16,
-        fontWeight: '600',
-        color: '#1e293b',
+        color: COLORS.gray[900],
         marginBottom: 4,
     },
     userEmail: {
-        fontSize: 14,
-        color: '#64748b',
-        marginBottom: 8,
+        ...TYPOGRAPHY.bodySmall,
+        fontSize: 13,
+        color: COLORS.gray[400],
+        marginBottom: 10,
     },
     roleBadge: {
         alignSelf: 'flex-start',
-        paddingHorizontal: 8,
+        paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 6,
-        backgroundColor: '#eff6ff',
+        borderRadius: 8,
+        backgroundColor: COLORS.primary + '10',
     },
     roleText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#3b82f6',
+        ...TYPOGRAPHY.label,
+        fontSize: 10,
+        color: COLORS.primary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    metaInfo: {
+        alignItems: 'flex-end',
     },
     dateText: {
-        fontSize: 12,
-        color: '#94a3b8',
-        marginLeft: 8,
+        ...TYPOGRAPHY.bodySmall,
+        fontSize: 10,
+        fontWeight: '600',
+        color: COLORS.gray[300],
     },
     emptyContainer: {
-        padding: 40,
+        flex: 1,
         alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: 80,
     },
     emptyText: {
-        marginTop: 16,
-        fontSize: 16,
-        color: '#94a3b8',
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[900],
+        marginTop: 24,
+    },
+    emptySubText: {
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
+        textAlign: 'center',
+        marginTop: 8,
+        paddingHorizontal: 50,
+        lineHeight: 20,
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 30,
+        right: 20,
+        width: 60,
+        height: 60,
+        borderRadius: 20,
+        backgroundColor: COLORS.gray[900],
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...SHADOWS.lg,
+        elevation: 8,
     },
 });
 

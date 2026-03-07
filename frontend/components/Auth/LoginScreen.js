@@ -13,6 +13,10 @@ import {
 } from 'react-native';
 import { useAuth } from '../Common/AuthProvider';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Button from '../UI/Button';
+import Input from '../UI/Input';
+import Card from '../UI/Card';
 
 const { width, height } = Dimensions.get('window');
 
@@ -100,162 +104,131 @@ const LoginScreen = ({ onForgotPassword }) => {
         <View style={styles.content}>
           <View style={styles.logoContainer}>
             <View style={styles.logo}>
-              <Icon name="camera" size={40} color="white" />
+              <Icon name="basket" size={40} color="white" />
             </View>
             <Text style={styles.title}>Coach Assistant</Text>
             <Text style={styles.subtitle}>Belouizdad Basket-Ball 2011</Text>
           </View>
 
-          <View style={styles.toggleContainer}>
-            <TouchableOpacity
-              style={[styles.toggleButton, !isSignUp && styles.activeToggle]}
-              onPress={() => setIsSignUp(false)}
-            >
-              <Text style={[styles.toggleText, !isSignUp && styles.activeToggleText]}>
-                Connexion
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toggleButton, isSignUp && styles.activeToggle]}
-              onPress={() => setIsSignUp(true)}
-            >
-              <Text style={[styles.toggleText, isSignUp && styles.activeToggleText]}>
-                Inscription
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <Card padding="lg" shadow="md">
+            <View style={styles.toggleContainer}>
+              <TouchableOpacity
+                style={[styles.toggleButton, !isSignUp && styles.activeToggle]}
+                onPress={() => setIsSignUp(false)}
+              >
+                <Text style={[styles.toggleText, !isSignUp && styles.activeToggleText]}>
+                  Connexion
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toggleButton, isSignUp && styles.activeToggle]}
+                onPress={() => setIsSignUp(true)}
+              >
+                <Text style={[styles.toggleText, isSignUp && styles.activeToggleText]}>
+                  Inscription
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-          <View style={styles.form}>
-            {isSignUp && (
-              <View style={styles.nameContainer}>
-                <View style={[styles.inputContainer, styles.halfInput]}>
-                  <Text style={styles.label}>Prénom</Text>
-                  <TextInput
-                    style={styles.input}
+            <View style={styles.form}>
+              {isSignUp && (
+                <View style={styles.nameContainer}>
+                  <Input
+                    label="Prénom"
+                    placeholder="Votre prénom"
                     value={firstName}
                     onChangeText={setFirstName}
-                    placeholder="Votre prénom"
-                    placeholderTextColor="#9ca3af"
+                    containerStyle={styles.halfInput}
                     returnKeyType="next"
                   />
-                </View>
-                <View style={[styles.inputContainer, styles.halfInput]}>
-                  <Text style={styles.label}>Nom</Text>
-                  <TextInput
-                    style={styles.input}
+                  <Input
+                    label="Nom"
+                    placeholder="Votre nom"
                     value={lastName}
                     onChangeText={setLastName}
-                    placeholder="Votre nom"
-                    placeholderTextColor="#9ca3af"
+                    containerStyle={styles.halfInput}
                     returnKeyType="next"
                   />
                 </View>
-              </View>
-            )}
+              )}
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
+              <Input
+                label="Email"
+                placeholder="votre-email@club.dz"
                 value={email}
                 onChangeText={setEmail}
-                placeholder="votre-email@club.dz"
                 keyboardType="email-address"
                 autoCapitalize="none"
-                placeholderTextColor="#9ca3af"
+                icon={<Icon name="email-outline" size={20} color={COLORS.gray[400]} />}
                 returnKeyType="next"
+              />
+
+              <Input
+                label="Mot de passe"
+                placeholder="••••••••"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                icon={<Icon name="lock-outline" size={20} color={COLORS.gray[400]} />}
+                rightIcon={
+                  <Icon name={showPassword ? "eye-off" : "eye"} size={22} color={COLORS.gray[400]} />
+                }
+                onRightIconPress={() => setShowPassword(!showPassword)}
+                hint={isSignUp ? "Minimum 8 caractères avec chiffres et lettres" : null}
+                returnKeyType="done"
+              />
+
+              {isSignUp && (
+                <>
+                  <Input
+                    label="Confirmer le mot de passe"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                    icon={<Icon name="lock-check-outline" size={20} color={COLORS.gray[400]} />}
+                    rightIcon={
+                      <Icon name={showConfirmPassword ? "eye-off" : "eye"} size={22} color={COLORS.gray[400]} />
+                    }
+                    onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    returnKeyType="done"
+                  />
+                  <View style={styles.roleFieldContainer}>
+                    <Text style={styles.label}>Rôle</Text>
+                    <View style={styles.roleContainer}>
+                      {['joueur', 'parent'].map((r) => (
+                        <TouchableOpacity
+                          key={r}
+                          style={[styles.roleButton, role === r && styles.roleButtonActive]}
+                          onPress={() => setRole(r)}
+                        >
+                          <Text style={[styles.roleButtonText, role === r && styles.roleButtonTextActive]}>
+                            {r === 'joueur' ? 'Joueur' : 'Parent'}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </>
+              )}
+
+              <Button
+                title={isSignUp ? "S'inscrire" : "Se connecter"}
+                onPress={isSignUp ? handleSignUp : handleLogin}
+                loading={loading}
+                style={styles.loginButton}
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Mot de passe</Text>
-              <View style={styles.passwordInputWrapper}>
-                <TextInput
-                  style={styles.passwordInput}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="••••••••"
-                  secureTextEntry={!showPassword}
-                  placeholderTextColor="#9ca3af"
-                  returnKeyType="done"
-                />
-                <TouchableOpacity
-                  style={styles.eyeIcon}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Icon name={showPassword ? "eye-off" : "eye"} size={22} color="#6b7280" />
-                </TouchableOpacity>
-              </View>
-              {isSignUp && (
-                <Text style={styles.passwordHint}>
-                  Minimum 8 caractères avec chiffres et lettres
-                </Text>
-              )}
-            </View>
-
-            {isSignUp && (
-              <>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Confirmer le mot de passe</Text>
-                  <View style={styles.passwordInputWrapper}>
-                    <TextInput
-                      style={styles.passwordInput}
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      placeholder="••••••••"
-                      secureTextEntry={!showConfirmPassword}
-                      placeholderTextColor="#9ca3af"
-                      returnKeyType="done"
-                    />
-                    <TouchableOpacity
-                      style={styles.eyeIcon}
-                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      <Icon name={showConfirmPassword ? "eye-off" : "eye"} size={22} color="#6b7280" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Rôle</Text>
-                  <View style={styles.roleContainer}>
-                    {['joueur', 'parent'].map((r) => (
-                      <TouchableOpacity
-                        key={r}
-                        style={[styles.roleButton, role === r && styles.roleButtonActive]}
-                        onPress={() => setRole(r)}
-                      >
-                        <Text style={[styles.roleButtonText, role === r && styles.roleButtonTextActive]}>
-                          {r === 'joueur' ? 'Joueur' : 'Parent'}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              </>
-            )}
-
-            <TouchableOpacity
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-              onPress={isSignUp ? handleSignUp : handleLogin}
-              activeOpacity={0.8}
-              disabled={loading}
-            >
-              <Text style={styles.loginButtonText}>
-                {loading ? 'Chargement...' : (isSignUp ? "S'inscrire" : "Se connecter")}
+            <TouchableOpacity style={styles.switchMode} onPress={toggleMode} activeOpacity={0.7}>
+              <Text style={styles.switchModeText}>
+                {isSignUp
+                  ? "Déjà un compte ? Se connecter"
+                  : "Pas de compte ? S'inscrire"}
               </Text>
             </TouchableOpacity>
-          </View>
 
-          <TouchableOpacity style={styles.switchMode} onPress={toggleMode} activeOpacity={0.7}>
-            <Text style={styles.switchModeText}>
-              {isSignUp
-                ? "Déjà un compte ? Se connecter"
-                : "Pas de compte ? S'inscrire"}
-            </Text>
-          </TouchableOpacity>
-
-          {!isSignUp && (
-            <>
+            {!isSignUp && (
               <TouchableOpacity
                 style={styles.forgotPassword}
                 activeOpacity={0.7}
@@ -263,10 +236,8 @@ const LoginScreen = ({ onForgotPassword }) => {
               >
                 <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
               </TouchableOpacity>
-
-
-            </>
-          )}
+            )}
+          </Card>
         </View>
       </ScrollView>
     </View>
@@ -276,242 +247,135 @@ const LoginScreen = ({ onForgotPassword }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.background.main,
   },
   scrollContainer: {
-    minHeight: height, // Set minimum height to screen height
+    flexGrow: 1,
   },
   content: {
-    padding: 20,
-    minHeight: height, // Ensure content fills the screen
+    padding: SPACING.lg,
+    flex: 1,
     justifyContent: 'center',
+    maxWidth: 500,
+    width: '100%',
+    alignSelf: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: SPACING.xl,
   },
   logo: {
     width: 80,
     height: 80,
-    backgroundColor: '#f97316',
+    backgroundColor: COLORS.primary,
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    marginBottom: SPACING.md,
+    ...SHADOWS.md,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    ...TYPOGRAPHY.h1,
+    color: COLORS.gray[900],
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
+    ...TYPOGRAPHY.body,
+    color: COLORS.gray[500],
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: COLORS.gray[100],
+    borderRadius: BORDER_RADIUS.md,
     padding: 4,
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    marginBottom: SPACING.lg,
   },
   toggleButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 10,
+    paddingVertical: 12,
+    borderRadius: BORDER_RADIUS.sm,
     alignItems: 'center',
   },
   activeToggle: {
-    backgroundColor: '#f97316',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: COLORS.white,
+    ...SHADOWS.sm,
   },
   toggleText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#6b7280',
+    color: COLORS.gray[500],
   },
   activeToggleText: {
-    color: 'white',
+    color: COLORS.primary,
     fontWeight: '600',
   },
   form: {
-    marginBottom: 24,
+    width: '100%',
   },
   nameContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 8,
-  },
-  inputContainer: {
-    marginBottom: 20,
+    gap: SPACING.sm,
   },
   halfInput: {
     flex: 1,
   },
+  roleFieldContainer: {
+    marginBottom: SPACING.md,
+  },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  passwordInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 16,
-    fontSize: 16,
-    color: '#1f2937',
-  },
-  eyeIcon: {
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  passwordHint: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 4,
+    ...TYPOGRAPHY.label,
+    color: COLORS.gray[700],
+    marginBottom: SPACING.sm,
     marginLeft: 4,
-  },
-  loginButton: {
-    backgroundColor: '#f97316',
-    borderRadius: 12,
-    padding: 18,
-    alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  loginButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  switchMode: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  switchModeText: {
-    color: '#ea580c',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  forgotPassword: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  forgotPasswordText: {
-    color: '#ea580c',
-    fontSize: 14,
-    fontWeight: '500',
   },
   roleContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    gap: SPACING.sm,
   },
   roleButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.white,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: COLORS.gray[200],
+    alignItems: 'center',
   },
   roleButtonActive: {
-    backgroundColor: '#f97316',
-    borderColor: '#f97316',
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   roleButtonText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: COLORS.gray[600],
     fontWeight: '500',
   },
   roleButtonTextActive: {
-    color: 'white',
+    color: COLORS.white,
     fontWeight: '600',
   },
-  loginButtonDisabled: {
-    opacity: 0.6,
+  loginButton: {
+    marginTop: SPACING.sm,
   },
-  demoBanner: {
-    backgroundColor: '#fff7ed',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ffedd5',
-    marginTop: 8,
+  switchMode: {
+    alignItems: 'center',
+    marginTop: SPACING.lg,
+    paddingVertical: 8,
   },
-  demoTitle: {
+  switchModeText: {
+    color: COLORS.secondary,
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#9a3412',
-    marginBottom: 8,
-  },
-  demoItem: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  demoLabel: {
-    fontSize: 13,
     fontWeight: '600',
-    color: '#c2410c',
-    width: 60,
   },
-  demoValue: {
-    fontSize: 13,
-    color: '#9a3412',
-    flex: 1,
+  forgotPassword: {
+    alignItems: 'center',
+    marginTop: SPACING.sm,
+    paddingVertical: 8,
   },
-  demoHint: {
-    fontSize: 11,
-    color: '#ea580c',
-    fontStyle: 'italic',
-    marginTop: 8,
-    textAlign: 'center',
+  forgotPasswordText: {
+    color: COLORS.gray[500],
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

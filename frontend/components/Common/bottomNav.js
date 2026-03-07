@@ -1,4 +1,4 @@
-import React from 'react';
+import { Platform } from 'react-native';
 import {
   View,
   Text,
@@ -8,35 +8,38 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 
+import { COLORS, SPACING, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+
 const BottomNav = ({ activeTab, setActiveTab, role }) => {
   const getNavItems = () => {
-    if (role === 'coach' || role === 'adjoint') {
+    const userRole = role?.toLowerCase();
+    if (userRole === 'coach' || userRole === 'adjoint') {
       return [
-        { id: 'home', icon: 'home-outline', label: 'Accueil' },
-        { id: 'calendar', icon: 'calendar-outline', label: 'Planning' },
-        { id: 'sessions', icon: 'clipboard-text-outline', label: 'Séances' },
-        { id: 'athletes', icon: 'account-group-outline', label: 'Athlètes' },
-        { id: 'exercises', icon: 'dumbbell', label: 'Exercices' },
-        { id: 'attendance', icon: 'account-check-outline', label: 'Appel' },
-        { id: 'profile', icon: 'account-outline', label: 'Profil' }
+        { id: 'home', icon: 'home-variant', label: 'Accueil' },
+        { id: 'calendar', icon: 'calendar-month', label: 'Planning' },
+        { id: 'sessions', icon: 'clipboard-list', label: 'Séances' },
+        { id: 'athletes', icon: 'account-group', label: 'Athlètes' },
+        { id: 'exercises', icon: 'dumbbell', label: 'Library' },
+        { id: 'attendance', icon: 'check-decagram', label: 'Appel' },
+        { id: 'profile', icon: 'account-circle', label: 'Profil' }
       ];
-    } else if (role === 'admin') {
+    } else if (userRole === 'admin') {
       return [
         { id: 'dashboard', icon: 'view-dashboard', label: 'Dashboard' },
         { id: 'users', icon: 'account-group', label: 'Utilisateurs' },
-        { id: 'reports', icon: 'file-document', label: 'Rapports' },
-        { id: 'profile', icon: 'account', label: 'Profil' }
+        { id: 'reports', icon: 'chart-bar', label: 'Rapports' },
+        { id: 'profile', icon: 'account-circle', label: 'Profil' }
       ];
-    } else if (role === 'parent') {
+    } else if (userRole === 'parent') {
       return [
         { id: 'profile', icon: 'account-child', label: 'Accueil' },
-        { id: 'calendar', icon: 'calendar-multiselect', label: 'Planning' }
+        { id: 'calendar', icon: 'calendar-clock', label: 'Planning' }
       ];
     }
 
     return [
       { id: 'calendar', icon: 'calendar', label: 'Planning' },
-      { id: 'profile', icon: 'account', label: 'Profil' }
+      { id: 'profile', icon: 'account-circle', label: 'Profil' }
     ];
   };
 
@@ -53,12 +56,13 @@ const BottomNav = ({ activeTab, setActiveTab, role }) => {
               key={item.id}
               style={styles.navItem}
               onPress={() => setActiveTab(item.id)}
+              activeOpacity={0.7}
             >
               <View style={styles.iconContainer}>
                 <Icon
                   name={item.icon}
-                  size={19}
-                  color={isActive ? '#f97316' : '#94a3b8'}
+                  size={24}
+                  color={isActive ? COLORS.primary : COLORS.gray[400]}
                 />
                 {isActive && <View style={styles.activeDot} />}
               </View>
@@ -78,23 +82,18 @@ const BottomNav = ({ activeTab, setActiveTab, role }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.white,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-    paddingBottom: 20,
+    borderTopColor: COLORS.gray[50],
+    ...SHADOWS.lg,
+    paddingBottom: Platform.OS === 'ios' ? 25 : 10,
+    paddingTop: 8,
   },
   nav: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    height: 52,
+    paddingHorizontal: 4,
   },
   navItem: {
     alignItems: 'center',
@@ -103,26 +102,29 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   iconContainer: {
-    marginBottom: 2,
-    height: 20,
+    marginBottom: 4,
+    height: 28,
+    width: 28,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   label: {
+    ...TYPOGRAPHY.label,
     fontSize: 9,
-    color: '#6b7280',
-    fontWeight: '400',
+    color: COLORS.gray[400],
+    fontWeight: '600',
   },
   activeLabel: {
-    color: '#f97316',
-    fontWeight: '700',
+    color: COLORS.primary,
+    fontWeight: '800',
   },
   activeDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#f97316',
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.primary,
     position: 'absolute',
-    bottom: -6,
+    bottom: -8,
   },
 });
 

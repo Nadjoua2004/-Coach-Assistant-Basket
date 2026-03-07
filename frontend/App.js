@@ -566,6 +566,7 @@
 // App.js
 // App.js
 import React, { useState } from 'react';
+import { Platform } from 'react-native';
 import {
   View,
   Text,
@@ -573,7 +574,6 @@ import {
   TouchableOpacity,
   StatusBar,
   KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './components/Common/AuthProvider';

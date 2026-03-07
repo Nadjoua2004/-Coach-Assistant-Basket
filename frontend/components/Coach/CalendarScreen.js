@@ -8,14 +8,18 @@ import {
     ActivityIndicator,
     Alert,
     Modal,
-    TextInput,
-    ScrollView
+    ScrollView,
+    Platform
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AthleteService from '../../services/athleteService';
 import PlanningService from '../../services/planningService';
 import SessionService from '../../services/sessionService';
 import ExerciseSelectionModal from './ExerciseSelectionModal';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Button from '../UI/Button';
+import Card from '../UI/Card';
+import Input from '../UI/Input';
 
 // ... getWeekNumber helper ...
 
@@ -354,38 +358,52 @@ const CalendarScreen = ({ onTakeAttendance }) => {
                 <Text style={styles.eventTime}>{item.heure}</Text>
                 <View style={styles.timeLine} />
             </View>
-            <View style={styles.eventMain}>
+            <Card
+                style={styles.eventMain}
+                padding="md"
+                shadow="sm"
+                onPress={() => handleEventPress(item)}
+            >
                 <View style={styles.eventHeader}>
-                    <View style={[styles.typeBadge, { backgroundColor: item.type === 'Match' ? '#fee2e2' : '#fef3c7' }]}>
-                        <Icon name={getEventIcon(item.type)} size={14} color={item.type === 'Match' ? '#ef4444' : '#f59e0b'} />
-                        <Text style={[styles.typeText, { color: item.type === 'Match' ? '#b91c1c' : '#b45309' }]}>{item.type}</Text>
+                    <View style={[styles.typeBadge, {
+                        backgroundColor: item.type === 'Match' ? COLORS.error + '20' :
+                            item.type === 'Entraînement' ? COLORS.primary + '20' : COLORS.info + '20'
+                    }]}>
+                        <Icon
+                            name={getEventIcon(item.type)}
+                            size={14}
+                            color={item.type === 'Match' ? COLORS.error :
+                                item.type === 'Entraînement' ? COLORS.primary : COLORS.info}
+                        />
+                        <Text style={[styles.typeText, {
+                            color: item.type === 'Match' ? COLORS.error :
+                                item.type === 'Entraînement' ? COLORS.primary : COLORS.info
+                        }]}>{item.type}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <TouchableOpacity onPress={() => openParticipantsModal(item)}>
+                            <Icon name="account-multiple-plus" size={20} color={COLORS.info} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => onTakeAttendance(item)}>
+                            <Icon name="clipboard-check-outline" size={20} color={COLORS.success} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => handleDeleteEvent(item.id)}>
+                            <Icon name="trash-can-outline" size={20} color={COLORS.error} />
+                        </TouchableOpacity>
                     </View>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <TouchableOpacity onPress={() => openParticipantsModal(item)}>
-                        <Icon name="account-multiple-plus" size={20} color="#0ea5e9" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => onTakeAttendance(item)}>
-                        <Icon name="clipboard-check-outline" size={20} color="#f97316" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteEvent(item.id)}>
-                        <Icon name="dots-vertical" size={20} color="#94a3b8" />
-                    </TouchableOpacity>
-                </View>
-            </View>
-            <TouchableOpacity onPress={() => handleEventPress(item)}>
-                <Text style={styles.eventTitle}>{item.title}</Text>
+                <Text style={styles.eventTitle}>{item.title || item.theme}</Text>
                 <View style={styles.eventFooter}>
                     <View style={styles.infoRow}>
-                        <Icon name="map-marker" size={14} color="#64748b" />
+                        <Icon name="map-marker" size={14} color={COLORS.gray[400]} />
                         <Text style={styles.infoText}>{item.lieu || 'Non spécifié'}</Text>
                     </View>
                     <View style={styles.infoRow}>
-                        <Icon name="account-group" size={14} color="#64748b" />
+                        <Icon name="account-group" size={14} color={COLORS.gray[400]} />
                         <Text style={styles.infoText}>{item.groupe}</Text>
                     </View>
                 </View>
-            </TouchableOpacity>
+            </Card>
         </View>
     );
 
@@ -416,10 +434,10 @@ const CalendarScreen = ({ onTakeAttendance }) => {
                 </View>
                 <View style={styles.headerActions}>
                     <TouchableOpacity style={styles.iconBtn} onPress={duplicateWeek}>
-                        <Icon name="content-copy" size={24} color="#64748b" />
+                        <Icon name="content-copy" size={24} color={COLORS.gray[500]} />
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(true)}>
-                        <Icon name="calendar-plus" size={24} color="white" />
+                        <Icon name="calendar-plus" size={24} color={COLORS.white} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -427,17 +445,17 @@ const CalendarScreen = ({ onTakeAttendance }) => {
             {/* Week Navigation Bar */}
             <View style={styles.weekNavBar}>
                 <TouchableOpacity onPress={goToPreviousWeek} style={styles.navBtn}>
-                    <Icon name="chevron-left" size={28} color="#64748b" />
+                    <Icon name="chevron-left" size={28} color={COLORS.gray[500]} />
                 </TouchableOpacity>
                 <Text style={styles.weekNavText}>Semaine {getWeekNumber(currentDate)}</Text>
                 <TouchableOpacity onPress={goToNextWeek} style={styles.navBtn}>
-                    <Icon name="chevron-right" size={28} color="#64748b" />
+                    <Icon name="chevron-right" size={28} color={COLORS.gray[500]} />
                 </TouchableOpacity>
             </View>
 
             {loading ? (
                 <View style={styles.loader}>
-                    <ActivityIndicator size="large" color="#f97316" />
+                    <ActivityIndicator size="large" color={COLORS.primary} />
                 </View>
             ) : (
                 <FlatList
@@ -456,7 +474,7 @@ const CalendarScreen = ({ onTakeAttendance }) => {
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
-                            <Icon name="calendar-blank" size={64} color="#cbd5e1" />
+                            <Icon name="calendar-blank" size={64} color={COLORS.gray[200]} />
                             <Text style={styles.emptyText}>Aucun événement programmé</Text>
                         </View>
                     }
@@ -527,57 +545,55 @@ const CalendarScreen = ({ onTakeAttendance }) => {
                         </View>
 
                         <ScrollView style={styles.modalForm}>
-                            <Text style={styles.label}>Titre *</Text>
-                            <TextInput
-                                style={styles.input}
+                            <Input
+                                label="Titre *"
                                 value={title}
                                 onChangeText={setTitle}
                                 placeholder="Ex: Entraînement Tactique"
+                                icon="format-title"
                             />
 
                             <View style={styles.row}>
-                                <View style={{ flex: 1, marginRight: 8 }}>
-                                    <Text style={styles.label}>Date (AAAA-MM-JJ) *</Text>
-                                    <TextInput
-                                        style={styles.input}
+                                <View style={{ flex: 1, marginRight: SPACING.sm }}>
+                                    <Input
+                                        label="Date (AAAA-MM-JJ) *"
                                         value={date}
                                         onChangeText={setDate}
                                         placeholder="2024-12-26"
+                                        icon="calendar"
                                     />
                                 </View>
-                                <View style={{ flex: 1, marginLeft: 8 }}>
-                                    <Text style={styles.label}>Heure (HH:MM) *</Text>
-                                    <TextInput
-                                        style={styles.input}
+                                <View style={{ flex: 1, marginLeft: SPACING.sm }}>
+                                    <Input
+                                        label="Heure (HH:MM) *"
                                         value={heure}
                                         onChangeText={setHeure}
                                         placeholder="18:00"
+                                        icon="clock-outline"
                                     />
                                 </View>
                             </View>
 
                             <View style={styles.row}>
-                                <View style={{ flex: 1, marginRight: 8 }}>
-                                    <Text style={styles.label}>Durée (min)</Text>
-                                    <TextInput
-                                        style={styles.input}
+                                <View style={{ flex: 1, marginRight: SPACING.sm }}>
+                                    <Input
+                                        label="Durée (min)"
                                         value={duree}
                                         onChangeText={setDuree}
                                         keyboardType="numeric"
                                         placeholder="90"
+                                        icon="timer-outline"
                                     />
                                 </View>
-                                <View style={{ flex: 1, marginLeft: 8 }}>
-                                    {/* Spacer/Placeholder if needed or another field */}
-                                </View>
+                                <View style={{ flex: 1, marginLeft: SPACING.sm }} />
                             </View>
 
-                            <Text style={styles.label}>Lieu</Text>
-                            <TextInput
-                                style={styles.input}
+                            <Input
+                                label="Lieu"
                                 value={lieu}
                                 onChangeText={setLieu}
                                 placeholder="Salle des sports..."
+                                icon="map-marker"
                             />
 
                             <Text style={styles.label}>Type</Text>
@@ -634,9 +650,11 @@ const CalendarScreen = ({ onTakeAttendance }) => {
                                 </>
                             )}
 
-                            <TouchableOpacity style={styles.submitBtn} onPress={handleCreateEvent}>
-                                <Text style={styles.submitBtnText}>Confirmer la programmation</Text>
-                            </TouchableOpacity>
+                            <Button
+                                title="Confirmer la programmation"
+                                onPress={handleCreateEvent}
+                                style={styles.submitBtn}
+                            />
                         </ScrollView>
                     </View>
                 </View>
@@ -714,25 +732,23 @@ const CalendarScreen = ({ onTakeAttendance }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: COLORS.background.main,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 24,
-        paddingTop: 20,
-        backgroundColor: 'white',
+        padding: SPACING.lg,
+        paddingTop: Platform.OS === 'ios' ? 50 : 20,
+        backgroundColor: COLORS.white,
     },
     headerTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        ...TYPOGRAPHY.h1,
+        color: COLORS.gray[900],
     },
     headerSubtitle: {
-        fontSize: 14,
-        color: '#64748b',
-        marginTop: 4,
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[500],
     },
     headerActions: {
         flexDirection: 'row',
@@ -742,99 +758,84 @@ const styles = StyleSheet.create({
     iconBtn: {
         width: 44,
         height: 44,
-        borderRadius: 12,
-        backgroundColor: '#f1f5f9',
+        borderRadius: BORDER_RADIUS.md,
+        backgroundColor: COLORS.gray[100],
         justifyContent: 'center',
         alignItems: 'center',
     },
     addBtn: {
-        backgroundColor: '#f97316',
+        backgroundColor: COLORS.primary,
         width: 44,
         height: 44,
-        borderRadius: 12,
+        borderRadius: BORDER_RADIUS.md,
         justifyContent: 'center',
         alignItems: 'center',
+        ...SHADOWS.md,
     },
     weekNavBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: 'white',
+        paddingHorizontal: SPACING.md,
+        paddingVertical: SPACING.sm,
+        backgroundColor: COLORS.white,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        borderBottomColor: COLORS.gray[100],
     },
     weekNavText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#334155',
+        ...TYPOGRAPHY.h4,
+        color: COLORS.gray[700],
     },
     navBtn: {
         padding: 8,
     },
-    // ... rest of styles
     listContent: {
-        padding: 20,
+        padding: SPACING.lg,
     },
     dateSection: {
-        marginBottom: 24,
+        marginBottom: SPACING.xl,
     },
     dateHeader: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#64748b',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        marginBottom: 12,
+        ...TYPOGRAPHY.label,
+        color: COLORS.gray[500],
+        marginBottom: SPACING.md,
         marginLeft: 4,
     },
     eventCard: {
         flexDirection: 'row',
-        marginBottom: 16,
+        marginBottom: SPACING.md,
     },
     eventTimeContainer: {
-        width: 60,
+        width: 65,
         alignItems: 'center',
         paddingTop: 4,
     },
     eventTime: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#1e293b',
+        ...TYPOGRAPHY.h4,
+        color: COLORS.gray[900],
     },
     timeLine: {
         width: 2,
         flex: 1,
-        backgroundColor: '#e2e8f0',
+        backgroundColor: COLORS.gray[200],
         marginTop: 8,
         borderRadius: 1,
     },
     eventMain: {
         flex: 1,
-        backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
     },
     eventHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 8,
+        alignItems: 'center',
+        marginBottom: SPACING.sm,
     },
     typeBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 8,
         paddingVertical: 4,
-        borderRadius: 6,
+        borderRadius: BORDER_RADIUS.sm,
         gap: 4,
     },
     typeText: {
@@ -842,10 +843,9 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     eventTitle: {
-        fontSize: 17,
-        fontWeight: '700',
-        color: '#1e293b',
-        marginBottom: 12,
+        ...TYPOGRAPHY.h4,
+        color: COLORS.gray[900],
+        marginBottom: SPACING.sm,
     },
     eventFooter: {
         flexDirection: 'row',
@@ -857,17 +857,22 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     infoText: {
-        fontSize: 12,
-        color: '#64748b',
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[500],
+    },
+    loader: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     emptyState: {
         alignItems: 'center',
         marginTop: 100,
     },
     emptyText: {
-        marginTop: 16,
-        fontSize: 16,
-        color: '#94a3b8',
+        marginTop: SPACING.md,
+        ...TYPOGRAPHY.h4,
+        color: COLORS.gray[400],
     },
     modalOverlay: {
         flex: 1,
@@ -875,41 +880,34 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
         maxHeight: '90%',
-        padding: 24,
+        padding: SPACING.xl,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: SPACING.xl,
     },
     modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        ...TYPOGRAPHY.h2,
+        color: COLORS.gray[900],
+    },
+    modalSubtitle: {
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[500],
     },
     modalForm: {
         marginBottom: 20,
     },
     label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#64748b',
-        marginBottom: 8,
-        marginTop: 16,
-    },
-    input: {
-        backgroundColor: '#f8fafc',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 12,
-        padding: 12,
-        fontSize: 16,
-        color: '#1e293b',
+        ...TYPOGRAPHY.label,
+        color: COLORS.gray[600],
+        marginBottom: SPACING.xs,
+        marginTop: SPACING.md,
     },
     row: {
         flexDirection: 'row',
@@ -917,45 +915,99 @@ const styles = StyleSheet.create({
     typeSelector: {
         flexDirection: 'row',
         gap: 8,
-        marginBottom: 8,
+        marginBottom: SPACING.md,
     },
     typeBtn: {
         paddingHorizontal: 12,
         paddingVertical: 8,
-        borderRadius: 10,
-        backgroundColor: '#f1f5f9',
+        borderRadius: BORDER_RADIUS.md,
+        backgroundColor: COLORS.gray[100],
     },
     activeTypeBtn: {
-        backgroundColor: '#f97316',
+        backgroundColor: COLORS.primary,
     },
     typeBtnText: {
         fontSize: 13,
-        color: '#64748b',
+        color: COLORS.gray[600],
         fontWeight: '600',
     },
     activeTypeBtnText: {
-        color: 'white',
+        color: COLORS.white,
     },
-    sessionPicker: {
-        gap: 8,
+    participantRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.gray[100],
     },
-    sessionOptionText: {
-        fontSize: 14,
+    participantName: {
+        ...TYPOGRAPHY.body,
+        color: COLORS.gray[800],
         fontWeight: '600',
-        color: '#334155',
     },
-    activeSessionOptionText: {
-        color: '#f97316',
+    participantGroup: {
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
     },
-    exerciseRow: {
+    submitBtn: {
+        marginTop: SPACING.xl,
+        marginBottom: 40,
+    },
+    detailTheme: {
+        ...TYPOGRAPHY.h2,
+        color: COLORS.gray[900],
+        marginBottom: SPACING.xl,
+    },
+    detailRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 12,
-        backgroundColor: 'white',
-        borderRadius: 8,
+        gap: 12,
+        marginBottom: SPACING.md,
+    },
+    detailText: {
+        ...TYPOGRAPHY.body,
+        color: COLORS.gray[700],
+    },
+    sectionTitle: {
+        ...TYPOGRAPHY.h4,
+        color: COLORS.gray[900],
+        marginTop: SPACING.xl,
+        marginBottom: SPACING.md,
+    },
+    exerciseCard: {
+        backgroundColor: COLORS.white,
+        padding: SPACING.md,
+        borderRadius: BORDER_RADIUS.lg,
+        marginBottom: SPACING.md,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
-        marginBottom: 8,
+        borderColor: COLORS.gray[100],
+        ...SHADOWS.sm,
+    },
+    exerciseHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: SPACING.xs,
+    },
+    exerciseName: {
+        ...TYPOGRAPHY.h4,
+        color: COLORS.gray[900],
+    },
+    exerciseDesc: {
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[500],
+        marginBottom: SPACING.sm,
+    },
+    exerciseMeta: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    metaText: {
+        ...TYPOGRAPHY.bodySmall,
+        fontSize: 11,
+        color: COLORS.gray[400],
     },
     addExerciseBtn: {
         flexDirection: 'row',
@@ -963,64 +1015,24 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: 12,
         borderWidth: 1,
-        borderColor: '#f97316',
-        borderRadius: 8,
+        borderColor: COLORS.primary,
+        borderRadius: BORDER_RADIUS.md,
         borderStyle: 'dashed',
-        marginBottom: 16,
+        marginTop: 8,
     },
     addExerciseBtnText: {
-        color: '#f97316',
+        color: COLORS.primary,
         fontWeight: '600',
         marginLeft: 8,
     },
-    detailTheme: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1e293b',
-        marginBottom: 20,
-    },
-    detailRow: {
+    exerciseRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        marginBottom: 12,
-    },
-    detailText: {
-        fontSize: 16,
-        color: '#334155',
-    },
-    exerciseCard: {
-        backgroundColor: 'white',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-    },
-    exerciseHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
+        padding: 12,
+        backgroundColor: COLORS.gray[50],
+        borderRadius: BORDER_RADIUS.md,
         marginBottom: 8,
-    },
-    exerciseName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1e293b',
-    },
-    exerciseDesc: {
-        fontSize: 14,
-        color: '#64748b',
-        marginBottom: 8,
-    },
-    exerciseMeta: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-    metaText: {
-        fontSize: 12,
-        color: '#94a3b8',
-    },
+    }
 });
 
 export default CalendarScreen;

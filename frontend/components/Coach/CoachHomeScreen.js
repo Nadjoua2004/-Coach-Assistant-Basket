@@ -2,17 +2,24 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  StyleSheet,
   ScrollView,
   TouchableOpacity,
-  StyleSheet,
+  RefreshControl,
   ActivityIndicator,
-  RefreshControl
+  Platform,
+  Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../Common/AuthProvider';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
+import { useAuth } from '../Common/AuthProvider';
 import DashboardService from '../../services/dashboardService';
 import PlanningService from '../../services/planningService';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Card from '../UI/Card';
+import Button from '../UI/Button';
+
+const { width } = Dimensions.get('window');
 
 const CoachHomeScreen = ({ onCreateSession, onNavigate }) => {
   const { user } = useAuth();
@@ -20,7 +27,6 @@ const CoachHomeScreen = ({ onCreateSession, onNavigate }) => {
   const [upcomingSessions, setUpcomingSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
 
   useEffect(() => {
     fetchData();
@@ -38,14 +44,10 @@ const CoachHomeScreen = ({ onCreateSession, onNavigate }) => {
 
       if (statsResult.status === 'fulfilled' && statsResult.value.success) {
         setStats(statsResult.value.data);
-      } else {
-        console.warn('Stats fetch failed or returned error');
       }
 
       if (planningResult.status === 'fulfilled' && planningResult.value.success) {
         setUpcomingSessions(planningResult.value.data.slice(0, 5));
-      } else {
-        console.warn('Planning fetch failed or returned error');
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -60,269 +62,357 @@ const CoachHomeScreen = ({ onCreateSession, onNavigate }) => {
     fetchData();
   };
 
-  const handleMenuPress = (item) => {
-    if (item.id === 1 && onNavigate) {
-      onNavigate('exercises');
-    } else if (item.id === 2 && onNavigate) {
-      // Statistiques might go to a different screen later
-      Alert.alert('Info', 'Module statistiques en cours de développement');
-    } else if (item.id === 3 && onNavigate) {
-      onNavigate('calendar');
-    } else {
-      Alert.alert('Info', `${item.title} en cours de développement`);
-    }
-  };
-
-  const menuItems = [];
-
   if (loading && !refreshing) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#f97316" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
         }
       >
-        {/* Header content... */}
-        {/* Skipping detailed header for brevity in replace_file_content but keeping structure */}
-        {/* Actual replacement below will match the actual file lines */}
-        <View style={styles.header}>
-          <View style={styles.headerTop}>
+        {/* Top Bar */}
+        <View style={styles.topHeader}>
+          <TouchableOpacity
+            style={styles.profileBox}
+            onPress={() => onNavigate('profile')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'C'}</Text>
+            </View>
             <View>
-              <Text style={styles.greeting}>Coach </Text>
-              <Text style={styles.welcome}>Bonjour, {user?.name?.split(' ')[0]}</Text>
+              <Text style={styles.greetingHeader}>Content de vous revoir,</Text>
+              <Text style={styles.userNameHeader}>{user?.name?.split(' ')[0] || 'Coach'} 🏀</Text>
             </View>
-          </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.notifBtn}>
+            <Icon name="bell-outline" size={22} color={COLORS.gray[900]} />
+            <View style={styles.notifBadge} />
+          </TouchableOpacity>
+        </View>
 
-          <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-              <View style={styles.statIconContainer}>
-                <Icon name="calendar-clock" size={28} color="#f97316" />
-              </View>
-              <Text style={styles.statNumber}>{stats?.sessionsThisWeek || 0}</Text>
-              <Text style={styles.statLabel}>Séances</Text>
-              <Text style={styles.statSubLabel}>cette semaine</Text>
+        {/* Hero Dashboard Panel */}
+        <View style={styles.heroWrapper}>
+          <View style={styles.heroPanel}>
+            <View style={styles.heroMain}>
+              <Text style={styles.heroTitle}>Vue d'ensemble</Text>
+              <Text style={styles.heroSubtitle}>Vos activités de la semaine</Text>
             </View>
-
-            <View style={styles.statCard}>
-              <View style={styles.statIconContainer}>
-                <Icon name="account-group" size={28} color="#3b82f6" />
+            <View style={styles.statsRow}>
+              <View style={styles.statBox}>
+                <Text style={styles.statValue}>{stats?.sessionsThisWeek || 0}</Text>
+                <Text style={styles.statLabel}>SÉANCES</Text>
               </View>
-              <Text style={styles.statNumber}>{stats?.totalAthletes || 0}</Text>
-              <Text style={styles.statLabel}>Mes joueurs</Text>
-              <Text style={styles.statSubLabel}>actifs: {stats?.activeAthletes || 0}</Text>
+              <View style={styles.statDivider} />
+              <View style={styles.statBox}>
+                <Text style={styles.statValue}>{stats?.totalAthletes || 0}</Text>
+                <Text style={styles.statLabel}>JOUEURS</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statBox}>
+                <Text style={styles.statValue}>{stats?.attendanceRate || 0}%</Text>
+                <Text style={styles.statLabel}>PRÉSENCE</Text>
+              </View>
             </View>
           </View>
         </View>
 
-        {/* ... Other sections (New Player, Upcoming Sessions) ... */}
-        {/* We need to be careful with replace_file_content to not delete the middle content */}
-        {/* I will perform smaller contiguous edits instead */}
-
-        {/* New Player Registrations */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Nouveaux inscrits (Attente affectation)</Text>
-          {stats?.recentPlayers?.length > 0 ? (
-            <View style={styles.recentList}>
-              {stats.recentPlayers.map((player) => (
-                <View key={player.id} style={styles.recentItem}>
-                  <View style={styles.playerAvatar}>
-                    <Icon name="account" size={20} color="#64748b" />
-                  </View>
-                  <View style={styles.playerInfo}>
-                    <Text style={styles.playerName}>{player.name}</Text>
-                    <Text style={styles.playerDate}>Inscrit le {new Date(player.created_at).toLocaleDateString()}</Text>
-                  </View>
-                  <TouchableOpacity style={styles.assignButton}>
-                    <Text style={styles.assignText}>Affecter</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>Aucun nouveau joueur inscrit cette semaine.</Text>
-            </View>
-          )}
+        {/* Quick Actions */}
+        <View style={styles.sectionHeaderCompact}>
+          <Text style={styles.sectionTitleSmall}>Raccourcis</Text>
+        </View>
+        <View style={styles.actionsGrid}>
+          <ActionItem
+            label="Exercices"
+            icon="basketball"
+            color="#FF6B00"
+            onPress={() => onNavigate('exercises')}
+          />
+          <ActionItem
+            label="Planning"
+            icon="calendar-clock"
+            color="#4F46E5"
+            onPress={() => onNavigate('calendar')}
+          />
+          <ActionItem
+            label="Équipe"
+            icon="account-group"
+            color="#10B981"
+            onPress={() => onNavigate('athletes')}
+          />
+          <ActionItem
+            label="Appel"
+            icon="check-decagram"
+            color="#F59E0B"
+            onPress={() => onNavigate('attendance')}
+          />
         </View>
 
-        {/* Upcoming Sessions */}
-        <View style={styles.sectionContainer}>
+        {/* Upcoming Sessions Slider */}
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Prochaines séances</Text>
+            <Text style={styles.sectionTitle}>Planning prochain</Text>
             <TouchableOpacity onPress={() => onNavigate('calendar')}>
-              <Icon name="plus-circle" size={24} color="#f97316" />
+              <Text style={styles.seeAllText}>Tout voir</Text>
             </TouchableOpacity>
           </View>
 
           {upcomingSessions.length > 0 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sessionsScroll}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScroll}
+              decelerationRate="fast"
+              snapToInterval={width * 0.75 + 16}
+            >
               {upcomingSessions.map((session) => (
-                <TouchableOpacity
-                  key={session.id}
-                  style={styles.sessionCard}
-                  onPress={() => onNavigate('calendar')}
-                >
-                  <View style={styles.sessionIcon}>
-                    <Icon name={session.type === 'Match' ? 'trophy' : 'basketball'} size={24} color="#f97316" />
-                  </View>
-                  <Text style={styles.sessionTitle} numberOfLines={1}>{session.title}</Text>
-                  <View style={styles.sessionDetails}>
-                    <View style={styles.sessionDetail}>
-                      <Icon name="clock-outline" size={14} color="#6b7280" />
-                      <Text style={styles.sessionDetailText}>{session.date} • {session.heure}</Text>
+                <Card key={session.id} style={styles.sessionCard} padding="md">
+                  <View style={styles.sessionCardHeader}>
+                    <View style={styles.sessionBadge}>
+                      <Text style={styles.sessionBadgeText}>
+                        {new Date(session.date).toLocaleDateString('fr-FR', { weekday: 'short' }).toUpperCase()}
+                      </Text>
+                      <Text style={styles.sessionBadgeDate}>{new Date(session.date).getDate()}</Text>
                     </View>
-                    <View style={styles.sessionDetail}>
-                      <Icon name="account-group" size={14} color="#6b7280" />
-                      <Text style={styles.sessionDetailText}>{session.groupe}</Text>
+                    <View style={styles.timeTag}>
+                      <Icon name="clock-outline" size={12} color={COLORS.gray[400]} />
+                      <Text style={styles.timeTagText}>{session.heure}</Text>
                     </View>
                   </View>
-                </TouchableOpacity>
+
+                  <Text style={styles.sessionTitleText} numberOfLines={1}>{session.title}</Text>
+
+                  <View style={styles.cardFooter}>
+                    <View style={styles.groupInfo}>
+                      <Icon name="account-multiple" size={14} color={COLORS.primary} />
+                      <Text style={styles.groupText}>{session.groupe}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.detailsBtn}
+                      onPress={() => onNavigate('calendar', { selectedDate: session.date })}
+                    >
+                      <Icon name="chevron-right" size={20} color={COLORS.gray[300]} />
+                    </TouchableOpacity>
+                  </View>
+                </Card>
               ))}
             </ScrollView>
           ) : (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>Aucune séance programmée</Text>
-            </View>
+            <TouchableOpacity
+              style={styles.emptyCard}
+              onPress={() => onCreateSession()}
+              activeOpacity={0.8}
+            >
+              <View style={styles.emptyIconBox}>
+                <Icon name="plus" size={24} color={COLORS.gray[400]} />
+              </View>
+              <Text style={styles.emptyText}>Commencez par planifier une séance</Text>
+            </TouchableOpacity>
           )}
         </View>
 
-        {/* Attendance Summary */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Assiduité globale</Text>
-          </View>
-
-          <View style={styles.activityList}>
-            <View style={styles.attendanceSummary}>
-              <View style={styles.rateContainer}>
-                <Text style={styles.rateValue}>{stats?.attendanceRate || 0}%</Text>
-                <Text style={styles.rateLabel}>Taux de présence</Text>
+        {/* Progress Card */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Performance Collective</Text>
+          <Card style={styles.performanceCard} padding="lg">
+            <View style={styles.perfHeader}>
+              <View>
+                <Text style={styles.perfMainVal}>{stats?.attendanceRate || 0}%</Text>
+                <Text style={styles.perfLabel}>Taux d'assiduité global</Text>
               </View>
-              <View style={styles.rateBarContainer}>
-                <View style={[styles.rateBar, { width: `${stats?.attendanceRate || 0}%` }]} />
+              <View style={styles.perfBadge}>
+                <Icon name="trending-up" size={16} color={COLORS.success} />
+                <Text style={styles.perfBadgeText}>+2%</Text>
               </View>
             </View>
-          </View>
+
+            <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBarFill, { width: `${stats?.attendanceRate || 0}%` }]} />
+            </View>
+
+            <View style={styles.perfFooter}>
+              <Icon name="information-outline" size={14} color={COLORS.gray[400]} />
+              <Text style={styles.perfHint}>
+                L'équipe est très régulière cette saison.
+              </Text>
+            </View>
+          </Card>
         </View>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-// End of component
+const ActionItem = ({ label, icon, color, onPress }) => (
+  <TouchableOpacity style={styles.actionWrap} onPress={onPress} activeOpacity={0.7}>
+    <View style={[styles.actionIcon, { backgroundColor: color + '15' }]}>
+      <Icon name={icon} size={24} color={color} />
+    </View>
+    <Text style={styles.actionLabel}>{label}</Text>
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff7ed',
+    backgroundColor: COLORS.gray[50],
   },
   scrollView: {
     flex: 1,
   },
-  header: {
-    backgroundColor: 'white',
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 32,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 20,
-    elevation: 5,
-    marginBottom: 16,
-  },
-  headerTop: {
+  topHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.white,
+  },
+  profileBox: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 32,
+    gap: 12,
   },
-  greeting: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1e293b',
-  },
-  welcome: {
-    fontSize: 16,
-    color: '#64748b',
-    marginTop: 4,
-  },
-  notificationButton: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 24,
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+    ...SHADOWS.sm,
   },
-  notificationBadge: {
+  avatarText: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.white,
+    fontSize: 18,
+  },
+  greetingHeader: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.gray[400],
+    fontSize: 12,
+  },
+  userNameHeader: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.gray[900],
+    fontSize: 17,
+  },
+  notifBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.gray[50],
+    borderWidth: 1,
+    borderColor: COLORS.gray[100],
+  },
+  notifBadge: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 10,
+    right: 10,
     width: 8,
     height: 8,
-    backgroundColor: '#ef4444',
     borderRadius: 4,
+    backgroundColor: COLORS.error,
+    borderWidth: 1.5,
+    borderColor: COLORS.white,
   },
-  statsContainer: {
+  heroWrapper: {
+    padding: SPACING.lg,
+  },
+  heroPanel: {
+    backgroundColor: COLORS.gray[900],
+    borderRadius: 28,
+    padding: 24,
+    ...SHADOWS.md,
+  },
+  heroMain: {
+    marginBottom: 20,
+  },
+  heroTitle: {
+    ...TYPOGRAPHY.h2,
+    color: COLORS.white,
+    fontSize: 22,
+  },
+  heroSubtitle: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.gray[400],
+  },
+  statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statCard: {
-    backgroundColor: '#fff7ed',
-    borderRadius: 20,
-    padding: 20,
-    width: '48%',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
   },
-  statIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+  statBox: {
+    flex: 1,
   },
-  statNumber: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1e293b',
+  statValue: {
+    ...TYPOGRAPHY.h2,
+    color: COLORS.white,
+    fontSize: 24,
   },
   statLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginTop: 4,
-  },
-  statSubLabel: {
-    fontSize: 12,
-    color: '#6b7280',
+    ...TYPOGRAPHY.label,
+    color: COLORS.gray[500],
+    fontSize: 9,
     marginTop: 2,
+    letterSpacing: 0.5,
   },
-  sectionContainer: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
+  statDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: COLORS.gray[800],
+    marginHorizontal: 12,
+  },
+  sectionHeaderCompact: {
+    paddingHorizontal: SPACING.lg,
+    marginBottom: 12,
+  },
+  sectionTitleSmall: {
+    ...TYPOGRAPHY.label,
+    fontSize: 11,
+    color: COLORS.gray[400],
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.lg,
+    marginBottom: 32,
+  },
+  actionWrap: {
+    alignItems: 'center',
+    width: '22%',
+  },
+  actionIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    ...SHADOWS.xs,
+  },
+  actionLabel: {
+    ...TYPOGRAPHY.label,
+    fontSize: 11,
+    color: COLORS.gray[600],
+  },
+  section: {
+    paddingHorizontal: SPACING.lg,
+    marginBottom: 32,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -331,229 +421,184 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    marginBottom: 10,
-    fontWeight: 'bold',
-    color: '#1e293b',
+    ...TYPOGRAPHY.h3,
+    color: COLORS.gray[900],
+    fontSize: 18,
   },
-  seeAll: {
-    color: '#f97316',
-    fontWeight: '500',
-    fontSize: 14,
+  seeAllText: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: '700',
   },
-  sessionsScroll: {
-    marginHorizontal: -24,
-    paddingHorizontal: 24,
+  horizontalScroll: {
+    paddingRight: SPACING.lg,
   },
   sessionCard: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    width: 280,
+    width: width * 0.75,
     marginRight: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: COLORS.gray[50],
+    ...SHADOWS.sm,
   },
-  sessionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#fff7ed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sessionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 12,
-  },
-  sessionDetails: {
-    gap: 8,
-  },
-  sessionDetail: {
+  sessionCardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sessionDetailText: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  menuGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-  },
-  menuItem: {
-    width: '48%',
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
   },
-  menuIcon: {
-    width: 56,
-    height: 56,
+  sessionBadge: {
+    backgroundColor: COLORS.primary + '10',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  sessionBadgeText: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.primary,
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  sessionBadgeDate: {
+    ...TYPOGRAPHY.h4,
+    color: COLORS.primary,
+    fontSize: 15,
+  },
+  timeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.gray[50],
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  timeTagText: {
+    ...TYPOGRAPHY.label,
+    fontSize: 10,
+    color: COLORS.gray[600],
+  },
+  sessionTitleText: {
+    ...TYPOGRAPHY.h4,
+    fontSize: 16,
+    color: COLORS.gray[900],
+    marginBottom: 16,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.gray[50],
+    paddingTop: 12,
+  },
+  groupInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  groupText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.gray[600],
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  detailsBtn: {
+    width: 32,
+    height: 32,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  emptyCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.gray[100],
+    borderStyle: 'dashed',
+  },
+  emptyIconBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.gray[50],
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 12,
   },
-  menuText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#374151',
+  emptyText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.gray[400],
+    textAlign: 'center',
   },
-  activityList: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
+  performanceCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    ...SHADOWS.sm,
   },
-  activityItem: {
+  perfHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  perfMainVal: {
+    ...TYPOGRAPHY.h1,
+    fontSize: 32,
+    color: COLORS.gray[900],
+  },
+  perfLabel: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.gray[400],
+    marginTop: 2,
+  },
+  perfBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    backgroundColor: COLORS.success + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
   },
-  activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
+  perfBadgeText: {
+    ...TYPOGRAPHY.label,
+    color: COLORS.success,
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  progressBarContainer: {
+    height: 10,
+    backgroundColor: COLORS.gray[50],
+    borderRadius: 5,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: COLORS.success,
+    borderRadius: 5,
+  },
+  perfFooter: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
+    gap: 8,
   },
-  activityContent: {
-    flex: 1,
-  },
-  activityTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 2,
-  },
-  activitySubtitle: {
-    fontSize: 12,
-    color: '#6b7280',
+  perfHint: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.gray[400],
+    fontSize: 11,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff7ed',
-  },
-  emptyCard: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 30,
-    alignItems: 'center',
-    borderStyle: 'dashed',
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-  },
-  emptyText: {
-    color: '#94a3b8',
-    fontSize: 16,
-  },
-  attendanceSummary: {
-    padding: 8,
-  },
-  rateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 12,
-  },
-  rateValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1e293b',
-  },
-  rateLabel: {
-    fontSize: 14,
-    color: '#64748b',
-  },
-  rateBarContainer: {
-    height: 8,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  rateBar: {
-    height: '100%',
-    backgroundColor: '#10b981',
-    borderRadius: 4,
-  },
-  recentList: {
-    gap: 12,
-  },
-  recentItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: 'white',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  playerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#fff7ed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  playerInfo: {
-    flex: 1,
-  },
-  playerName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  playerDate: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  assignButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#f97316',
-  },
-  assignText: {
-    color: 'white',
-    fontSize: 13,
-    fontWeight: 'bold',
+    backgroundColor: COLORS.white,
   },
 });
 

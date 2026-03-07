@@ -21,6 +21,17 @@ router.post('/',
   PlanningController.createPlanningEvent
 );
 
+// Duplicate week
+router.post('/duplicate',
+  authenticateToken,
+  authorizeRole('coach', 'adjoint', 'admin'),
+  [
+    body('source_date').isISO8601(),
+    body('target_date').isISO8601()
+  ],
+  PlanningController.duplicateWeek
+);
+
 // Update planning event
 router.put('/:id',
   authenticateToken,

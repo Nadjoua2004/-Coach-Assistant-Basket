@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     View,
     Text,
@@ -9,7 +9,9 @@ import {
     Alert,
     TextInput,
     Modal,
-    Platform
+    Platform,
+    KeyboardAvoidingView,
+    FlatList
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
@@ -19,6 +21,10 @@ import AthleteService from '../../services/athleteService';
 import SessionService from '../../services/sessionService';
 import ExerciseService from '../../services/exerciseService';
 import ExerciseSelectionModal from './ExerciseSelectionModal';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Button from '../UI/Button';
+import Input from '../UI/Input';
+import Card from '../UI/Card';
 
 const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
     const [loading, setLoading] = useState(true);
@@ -28,12 +34,11 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
     const [showAthleteModal, setShowAthleteModal] = useState(false);
     const [editingEvent, setEditingEvent] = useState(null);
     const [athletes, setAthletes] = useState([]);
-    const [groups, setGroups] = useState(['U13', 'U15', 'U17', 'Seniors']);
+    const [groups] = useState(['U13', 'U15', 'U17', 'Seniors']);
     const [savedSessions, setSavedSessions] = useState([]);
     const [showSessionPicker, setShowSessionPicker] = useState(false);
     const [loadingSessions, setLoadingSessions] = useState(false);
     const [showExerciseModal, setShowExerciseModal] = useState(false);
-    const [selectedExercises, setSelectedExercises] = useState([]);
 
     const [eventForm, setEventForm] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -98,12 +103,14 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
 
     const getWeekStart = (date) => {
         const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
         const day = d.getDay();
         const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        return new Date(d.setDate(diff));
+        d.setDate(diff);
+        return d;
     };
 
-    const getWeekDays = () => {
+    const getWeekDays = useMemo(() => {
         const start = getWeekStart(selectedWeek);
         const days = [];
         for (let i = 0; i < 7; i++) {
@@ -112,7 +119,7 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
             days.push(day);
         }
         return days;
-    };
+    }, [selectedWeek]);
 
     const handlePreviousWeek = () => {
         const newDate = new Date(selectedWeek);
@@ -126,6 +133,43 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
         setSelectedWeek(newDate);
     };
 
+    const handleDuplicateWeek = () => {
+        Alert.alert(
+            'Dupliquer la semaine',
+            'Voulez-vous dupliquer cette semaine vers la semaine suivante ?',
+            [
+                { text: 'Annuler', style: 'cancel' },
+                {
+                    text: 'Dupliquer',
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            const startOfThisWeek = getWeekStart(selectedWeek);
+                            const sourceDate = startOfThisWeek.toISOString().split('T')[0];
+
+                            const nextWeekDate = new Date(startOfThisWeek);
+                            nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+                            const targetDate = nextWeekDate.toISOString().split('T')[0];
+
+                            const res = await PlanningService.duplicateWeek(sourceDate, targetDate);
+                            if (res.success) {
+                                Alert.alert('Succès', res.message || 'Planning dupliqué');
+                                handleNextWeek(); // Navigate to the new week
+                            } else {
+                                Alert.alert('Info', res.message || 'Erreur lors de la duplication');
+                            }
+                        } catch (err) {
+                            Alert.alert('Erreur', 'Impossible de dupliquer le planning');
+                        } finally {
+                            fetchData();
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+
     const handleDateChange = (event, date) => {
         setShowDatePicker(false);
         if (date) {
@@ -137,11 +181,12 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
 
     const handleSaveEvent = async () => {
         if (!eventForm.theme || !eventForm.duree) {
-            Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+            Alert.alert('Champs requis', 'Veuillez renseigner au moins le thème et la durée.');
             return;
         }
 
         try {
+            setLoading(true);
             const payload = {
                 ...eventForm,
                 duree: parseInt(eventForm.duree)
@@ -155,60 +200,51 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
             }
 
             if (response.success) {
-                Alert.alert('Succès', editingEvent ? 'Séance modifiée' : 'Séance créée');
+                Alert.alert('Succès', editingEvent ? 'Planning mis à jour' : 'Nouvelle séance planifiée');
                 setShowEventModal(false);
                 resetForm();
                 fetchData();
-            } else {
-                Alert.alert('Erreur', (response.message || 'Échec de l\'enregistrement') + (response.error ? '\n\n' + response.error : ''));
             }
         } catch (error) {
-            console.error('Save error:', error);
-            Alert.alert('Erreur', 'Une erreur est survenue');
+            Alert.alert('Erreur', 'Impossible de sauvegarder le planning.');
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleDuplicateWeek = async () => {
-        Alert.alert(
-            'Dupliquer la semaine',
-            'Voulez-vous dupliquer cette semaine pour la semaine suivante ?',
-            [
-                { text: 'Annuler', style: 'cancel' },
-                {
-                    text: 'Dupliquer',
-                    onPress: async () => {
-                        try {
-                            const nextWeekStart = new Date(selectedWeek);
-                            nextWeekStart.setDate(nextWeekStart.getDate() + 7);
-
-                            for (const event of events) {
-                                const eventDate = new Date(event.date);
-                                const newDate = new Date(eventDate);
-                                newDate.setDate(eventDate.getDate() + 7);
-
-                                await PlanningService.createPlanning({
-                                    ...event,
-                                    id: undefined,
-                                    date: newDate.toISOString().split('T')[0]
-                                });
-                            }
-
-                            Alert.alert('Succès', 'Semaine dupliquée avec succès');
-                            setSelectedWeek(nextWeekStart);
-                        } catch (error) {
-                            console.error('Duplicate error:', error);
-                            Alert.alert('Erreur', 'Impossible de dupliquer la semaine');
-                        }
-                    }
-                }
-            ]
-        );
+    const resetForm = () => {
+        setEventForm({
+            date: new Date().toISOString().split('T')[0],
+            heure: '18:00',
+            duree: 90,
+            lieu: 'Gymnase Club',
+            theme: '',
+            groupe: 'U17',
+            session_id: null,
+            athletes_assignes: []
+        });
+        setEditingEvent(null);
     };
 
-    const handleDeleteEvent = async (eventId) => {
+    const handleEditEvent = (event) => {
+        setEditingEvent(event);
+        setEventForm({
+            date: event.date,
+            heure: event.heure,
+            duree: event.duree.toString(),
+            lieu: event.lieu,
+            theme: event.theme,
+            groupe: event.groupe || 'U17',
+            session_id: event.session_id,
+            athletes_assignes: event.athletes_assignes || []
+        });
+        setShowEventModal(true);
+    };
+
+    const handleDeleteEvent = (id) => {
         Alert.alert(
-            'Supprimer',
-            'Voulez-vous vraiment supprimer cette séance ?',
+            'Supprimer la séance',
+            'Voulez-vous vraiment retirer cette séance du planning ?',
             [
                 { text: 'Annuler', style: 'cancel' },
                 {
@@ -216,14 +252,12 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            const response = await PlanningService.deletePlanning(eventId);
-                            if (response.success) {
-                                Alert.alert('Succès', 'Séance supprimée');
+                            const res = await PlanningService.deletePlanning(id);
+                            if (res.success) {
                                 fetchData();
                             }
-                        } catch (error) {
-                            console.error('Delete error:', error);
-                            Alert.alert('Erreur', 'Impossible de supprimer');
+                        } catch (err) {
+                            Alert.alert('Erreur', 'Impossible de supprimer la séance');
                         }
                     }
                 }
@@ -231,429 +265,334 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
         );
     };
 
-    const openEventModal = (event = null) => {
-        if (event) {
-            setEditingEvent(event);
-            setEventForm({
-                date: event.date,
-                heure: event.heure,
-                duree: event.duree.toString(),
-                lieu: event.lieu,
-                theme: event.theme,
-                groupe: event.groupe || 'U17',
-                session_id: event.session_id || null,
-                athletes_assignes: event.athletes_assignes || []
-            });
-            setSelectedDate(new Date(event.date));
-        }
-        fetchSavedSessions(); // Ensure sessions are fresh when opening
-        setShowEventModal(true);
-    };
-
-    const resetForm = () => {
-        setEditingEvent(null);
+    const selectSession = (session) => {
         setEventForm({
-            date: new Date().toISOString().split('T')[0],
-            heure: '18:00',
-            duree: 90,
-            lieu: 'Salle Principale',
-            theme: '',
-            groupe: 'U17',
-            session_id: null,
-            athletes_assignes: []
+            ...eventForm,
+            theme: session.titre || session.title,
+            session_id: session.id,
+            duree: session.duree_totale?.toString() || session.total_duration?.toString() || eventForm.duree
         });
-        setSelectedDate(new Date());
+        setShowSessionPicker(false);
     };
 
     const toggleAthleteAssignment = (athleteId) => {
-        const current = eventForm.athletes_assignes || [];
-        if (current.includes(athleteId)) {
-            setEventForm({
-                ...eventForm,
-                athletes_assignes: current.filter(id => id !== athleteId)
-            });
+        const current = [...(eventForm.athletes_assignes || [])];
+        const index = current.indexOf(athleteId);
+        if (index > -1) {
+            current.splice(index, 1);
         } else {
-            setEventForm({
-                ...eventForm,
-                athletes_assignes: [...current, athleteId]
-            });
+            current.push(athleteId);
         }
+        setEventForm({ ...eventForm, athletes_assignes: current });
     };
 
-    const getEventsForDay = (day) => {
+    const renderDayColumn = (day) => {
         const dateStr = day.toISOString().split('T')[0];
-        return events.filter(e => e.date === dateStr);
-    };
+        const dayEvents = events.filter(e => e.date === dateStr);
+        const isToday = new Date().toISOString().split('T')[0] === dateStr;
 
-    const getAthleteCountForGroup = (groupe) => {
-        return athletes.filter(a => a.groupe === groupe).length;
-    };
-
-    const weekDays = getWeekDays();
-    const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-
-    if (loading) {
         return (
-            <View style={styles.center}>
-                <ActivityIndicator size="large" color="#f97316" />
+            <View key={dateStr} style={[styles.dayColumn, isToday && styles.todayColumn]}>
+                <View style={[styles.dayHeader, isToday && styles.todayHeader]}>
+                    <Text style={[styles.dayName, isToday && styles.todayDayText]}>
+                        {day.toLocaleDateString('fr-FR', { weekday: 'short' }).toUpperCase()}
+                    </Text>
+                    <Text style={[styles.dayNumber, isToday && styles.todayNumberText]}>
+                        {day.getDate()}
+                    </Text>
+                    {isToday && <View style={styles.todayIndicator} />}
+                </View>
+
+                <View style={styles.eventsList}>
+                    {dayEvents.map(event => (
+                        <TouchableOpacity
+                            key={event.id}
+                            style={styles.eventCard}
+                            onPress={() => handleEditEvent(event)}
+                        >
+                            <View style={[styles.eventAccent, { backgroundColor: event.color || COLORS.primary }]} />
+                            <View style={styles.eventContent}>
+                                <View style={styles.eventTimeRow}>
+                                    <View style={styles.timeTag}>
+                                        <Icon name="clock-outline" size={10} color={COLORS.primary} />
+                                        <Text style={styles.timeText}>{event.heure}</Text>
+                                    </View>
+                                    <View style={styles.groupTag}>
+                                        <Text style={styles.groupTagText}>{event.groupe}</Text>
+                                    </View>
+                                </View>
+                                <Text style={styles.eventThemeText} numberOfLines={2}>{event.theme}</Text>
+                                <View style={styles.eventActions}>
+                                    <TouchableOpacity style={styles.attendanceBtn} onPress={() => onTakeAttendance(event)}>
+                                        <Icon name="clipboard-check-outline" size={16} color={COLORS.white} />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                        style={styles.addDayEventBtn}
+                        onPress={() => {
+                            resetForm();
+                            setEventForm({ ...eventForm, date: dateStr });
+                            setShowEventModal(true);
+                        }}
+                    >
+                        <Icon name="plus" size={18} color={COLORS.gray[300]} />
+                    </TouchableOpacity>
+                </View>
             </View>
         );
-    }
+    };
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-                    <Icon name="arrow-left" size={24} color="#1e293b" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Planning</Text>
-                <TouchableOpacity onPress={handleDuplicateWeek} style={styles.duplicateBtn}>
-                    <Icon name="content-copy" size={20} color="#f97316" />
-                </TouchableOpacity>
-            </View>
+        <View style={styles.container}>
+            {/* Header / Week Navigation */}
+            <View style={styles.mainHeader}>
+                <View style={styles.headerTopRow}>
+                    <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+                        <Icon name="chevron-left" size={28} color={COLORS.gray[900]} />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Planning hebdo</Text>
+                    <TouchableOpacity style={styles.copyBtn} onPress={handleDuplicateWeek}>
+                        <Icon name="calendar-multiple" size={20} color={COLORS.primary} />
+                    </TouchableOpacity>
+                </View>
 
-            {/* Week Navigation */}
-            <View style={styles.weekNav}>
-                <TouchableOpacity onPress={handlePreviousWeek}>
-                    <Icon name="chevron-left" size={28} color="#64748b" />
-                </TouchableOpacity>
-                <Text style={styles.weekLabel}>
-                    Semaine du {weekDays[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                </Text>
-                <TouchableOpacity onPress={handleNextWeek}>
-                    <Icon name="chevron-right" size={28} color="#64748b" />
-                </TouchableOpacity>
-            </View>
-
-            {/* Calendar Grid */}
-            <ScrollView style={styles.calendarContainer}>
-                {weekDays.map((day, index) => {
-                    const dayEvents = getEventsForDay(day);
-                    const isToday = day.toDateString() === new Date().toDateString();
-
-                    return (
-                        <View key={index} style={styles.dayRow}>
-                            <View style={[styles.dayHeader, isToday && styles.todayHeader]}>
-                                <Text style={[styles.dayName, isToday && styles.todayText]}>
-                                    {dayNames[index]}
-                                </Text>
-                                <Text style={[styles.dayNumber, isToday && styles.todayText]}>
-                                    {day.getDate()}
-                                </Text>
-                            </View>
-
-                            <View style={styles.eventsColumn}>
-                                {dayEvents.length === 0 ? (
-                                    <TouchableOpacity
-                                        style={styles.addEventBtn}
-                                        onPress={() => {
-                                            setEventForm({ ...eventForm, date: day.toISOString().split('T')[0] });
-                                            openEventModal();
-                                        }}
-                                    >
-                                        <Icon name="plus" size={20} color="#94a3b8" />
-                                        <Text style={styles.addEventText}>Ajouter</Text>
-                                    </TouchableOpacity>
-                                ) : (
-                                    dayEvents.map(event => (
-                                        <TouchableOpacity
-                                            key={event.id}
-                                            style={styles.eventCard}
-                                            onPress={() => openEventModal(event)}
-                                            onLongPress={() => handleDeleteEvent(event.id)}
-                                        >
-                                            <View style={styles.eventTime}>
-                                                <Icon name="clock-outline" size={14} color="#64748b" />
-                                                <Text style={styles.eventTimeText}>{event.heure}</Text>
-                                            </View>
-                                            <Text style={styles.eventTheme} numberOfLines={2}>{event.theme}</Text>
-                                            <View style={styles.eventMeta}>
-                                                <View style={styles.eventMetaItem}>
-                                                    <Icon name="map-marker" size={12} color="#94a3b8" />
-                                                    <Text style={styles.eventMetaText}>{event.lieu}</Text>
-                                                </View>
-                                                <View style={styles.eventMetaItem}>
-                                                    <Icon name="account-group" size={12} color="#94a3b8" />
-                                                    <Text style={styles.eventMetaText}>{event.groupe}</Text>
-                                                </View>
-                                            </View>
-
-                                            {/* Attendance Shortcut */}
-                                            <TouchableOpacity
-                                                style={styles.attendanceShortcut}
-                                                onPress={(e) => {
-                                                    e.stopPropagation();
-                                                    if (onTakeAttendance) onTakeAttendance(event);
-                                                }}
-                                            >
-                                                <Icon name="account-check" size={20} color="#f97316" />
-                                            </TouchableOpacity>
-                                        </TouchableOpacity>
-                                    ))
-                                )}
-                            </View>
-                        </View>
-                    );
-                })}
-            </ScrollView>
-
-            {/* FAB */}
-            <TouchableOpacity
-                style={styles.fab}
-                onPress={() => openEventModal()}
-            >
-                <Icon name="plus" size={28} color="white" />
-            </TouchableOpacity>
-
-            {/* Event Modal */}
-            <Modal visible={showEventModal} animationType="slide" presentationStyle="pageSheet">
-                <SafeAreaView style={styles.modalContainer}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>
-                            {editingEvent ? 'Modifier la séance' : 'Nouvelle séance'}
+                <View style={styles.weekSwitcher}>
+                    <TouchableOpacity style={styles.navBtn} onPress={handlePreviousWeek}>
+                        <Icon name="chevron-left" size={24} color={COLORS.gray[600]} />
+                    </TouchableOpacity>
+                    <View style={styles.weekLabelBox}>
+                        <Icon name="calendar-range" size={18} color={COLORS.primary} style={{ marginRight: 8 }} />
+                        <Text style={styles.weekLabel}>
+                            {getWeekDays[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - {getWeekDays[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                         </Text>
-                        <TouchableOpacity onPress={() => { setShowEventModal(false); resetForm(); }}>
-                            <Icon name="close" size={24} color="#64748b" />
+                    </View>
+                    <TouchableOpacity style={styles.navBtn} onPress={handleNextWeek}>
+                        <Icon name="chevron-right" size={24} color={COLORS.gray[600]} />
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            {loading ? (
+                <View style={styles.loaderBox}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
+            ) : (
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.calendarScroll}
+                >
+                    {getWeekDays.map(day => renderDayColumn(day))}
+                </ScrollView>
+            )}
+
+            {/* Event Form Modal */}
+            <Modal visible={showEventModal} animationType="slide" transparent={false}>
+                <SafeAreaView style={styles.modalBg}>
+                    <View style={styles.modalHeader}>
+                        <TouchableOpacity onPress={() => setShowEventModal(false)}>
+                            <Icon name="close" size={24} color={COLORS.gray[900]} />
+                        </TouchableOpacity>
+                        <Text style={styles.modalTitle}>{editingEvent ? 'Modifier la séance' : 'Nouvelle séance'}</Text>
+                        <TouchableOpacity onPress={handleSaveEvent}>
+                            <Text style={styles.saveBtnText}>OK</Text>
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView style={styles.modalContent}>
-                        <Text style={styles.inputLabel}>Thème *</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={eventForm.theme}
-                            onChangeText={(t) => setEventForm({ ...eventForm, theme: t })}
-                            placeholder="Ex: Entraînement offensif"
-                        />
+                    <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                        <Card style={styles.formSection} padding="lg">
+                            <Text style={styles.formSectionTitle}>GÉNÉRAL</Text>
 
-                        <Text style={styles.inputLabel}>Date *</Text>
-                        <TouchableOpacity
-                            style={styles.dateInput}
-                            onPress={() => setShowDatePicker(true)}
-                        >
-                            <Text>{eventForm.date}</Text>
-                            <Icon name="calendar" size={20} color="#64748b" />
+                            <Input
+                                label="Thème / Titre"
+                                value={eventForm.theme}
+                                onChangeText={(t) => setEventForm({ ...eventForm, theme: t })}
+                                placeholder="Ex: Fondamentaux individuels"
+                                style={styles.formInput}
+                            />
+
+                            <View style={styles.dualField}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.inputLabel}>Date</Text>
+                                    <TouchableOpacity style={styles.pickerTrigger} onPress={() => setShowDatePicker(true)}>
+                                        <Text style={styles.pickerText}>{eventForm.date}</Text>
+                                        <Icon name="calendar" size={18} color={COLORS.primary} />
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={{ flex: 1, marginLeft: 12 }}>
+                                    <Input
+                                        label="Heure"
+                                        value={eventForm.heure}
+                                        onChangeText={(t) => setEventForm({ ...eventForm, heure: t })}
+                                        placeholder="18:00"
+                                        style={styles.formInput}
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.dualField}>
+                                <View style={{ flex: 1 }}>
+                                    <Input
+                                        label="Durée (min)"
+                                        value={eventForm.duree.toString()}
+                                        onChangeText={(t) => setEventForm({ ...eventForm, duree: t })}
+                                        keyboardType="numeric"
+                                        placeholder="90"
+                                        style={styles.formInput}
+                                    />
+                                </View>
+                                <View style={{ flex: 1, marginLeft: 12 }}>
+                                    <Input
+                                        label="Lieu"
+                                        value={eventForm.lieu}
+                                        onChangeText={(t) => setEventForm({ ...eventForm, lieu: t })}
+                                        placeholder="Gymnase A"
+                                        style={styles.formInput}
+                                    />
+                                </View>
+                            </View>
+
+                            <Text style={styles.inputLabel}>Catégorie</Text>
+                            <View style={styles.groupGrid}>
+                                {groups.map(g => (
+                                    <TouchableOpacity
+                                        key={g}
+                                        style={[styles.groupChip, eventForm.groupe === g && styles.groupChipActive]}
+                                        onPress={() => setEventForm({ ...eventForm, groupe: g })}
+                                    >
+                                        <Text style={[styles.groupChipTxt, eventForm.groupe === g && styles.groupChipTxtOn]}>{g}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </Card>
+
+                        <Text style={styles.sectionDivider}>CONTENU & EFFECTIF</Text>
+
+                        <TouchableOpacity style={styles.actionCard} onPress={() => setShowSessionPicker(true)}>
+                            <View style={styles.actionCardIcon}>
+                                <Icon name="notebook-outline" size={24} color={COLORS.primary} />
+                            </View>
+                            <View style={styles.actionCardBody}>
+                                <Text style={styles.actionCardTitle}>Assigner une séance préparée</Text>
+                                <Text style={styles.actionCardSub}>
+                                    {eventForm.session_id ? 'Séance liée avec succès' : 'Choisissez parmi vos modèles'}
+                                </Text>
+                            </View>
+                            <Icon name="chevron-right" size={20} color={COLORS.gray[300]} />
                         </TouchableOpacity>
 
-                        {showDatePicker && (
-                            <DateTimePicker
-                                value={selectedDate}
-                                mode="date"
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={handleDateChange}
-                            />
-                        )}
-
-                        <View style={styles.row}>
-                            <View style={{ flex: 1, marginRight: 10 }}>
-                                <Text style={styles.inputLabel}>Heure *</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={eventForm.heure}
-                                    onChangeText={(t) => setEventForm({ ...eventForm, heure: t })}
-                                    placeholder="18:00"
-                                />
+                        <TouchableOpacity style={styles.actionCard} onPress={() => setShowAthleteModal(true)}>
+                            <View style={[styles.actionCardIcon, { backgroundColor: COLORS.secondary + '10' }]}>
+                                <Icon name="account-group-outline" size={24} color={COLORS.secondary} />
                             </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.inputLabel}>Durée (min) *</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={eventForm.duree.toString()}
-                                    onChangeText={(t) => setEventForm({ ...eventForm, duree: t })}
-                                    keyboardType="numeric"
-                                    placeholder="90"
-                                />
+                            <View style={styles.actionCardBody}>
+                                <Text style={styles.actionCardTitle}>Gérer l'effectif convoqué</Text>
+                                <Text style={styles.actionCardSub}>
+                                    {eventForm.athletes_assignes?.length || 0} joueurs assignés
+                                </Text>
                             </View>
-                        </View>
+                            <Icon name="chevron-right" size={20} color={COLORS.gray[300]} />
+                        </TouchableOpacity>
 
-                        <Text style={styles.inputLabel}>Lieu *</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={eventForm.lieu}
-                            onChangeText={(t) => setEventForm({ ...eventForm, lieu: t })}
-                            placeholder="Salle Principale"
-                        />
-
-                        <Text style={styles.inputLabel}>Groupe</Text>
-                        <View style={styles.groupButtons}>
-                            {groups.map(g => (
-                                <TouchableOpacity
-                                    key={g}
-                                    style={[
-                                        styles.groupBtn,
-                                        eventForm.groupe === g && styles.groupBtnActive
-                                    ]}
-                                    onPress={() => setEventForm({ ...eventForm, groupe: g })}
-                                >
-                                    <Text style={[
-                                        styles.groupBtnText,
-                                        eventForm.groupe === g && styles.groupBtnTextActive
-                                    ]}>
-                                        {g} ({getAthleteCountForGroup(g)})
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        <View style={styles.assignmentSection}>
-                            <Text style={styles.inputLabel}>Session de la bibliothèque</Text>
+                        {editingEvent && (
                             <TouchableOpacity
-                                style={styles.sessionPickerBtn}
+                                style={styles.deleteLink}
                                 onPress={() => {
-                                    fetchSavedSessions();
-                                    setShowSessionPicker(true);
+                                    handleDeleteEvent(editingEvent.id);
+                                    setShowEventModal(false);
                                 }}
                             >
-                                <Icon name="clipboard-text-outline" size={20} color="#3b82f6" />
-                                <Text style={styles.sessionPickerBtnText}>Choisir une séance complète</Text>
+                                <Icon name="trash-can-outline" size={18} color={COLORS.error} />
+                                <Text style={styles.deleteLinkTxt}>Supprimer cette séance du planning</Text>
                             </TouchableOpacity>
-                        </View>
+                        )}
 
-                        <View style={styles.assignmentSection}>
-                            <Text style={styles.inputLabel}>Bibliothèque d'exercices</Text>
-                            <TouchableOpacity
-                                style={[styles.sessionPickerBtn, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}
-                                onPress={() => setShowExerciseModal(true)}
-                            >
-                                <Icon name="basketball" size={20} color="#10b981" />
-                                <Text style={[styles.sessionPickerBtnText, { color: '#10b981' }]}>Choisir des exercices</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.assignmentSection}>
-                            <Text style={styles.inputLabel}>Assignation manuelle ({eventForm.athletes_assignes?.length || 0} joueurs)</Text>
-                            <TouchableOpacity
-                                style={styles.manageAthletesBtn}
-                                onPress={() => setShowAthleteModal(true)}
-                            >
-                                <Icon name="account-multiple" size={20} color="#f97316" />
-                                <Text style={styles.manageAthletesBtnText}>Gérer les participants</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <TouchableOpacity style={styles.saveBtn} onPress={handleSaveEvent}>
-                            <Text style={styles.saveBtnText}>
-                                {editingEvent ? 'Mettre à jour' : 'Créer la séance'}
-                            </Text>
-                        </TouchableOpacity>
-                        <View style={{ height: 40 }} />
+                        <View style={{ height: 100 }} />
                     </ScrollView>
                 </SafeAreaView>
+
+                {showDatePicker && (
+                    <DateTimePicker
+                        value={selectedDate}
+                        mode="date"
+                        display="default"
+                        onChange={handleDateChange}
+                    />
+                )}
             </Modal>
 
             {/* Session Picker Modal */}
-            <Modal visible={showSessionPicker} animationType="slide" presentationStyle="pageSheet">
-                <SafeAreaView style={styles.modalContainer}>
+            <Modal visible={showSessionPicker} animationType="slide">
+                <SafeAreaView style={styles.modalBg}>
                     <View style={styles.modalHeader}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Text style={styles.modalTitle}>Sélectionner une séance</Text>
-                            <TouchableOpacity
-                                style={{ marginLeft: 10 }}
-                                onPress={fetchSavedSessions}
-                            >
-                                <Icon name="refresh" size={20} color="#f97316" />
-                            </TouchableOpacity>
-                        </View>
                         <TouchableOpacity onPress={() => setShowSessionPicker(false)}>
-                            <Icon name="close" size={24} color="#64748b" />
+                            <Icon name="arrow-left" size={24} color={COLORS.gray[900]} />
                         </TouchableOpacity>
+                        <Text style={styles.modalTitle}>Mes Séances</Text>
+                        <View style={{ width: 24 }} />
                     </View>
-
-                    <ScrollView style={styles.modalContent}>
-                        {loadingSessions ? (
-                            <ActivityIndicator size="small" color="#f97316" />
-                        ) : savedSessions.length === 0 ? (
-                            <View style={{ alignItems: 'center', marginTop: 40 }}>
-                                <Icon name="clipboard-text-outline" size={60} color="#cbd5e1" />
-                                <Text style={styles.emptyText}>Aucune séance dans votre bibliothèque.</Text>
-                                <Text style={{ color: '#94a3b8', textAlign: 'center', marginTop: 8, marginBottom: 20 }}>
-                                    Vous devez d'abord créer des modèles de séances dans l'onglet "Séances".
-                                </Text>
-                                <TouchableOpacity
-                                    style={{ backgroundColor: '#f97316', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 }}
-                                    onPress={() => {
-                                        setShowSessionPicker(false);
-                                        setShowEventModal(false);
-                                        // Navigate to sessions tab? We can't easily but we can tell them.
-                                        Alert.alert('Info', 'Veuillez fermer le planning et aller dans l\'onglet "Séances" pour créer un modèle.');
-                                    }}
-                                >
-                                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Compris</Text>
-                                </TouchableOpacity>
-                            </View>
-                        ) : (
-                            savedSessions.map(session => (
-                                <TouchableOpacity
-                                    key={session.id}
-                                    style={styles.sessionPickItem}
-                                    onPress={() => {
-                                        console.log('--- SESSION PICKDEBUG ---');
-                                        console.log('Selected session:', session.id, session.title);
-                                        setEventForm(prev => {
-                                            const newForm = {
-                                                ...prev,
-                                                theme: session.title,
-                                                duree: session.total_duration?.toString() || '90',
-                                                session_id: session.id,
-                                                lieu: session.lieu || prev.lieu
-                                            };
-                                            console.log('New Event Form:', newForm);
-                                            return newForm;
-                                        });
-                                        setShowSessionPicker(false);
-                                        // Ensure the modal actually closes and shows alert
-                                        setTimeout(() => {
-                                            Alert.alert('Séance sélectionnée', `La séance "${session.title}" a été chargée.`);
-                                        }, 100);
-                                    }}
-                                >
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.sessionPickTitle}>{session.title}</Text>
-                                        <Text style={styles.sessionPickMeta}>{session.objective}</Text>
-                                    </View>
-                                    <Icon name="chevron-right" size={20} color="#cbd5e1" />
-                                </TouchableOpacity>
-                            ))
+                    <FlatList
+                        data={savedSessions}
+                        keyExtractor={item => item.id.toString()}
+                        contentContainerStyle={{ padding: SPACING.lg }}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity style={styles.sessionPickItem} onPress={() => selectSession(item)}>
+                                <Card padding="md" style={styles.pickCard}>
+                                    <Text style={styles.pickTitle}>{item.titre || item.title}</Text>
+                                    <Text style={styles.pickSub}>{item.objectif}</Text>
+                                </Card>
+                            </TouchableOpacity>
                         )}
-                    </ScrollView>
+                        ListEmptyComponent={
+                            <View style={styles.emptyBox}>
+                                <Text style={styles.emptyTxt}>Aucun modèle trouvé</Text>
+                            </View>
+                        }
+                    />
                 </SafeAreaView>
             </Modal>
 
-            {/* Athlete Assignment Modal */}
-            <Modal visible={showAthleteModal} animationType="slide" presentationStyle="pageSheet">
-                <SafeAreaView style={styles.modalContainer}>
+            {/* Athlete Multi-Picker Modal */}
+            <Modal visible={showAthleteModal} animationType="slide">
+                <SafeAreaView style={styles.modalBg}>
                     <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Sélectionner les joueurs</Text>
                         <TouchableOpacity onPress={() => setShowAthleteModal(false)}>
-                            <Icon name="check" size={24} color="#10b981" />
+                            <Icon name="arrow-left" size={24} color={COLORS.gray[900]} />
+                        </TouchableOpacity>
+                        <Text style={styles.modalTitle}>Convocations</Text>
+                        <TouchableOpacity onPress={() => setShowAthleteModal(false)}>
+                            <Text style={styles.saveBtnText}>OK</Text>
                         </TouchableOpacity>
                     </View>
-
-                    <ScrollView style={styles.modalContent}>
-                        {athletes
-                            .filter(a => a.groupe === eventForm.groupe)
-                            .map(athlete => {
-                                const isSelected = (eventForm.athletes_assignes || []).includes(athlete.id);
-                                return (
-                                    <TouchableOpacity
-                                        key={athlete.id}
-                                        style={[styles.athleteItem, isSelected && styles.athleteItemSelected]}
-                                        onPress={() => toggleAthleteAssignment(athlete.id)}
-                                    >
-                                        <View style={styles.athleteInfo}>
-                                            <Text style={styles.athleteName}>
-                                                {athlete.prenom} {athlete.nom}
-                                            </Text>
-                                            <Text style={styles.athleteMeta}>
-                                                {athlete.poste ? `Poste ${athlete.poste}` : 'Non défini'}
-                                            </Text>
-                                        </View>
-                                        {isSelected && <Icon name="check-circle" size={24} color="#10b981" />}
-                                    </TouchableOpacity>
-                                );
-                            })}
-                    </ScrollView>
+                    <FlatList
+                        data={athletes}
+                        keyExtractor={item => item.id.toString()}
+                        contentContainerStyle={{ padding: SPACING.lg }}
+                        renderItem={({ item }) => {
+                            const selected = (eventForm.athletes_assignes || []).includes(item.id);
+                            return (
+                                <TouchableOpacity
+                                    style={[styles.athletePickItem, selected && styles.athletePickOn]}
+                                    onPress={() => toggleAthleteAssignment(item.id)}
+                                >
+                                    <View style={styles.athleteRow}>
+                                        <Text style={[styles.athleteName, selected && styles.athleteNameOn]}>
+                                            {item.prenom} {item.nom}
+                                        </Text>
+                                        <Text style={styles.athleteInfo}>{item.groupe} • {item.poste || '-'}</Text>
+                                    </View>
+                                    <Icon
+                                        name={selected ? "check-circle" : "plus-circle-outline"}
+                                        size={24}
+                                        color={selected ? COLORS.success : COLORS.gray[300]}
+                                    />
+                                </TouchableOpacity>
+                            );
+                        }}
+                    />
                 </SafeAreaView>
             </Modal>
 
@@ -661,7 +600,6 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                 visible={showExerciseModal}
                 onClose={() => setShowExerciseModal(false)}
                 onSelectExercise={(exercise) => {
-                    // When an exercise is selected, we can add it to the theme or just update the theme
                     setEventForm(prev => ({
                         ...prev,
                         theme: prev.theme ? `${prev.theme}, ${exercise.name}` : exercise.name
@@ -670,351 +608,410 @@ const PlanningCalendarScreen = ({ onBack, onTakeAttendance }) => {
                     Alert.alert('Exercice ajouté', `L'exercice "${exercise.name}" a été ajouté au thème de la séance.`);
                 }}
             />
-        </SafeAreaView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: COLORS.gray[50],
     },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+    mainHeader: {
+        backgroundColor: COLORS.white,
+        paddingTop: Platform.OS === 'ios' ? 50 : 10,
+        paddingBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.gray[100],
+        ...SHADOWS.sm,
     },
-    header: {
+    headerTopRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 20,
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0',
+        paddingHorizontal: SPACING.lg,
+        marginBottom: 16,
     },
     backBtn: {
         width: 40,
+        height: 40,
+        justifyContent: 'center',
+        marginLeft: -10,
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        ...TYPOGRAPHY.h2,
+        color: COLORS.gray[900],
     },
-    duplicateBtn: {
+    copyBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: COLORS.primary + '10',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    weekSwitcher: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: SPACING.lg,
+    },
+    navBtn: {
         width: 40,
-        alignItems: 'flex-end',
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    weekNav: {
+    weekLabelBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.gray[50],
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        marginHorizontal: 10,
+    },
+    weekLabel: {
+        ...TYPOGRAPHY.label,
+        color: COLORS.gray[900],
+        fontSize: 14,
+    },
+    loaderBox: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    calendarScroll: {
+        paddingHorizontal: 10,
+        paddingTop: 16,
+    },
+    dayColumn: {
+        width: 140,
+        marginHorizontal: 6,
+    },
+    todayColumn: {
+        backgroundColor: COLORS.primary + '03',
+        borderRadius: 16,
+    },
+    dayHeader: {
+        alignItems: 'center',
+        paddingVertical: 12,
+        marginBottom: 12,
+    },
+    todayHeader: {
+        backgroundColor: COLORS.primary + '10',
+        borderRadius: 12,
+    },
+    dayName: {
+        ...TYPOGRAPHY.label,
+        fontSize: 11,
+        color: COLORS.gray[400],
+    },
+    todayDayText: {
+        color: COLORS.primary,
+        fontWeight: 'bold',
+    },
+    dayNumber: {
+        ...TYPOGRAPHY.h3,
+        fontSize: 18,
+        color: COLORS.gray[900],
+        marginTop: 2,
+    },
+    todayNumberText: {
+        color: COLORS.primary,
+    },
+    todayIndicator: {
+        width: 5,
+        height: 5,
+        borderRadius: 2.5,
+        backgroundColor: COLORS.primary,
+        marginTop: 4,
+    },
+    eventsList: {
+        flex: 1,
+    },
+    eventCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: BORDER_RADIUS.md,
+        marginBottom: 10,
+        ...SHADOWS.xs,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: COLORS.gray[50],
+    },
+    eventAccent: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 4,
+    },
+    eventContent: {
+        padding: 10,
+        paddingLeft: 12,
+    },
+    eventTimeRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
-        backgroundColor: 'white',
-    },
-    weekLabel: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1e293b',
-    },
-    calendarContainer: {
-        flex: 1,
-    },
-    dayRow: {
-        flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0',
-        minHeight: 100,
-    },
-    dayHeader: {
-        width: 70,
-        padding: 12,
-        backgroundColor: '#f8fafc',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRightWidth: 1,
-        borderRightColor: '#e2e8f0',
-    },
-    todayHeader: {
-        backgroundColor: '#fff7ed',
-    },
-    dayName: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#64748b',
-        textTransform: 'uppercase',
-    },
-    dayNumber: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1e293b',
-        marginTop: 4,
-    },
-    todayText: {
-        color: '#f97316',
-    },
-    eventsColumn: {
-        flex: 1,
-        padding: 8,
-    },
-    addEventBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 8,
-        borderStyle: 'dashed',
-        minHeight: 80,
-    },
-    addEventText: {
-        marginLeft: 8,
-        color: '#94a3b8',
-        fontSize: 14,
-    },
-    eventCard: {
-        backgroundColor: '#fff7ed',
-        borderLeftWidth: 3,
-        borderLeftColor: '#f97316',
-        borderRadius: 8,
-        padding: 10,
-        marginBottom: 8,
-    },
-    eventTime: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    eventTimeText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#64748b',
-        marginLeft: 4,
-    },
-    eventTheme: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#1e293b',
         marginBottom: 6,
     },
-    eventMeta: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    eventMetaItem: {
+    timeTag: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    eventMetaText: {
-        fontSize: 11,
-        color: '#64748b',
+    timeText: {
+        ...TYPOGRAPHY.label,
+        fontSize: 9,
+        color: COLORS.primary,
         marginLeft: 4,
     },
-    attendanceShortcut: {
-        position: 'absolute',
-        right: 10,
-        top: 10,
-        padding: 5,
-        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-        borderRadius: 8,
+    groupTag: {
+        backgroundColor: COLORS.gray[50],
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 4,
     },
-    fab: {
-        position: 'absolute',
-        right: 20,
-        bottom: 20,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: '#f97316',
+    groupTagText: {
+        fontSize: 8,
+        fontWeight: 'bold',
+        color: COLORS.gray[400],
+    },
+    eventThemeText: {
+        ...TYPOGRAPHY.bodySmall,
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.gray[900],
+        lineHeight: 16,
+    },
+    eventActions: {
+        marginTop: 8,
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+    },
+    attendanceBtn: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: COLORS.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
+        ...SHADOWS.sm,
     },
-    modalContainer: {
+    addDayEventBtn: {
+        height: 40,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: COLORS.gray[100],
+        borderStyle: 'dashed',
+        backgroundColor: COLORS.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 4,
+    },
+    modalBg: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: COLORS.white,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 20,
-        backgroundColor: 'white',
+        paddingHorizontal: SPACING.lg,
+        height: 60,
         borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0',
+        borderBottomColor: COLORS.gray[50],
     },
     modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1e293b',
-    },
-    modalContent: {
-        padding: 20,
-    },
-    inputLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#64748b',
-        marginBottom: 8,
-    },
-    input: {
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 12,
-        padding: 12,
-        fontSize: 16,
-        marginBottom: 16,
-    },
-    dateInput: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 16,
-    },
-    row: {
-        flexDirection: 'row',
-    },
-    groupButtons: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginBottom: 16,
-        backgroundColor: '#e2e8f0',
-        borderRadius: 12,
-        padding: 4,
-    },
-    groupBtn: {
-        flex: 1,
-        minWidth: '23%',
-        paddingVertical: 10,
-        alignItems: 'center',
-        borderRadius: 8,
-        margin: 2,
-    },
-    groupBtnActive: {
-        backgroundColor: 'white',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    groupBtnText: {
-        fontWeight: '600',
-        color: '#64748b',
-        fontSize: 13,
-    },
-    groupBtnTextActive: {
-        color: '#f97316',
-    },
-    assignmentSection: {
-        marginBottom: 16,
-    },
-    manageAthletesBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#fff7ed',
-        borderWidth: 1,
-        borderColor: '#fed7aa',
-        borderRadius: 12,
-        padding: 14,
-    },
-    manageAthletesBtnText: {
-        marginLeft: 8,
-        color: '#f97316',
-        fontWeight: '600',
-    },
-    sessionPickerBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#eff6ff',
-        borderWidth: 1,
-        borderColor: '#bfdbfe',
-        borderRadius: 12,
-        padding: 14,
-    },
-    sessionPickerBtnText: {
-        marginLeft: 8,
-        color: '#3b82f6',
-        fontWeight: '600',
-    },
-    sessionPickItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 16,
-        backgroundColor: 'white',
-        borderRadius: 12,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
-    },
-    sessionPickTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#1e293b',
-    },
-    sessionPickMeta: {
-        fontSize: 12,
-        color: '#64748b',
-        marginTop: 4,
-    },
-    emptyText: {
-        textAlign: 'center',
-        color: '#94a3b8',
-        marginTop: 40,
-    },
-    saveBtn: {
-        backgroundColor: '#f97316',
-        borderRadius: 12,
-        padding: 16,
-        alignItems: 'center',
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[900],
     },
     saveBtnText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
+        ...TYPOGRAPHY.h4,
+        color: COLORS.primary,
+        fontWeight: '700',
     },
-    athleteItem: {
+    modalScroll: {
+        padding: SPACING.lg,
+    },
+    formSection: {
+        marginBottom: 24,
+    },
+    formSectionTitle: {
+        ...TYPOGRAPHY.label,
+        fontSize: 10,
+        color: COLORS.gray[400],
+        letterSpacing: 1,
+        marginBottom: 16,
+    },
+    formInput: {
+        backgroundColor: COLORS.gray[50],
+        borderWidth: 0,
+        borderRadius: 12,
+        marginBottom: 12,
+    },
+    dualField: {
+        flexDirection: 'row',
+        marginBottom: 12,
+    },
+    inputLabel: {
+        ...TYPOGRAPHY.label,
+        color: COLORS.gray[600],
+        fontSize: 12,
+        marginBottom: 8,
+    },
+    pickerTrigger: {
+        height: 52,
+        backgroundColor: COLORS.gray[50],
+        borderRadius: 12,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
+        paddingHorizontal: 16,
+    },
+    pickerText: {
+        ...TYPOGRAPHY.body,
+        fontSize: 14,
+        color: COLORS.gray[900],
+    },
+    groupGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginTop: 4,
+    },
+    groupChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
         borderRadius: 12,
-        padding: 14,
+        backgroundColor: COLORS.gray[50],
+        borderWidth: 1,
+        borderColor: COLORS.gray[100],
+        minWidth: 70,
+        alignItems: 'center',
+    },
+    groupChipActive: {
+        backgroundColor: COLORS.gray[900],
+        borderColor: COLORS.gray[900],
+    },
+    groupChipTxt: {
+        ...TYPOGRAPHY.label,
+        fontSize: 12,
+        color: COLORS.gray[600],
+    },
+    groupChipTxtOn: {
+        color: COLORS.white,
+    },
+    sectionDivider: {
+        ...TYPOGRAPHY.label,
+        fontSize: 10,
+        color: COLORS.gray[400],
+        letterSpacing: 2,
+        marginBottom: 16,
+        marginTop: 8,
+        textAlign: 'center',
+    },
+    actionCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.white,
+        padding: 16,
+        borderRadius: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: COLORS.gray[50],
+        ...SHADOWS.xs,
+    },
+    actionCardIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: COLORS.primary + '10',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    actionCardBody: {
+        flex: 1,
+    },
+    actionCardTitle: {
+        ...TYPOGRAPHY.h4,
+        fontSize: 14,
+        color: COLORS.gray[900],
+    },
+    actionCardSub: {
+        ...TYPOGRAPHY.bodySmall,
+        fontSize: 11,
+        color: COLORS.gray[400],
+    },
+    deleteLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 20,
+        gap: 8,
+    },
+    deleteLinkTxt: {
+        ...TYPOGRAPHY.label,
+        color: COLORS.error,
+        fontSize: 13,
+    },
+    sessionPickItem: {
+        marginBottom: 12,
+    },
+    pickCard: {
+        ...SHADOWS.xs,
+        borderWidth: 1,
+        borderColor: COLORS.gray[50],
+    },
+    pickTitle: {
+        ...TYPOGRAPHY.h4,
+        color: COLORS.gray[900],
+    },
+    pickSub: {
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
+        marginTop: 4,
+    },
+    emptyBox: {
+        alignItems: 'center',
+        paddingVertical: 60,
+    },
+    emptyTxt: {
+        ...TYPOGRAPHY.body,
+        color: COLORS.gray[400],
+    },
+    athletePickItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        backgroundColor: COLORS.white,
+        borderRadius: 16,
         marginBottom: 8,
+        borderWidth: 1,
+        borderColor: COLORS.gray[50],
+        ...SHADOWS.xs,
     },
-    athleteItemSelected: {
-        backgroundColor: '#f0fdf4',
-        borderColor: '#10b981',
+    athletePickOn: {
+        borderColor: COLORS.success + '40',
+        backgroundColor: COLORS.success + '05',
     },
-    athleteInfo: {
+    athleteRow: {
         flex: 1,
     },
     athleteName: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#1e293b',
+        ...TYPOGRAPHY.h4,
+        color: COLORS.gray[900],
     },
-    athleteMeta: {
-        fontSize: 13,
-        color: '#64748b',
+    athleteNameOn: {
+        color: COLORS.success,
+    },
+    athleteInfo: {
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
         marginTop: 2,
-    },
+    }
 });
 
 export default PlanningCalendarScreen;

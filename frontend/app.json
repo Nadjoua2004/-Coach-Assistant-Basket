@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/logo.png",
       "resizeMode": "contain",
@@ -16,14 +16,32 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.nadjoua.coachbasket",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
-      },
-      "usesCleartextTraffic": true
+      }
     },
     "web": {
       "favicon": "./assets/logo.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ea4a40d2-1dc3-4630-a119-8cd3d27c0be3"
+      }
+    },
+    "plugins": [
+      "./fix-gradle.js",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.0.21",
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ]
   }
 }

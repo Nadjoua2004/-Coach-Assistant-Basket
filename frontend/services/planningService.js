@@ -21,6 +21,23 @@ class PlanningService {
     }
 
     /**
+     * Duplicate a week's planning
+     * @param {string} sourceDate - From date (YYYY-MM-DD or ISO)
+     * @param {string} targetDate - To date (YYYY-MM-DD or ISO)
+     */
+    static async duplicateWeek(sourceDate, targetDate) {
+        try {
+            return await ApiService.post('/api/planning/duplicate', {
+                source_date: sourceDate,
+                target_date: targetDate
+            });
+        } catch (error) {
+            console.error('Error in PlanningService.duplicateWeek:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Create a new planning event
      * @param {Object} eventData 
      */

@@ -4,9 +4,8 @@ import {
     Text,
     StyleSheet,
     Modal,
-    TextInput,
-    TouchableOpacity,
     ScrollView,
+    TouchableOpacity,
     ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
@@ -15,6 +14,9 @@ import {
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AuthService from '../../services/authService';
 import ProfileImagePicker from '../Common/ProfileImagePicker';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Button from '../UI/Button';
+import Input from '../UI/Input';
 
 const CoachProfileModal = ({ visible, onClose, onUpdate, user }) => {
     const [loading, setLoading] = useState(false);
@@ -28,7 +30,7 @@ const CoachProfileModal = ({ visible, onClose, onUpdate, user }) => {
 
     const handleSave = async () => {
         if (!formData.name || !formData.email) {
-            Alert.alert('Erreur', 'Le nom et l\'email sont obligatoires');
+            Alert.alert('Champs requis', 'Le nom et l\'email sont obligatoires pour votre profil.');
             return;
         }
 
@@ -38,14 +40,13 @@ const CoachProfileModal = ({ visible, onClose, onUpdate, user }) => {
 
             if (response.success) {
                 onUpdate(response.data);
-                Alert.alert('Succès', 'Profil mis à jour avec succès');
+                Alert.alert('Succès', 'Votre profil coach a été mis à jour.');
                 onClose();
             } else {
-                Alert.alert('Erreur', response.message || 'Impossible de mettre à jour le profil');
+                Alert.alert('Erreur', response.message || 'Échec de la mise à jour.');
             }
         } catch (error) {
-            console.error('Error updating profile:', error);
-            Alert.alert('Erreur', 'Une erreur est survenue lors de la mise à jour');
+            Alert.alert('Erreur', 'Une erreur technique est survenue.');
         } finally {
             setLoading(false);
         }
@@ -55,197 +56,144 @@ const CoachProfileModal = ({ visible, onClose, onUpdate, user }) => {
         <Modal
             visible={visible}
             animationType="slide"
-            transparent={true}
+            presentationStyle="pageSheet"
             onRequestClose={onClose}
         >
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.modalOverlay}
-            >
-                <View style={styles.modalContent}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Modifier mon profil</Text>
-                        <TouchableOpacity onPress={onClose} disabled={loading}>
-                            <Icon name="close" size={24} color="#64748b" />
-                        </TouchableOpacity>
-                    </View>
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                        <Icon name="close" size={24} color={COLORS.gray[900]} />
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Édition Profil</Text>
+                    <TouchableOpacity onPress={handleSave} disabled={loading}>
+                        {loading ? (
+                            <ActivityIndicator size="small" color={COLORS.primary} />
+                        ) : (
+                            <Text style={styles.saveBtnText}>OK</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
 
-                    <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                    style={styles.content}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 60 }}
+                >
+                    <View style={styles.imageSection}>
                         <ProfileImagePicker
                             initialImage={user?.photo_url}
                             onImageSelected={setPhoto}
-                            size={100}
+                            size={120}
+                        />
+                        <Text style={styles.imageHint}>Appuyez pour changer votre photo</Text>
+                    </View>
+
+                    <View style={styles.formCard}>
+                        <Input
+                            label="Nom complet"
+                            value={formData.name}
+                            onChangeText={(val) => setFormData({ ...formData, name: val })}
+                            placeholder="Ex: Jean Dupont"
+                            icon="account-outline"
+                            style={styles.inputStyle}
                         />
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Nom complet</Text>
-                            <View style={styles.inputWrapper}>
-                                <Icon name="account-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={formData.name}
-                                    onChangeText={(val) => setFormData({ ...formData, name: val })}
-                                    placeholder="Nom Prénom"
-                                />
-                            </View>
-                        </View>
+                        <Input
+                            label="Email"
+                            value={formData.email}
+                            onChangeText={(val) => setFormData({ ...formData, email: val })}
+                            keyboardType="email-address"
+                            placeholder="coach@club.com"
+                            autoCapitalize="none"
+                            icon="email-outline"
+                            style={styles.inputStyle}
+                        />
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Email</Text>
-                            <View style={styles.inputWrapper}>
-                                <Icon name="email-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={formData.email}
-                                    onChangeText={(val) => setFormData({ ...formData, email: val })}
-                                    keyboardType="email-address"
-                                    placeholder="email@exemple.com"
-                                    autoCapitalize="none"
-                                />
-                            </View>
-                        </View>
+                        <Input
+                            label="Téléphone"
+                            value={formData.phone}
+                            onChangeText={(val) => setFormData({ ...formData, phone: val })}
+                            keyboardType="phone-pad"
+                            placeholder="06 -- -- -- --"
+                            icon="phone-outline"
+                            style={styles.inputStyle}
+                        />
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Téléphone</Text>
-                            <View style={styles.inputWrapper}>
-                                <Icon name="phone-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={formData.phone}
-                                    onChangeText={(val) => setFormData({ ...formData, phone: val })}
-                                    keyboardType="phone-pad"
-                                    placeholder="06 00 00 00 00"
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Rôle dans le club</Text>
-                            <View style={styles.inputWrapper}>
-                                <Icon name="briefcase-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={formData.club_role}
-                                    onChangeText={(val) => setFormData({ ...formData, club_role: val })}
-                                    placeholder="Ex: Responsable technique U15"
-                                />
-                            </View>
-                        </View>
-
-                        <View style={{ height: 40 }} />
-                    </ScrollView>
-
-                    <View style={styles.modalFooter}>
-                        <TouchableOpacity
-                            style={styles.cancelButton}
-                            onPress={onClose}
-                            disabled={loading}
-                        >
-                            <Text style={styles.cancelButtonText}>Annuler</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.saveButton, loading && styles.disabledButton]}
-                            onPress={handleSave}
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <Text style={styles.saveButtonText}>Enregistrer</Text>
-                            )}
-                        </TouchableOpacity>
+                        <Input
+                            label="Rôle / Titre"
+                            value={formData.club_role}
+                            onChangeText={(val) => setFormData({ ...formData, club_role: val })}
+                            placeholder="Ex: Responsable technique"
+                            icon="briefcase-outline"
+                            style={styles.inputStyle}
+                        />
                     </View>
-                </View>
-            </KeyboardAvoidingView>
+
+                    <Button
+                        title="Sauvegarder le profil"
+                        onPress={handleSave}
+                        loading={loading}
+                        style={{ marginTop: 20 }}
+                    />
+                </ScrollView>
+            </View>
         </Modal>
     );
 };
 
 const styles = StyleSheet.create({
-    modalOverlay: {
+    container: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
+        backgroundColor: COLORS.white,
     },
-    modalContent: {
-        backgroundColor: 'white',
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        height: '80%',
-        padding: 24,
-    },
-    modalHeader: {
+    header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 32,
+        paddingHorizontal: SPACING.lg,
+        height: 60,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.gray[50],
     },
-    modalTitle: {
-        fontSize: 20,
+    closeBtn: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        marginLeft: -10,
+    },
+    title: {
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[900],
+    },
+    saveBtnText: {
+        ...TYPOGRAPHY.h4,
+        color: COLORS.primary,
         fontWeight: 'bold',
-        color: '#1e293b',
     },
-    form: {
+    content: {
         flex: 1,
+        padding: SPACING.lg,
     },
-    inputGroup: {
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#64748b',
-        marginBottom: 8,
-    },
-    inputWrapper: {
-        flexDirection: 'row',
+    imageSection: {
         alignItems: 'center',
-        backgroundColor: '#f8fafc',
+        marginBottom: 32,
+        marginTop: 10,
+    },
+    imageHint: {
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
+        marginTop: 12,
+    },
+    formCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: 20,
+        padding: 4,
+    },
+    inputStyle: {
+        backgroundColor: COLORS.gray[50],
+        borderWidth: 0,
         borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
-        paddingHorizontal: 12,
-    },
-    inputIcon: {
-        marginRight: 12,
-    },
-    input: {
-        flex: 1,
-        paddingVertical: 12,
-        fontSize: 16,
-        color: '#1e293b',
-    },
-    modalFooter: {
-        flexDirection: 'row',
-        gap: 12,
-        paddingTop: 16,
-    },
-    cancelButton: {
-        flex: 1,
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: 'center',
-        backgroundColor: '#f1f5f9',
-    },
-    cancelButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#64748b',
-    },
-    saveButton: {
-        flex: 2,
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: 'center',
-        backgroundColor: '#f97316',
-    },
-    saveButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: 'white',
-    },
-    disabledButton: {
-        opacity: 0.7,
+        marginBottom: 16,
     }
 });
 

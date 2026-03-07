@@ -144,6 +144,105 @@ class PlanningController {
   }
 
   /**
+   * Duplicate a week's planning
+   */
+  static async duplicateWeek(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, errors: errors.array() });
+      }
+
+      const { source_date, target_date } = req.body;
+      const created_by = req.user.id;
+
+      const startSource = new Date(source_date);
+      const endSource = new Date(startSource);
+      endSource.setDate(endSource.getDate() + 6);
+
+      const startSourceStr = startSource.toISOString().split('T')[0];
+      const endSourceStr = endSource.toISOString().split('T')[0];
+
+      const startTarget = new Date(target_date);
+      const diffTime = startTarget.getTime() - startSource.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+
+      // Fetch source events
+      const { data: sourceEvents, error: fetchError } = await supabase
+        .from('planning')
+        .select('*')
+        .gte('date', startSourceStr)
+        .lte('date', endSourceStr);
+
+      if (fetchError) throw fetchError;
+
+      if (!sourceEvents || sourceEvents.length === 0) {
+        return res.json({ success: true, message: 'Aucun événement à dupliquer', count: 0 });
+      }
+
+      // Fetch all expected assignments for these events
+      const sourceIds = sourceEvents.map(e => e.id);
+      const { data: sourceAssignments, error: assignError } = await supabase
+        .from('planning_athletes')
+        .select('*')
+        .in('planning_id', sourceIds);
+
+      if (assignError) throw assignError;
+
+      let duplicateCount = 0;
+      for (const event of sourceEvents) {
+        const oldEventDate = new Date(event.date);
+        const newEventDate = new Date(oldEventDate);
+        newEventDate.setDate(newEventDate.getDate() + diffDays);
+
+        const newEvent = {
+          date: newEventDate.toISOString().split('T')[0],
+          heure: event.heure,
+          duree: event.duree,
+          lieu: event.lieu,
+          theme: event.theme,
+          groupe: event.groupe,
+          session_id: event.session_id,
+          created_by,
+          created_at: new Date().toISOString()
+        };
+
+        const { data: insertedEvent, error: insertError } = await supabase
+          .from('planning')
+          .insert(newEvent)
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error("Error inserting duplicated event:", insertError);
+          continue;
+        }
+
+        duplicateCount++;
+
+        // Duplicate assignments
+        const relatedAssignments = sourceAssignments ? sourceAssignments.filter(a => a.planning_id === event.id) : [];
+        if (relatedAssignments.length > 0) {
+          const newAssignments = relatedAssignments.map(a => ({
+            planning_id: insertedEvent.id,
+            athlete_id: a.athlete_id
+          }));
+          await supabase.from('planning_athletes').insert(newAssignments);
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Planning dupliqué avec succès (${duplicateCount} événements)`,
+        count: duplicateCount
+      });
+    } catch (error) {
+      console.error('Duplicate planning error:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  }
+
+  /**
    * Update planning event
    */
   static async updatePlanningEvent(req, res) {

@@ -2,35 +2,50 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   Modal,
   FlatList,
-  TextInput,
   ScrollView,
   Alert,
   ActivityIndicator,
-  SafeAreaView
+  SafeAreaView,
+  Platform
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import ExerciseService from '../../services/exerciseService';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Button from '../UI/Button';
+import Card from '../UI/Card';
+import Input from '../UI/Input';
 
-const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {
+const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise, onCreateNew }) => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showCustomExercise, setShowCustomExercise] = useState(false);
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (visible) {
+      fetchExercises(); // Initial fetch for search
+    } else {
+      // Reset state on close
+      setSelectedCategory(null);
+      setSelectedSubcategory(null);
+      setSearchQuery('');
+    }
+  }, [visible]);
+
   // Exercise categories data
   const categories = [
-    { id: 'shoot', name: 'Shoot', icon: 'basketball-hoop' },
-    { id: 'dribble', name: 'Maniement de balle', icon: 'basketball' },
-    { id: 'defense', name: 'Défense', icon: 'shield' },
-    { id: 'system', name: 'Systèmes / Tactique', icon: 'sitemap' },
-    { id: 'physical', name: 'Physique', icon: 'dumbbell' },
-    { id: 'mental', name: 'Mental', icon: 'brain' }
+    { id: 'shoot', name: 'Shoot', icon: 'basketball-hoop', color: '#FF5722' },
+    { id: 'dribble', name: 'Maniement', icon: 'basketball', color: '#4CAF50' },
+    { id: 'defense', name: 'Défense', icon: 'shield-check', color: '#2196F3' },
+    { id: 'system', name: 'Tactique', icon: 'strategy', color: '#9C27B0' },
+    { id: 'physical', name: 'Physique', icon: 'lightning-bolt', color: '#FFC107' },
+    { id: 'mental', name: 'Mental', icon: 'brain', color: '#E91E63' }
   ];
 
   // Subcategories mapping
@@ -86,12 +101,6 @@ const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {
     }
   };
 
-  useEffect(() => {
-    if (visible && !selectedCategory) {
-      // Initial state
-    }
-  }, [visible]);
-
   const handleSelectCategory = (category) => {
     setSelectedCategory(category);
     setSelectedSubcategory(null);
@@ -107,7 +116,7 @@ const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {
   };
 
   const handleCreateCustomExercise = () => {
-    setShowCustomExercise(true);
+    if (onCreateNew) onCreateNew();
   };
 
   const filteredExercises = exercises.filter(ex =>
@@ -116,73 +125,44 @@ const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {
   );
 
   const renderContent = () => {
-    if (showCustomExercise) {
-      return (
-        <CustomExerciseForm
-          onSave={async (exerciseData, videoFile) => {
-            try {
-              const response = await ExerciseService.createExercise(exerciseData, videoFile);
-              if (response.success) {
-                onSelectExercise(response.data);
-                onClose();
-              }
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible de créer l\'exercice');
-            }
-          }}
-          onCancel={() => setShowCustomExercise(false)}
-        />
-      );
-    }
-
-    // Step 1: Select Category
-    if (!selectedCategory) {
-      return (
-        <FlatList
-          data={categories}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.categoryItem}
-              onPress={() => handleSelectCategory(item)}
-            >
-              <View style={styles.categoryIcon}>
-                <Icon name={item.icon} size={24} color="#f97316" />
-              </View>
-              <Text style={styles.categoryName}>{item.name}</Text>
-              <Icon name="chevron-right" size={20} color="#d1d5db" />
-            </TouchableOpacity>
-          )}
-        />
-      );
-    }
-
-    // Step 2: Select Subcategory
-    if (!selectedSubcategory) {
+    // Top Priority: If user is searching, show results everywhere
+    if (searchQuery.trim().length > 0) {
       return (
         <View style={{ flex: 1 }}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => setSelectedCategory(null)}
-          >
-            <Icon name="arrow-left" size={20} color="#6b7280" />
-            <Text style={styles.backButtonText}>{selectedCategory.name}</Text>
-          </TouchableOpacity>
           <FlatList
-            data={subcategoriesMap[selectedCategory.id] || []}
-            keyExtractor={(item) => item.id}
+            data={filteredExercises}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={{ padding: SPACING.md }}
             renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.categoryItem}
-                onPress={() => handleSelectSubcategory(item)}
+              <Card
+                style={styles.exerciseListCard}
+                padding="md"
+                onPress={() => handleSelectExercise(item)}
               >
-                <Text style={styles.categoryName}>{item.name}</Text>
-                <Icon name="chevron-right" size={20} color="#d1d5db" />
-              </TouchableOpacity>
+                <View style={styles.exInfo}>
+                  <Text style={styles.exName}>{item.name}</Text>
+                  <View style={styles.exMeta}>
+                    <View style={styles.exMetaItem}>
+                      <Icon name="clock-outline" size={14} color={COLORS.gray[400]} />
+                      <Text style={styles.exMetaText}>{item.duration} min</Text>
+                    </View>
+                    <View style={styles.exMetaItem}>
+                      <Icon name="account-group" size={14} color={COLORS.gray[400]} />
+                      <Text style={styles.exMetaText}>
+                        {item.players_min}-{item.players_max}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.addBtn}>
+                  <Icon name="plus" size={20} color={COLORS.white} />
+                </View>
+              </Card>
             )}
             ListEmptyComponent={
-              <View style={styles.emptyExercises}>
-                <Text style={styles.emptyText}>Aucune sous-catégorie trouvée</Text>
+              <View style={styles.emptyBox}>
+                <Icon name="basket-outline" size={48} color={COLORS.gray[200]} />
+                <Text style={styles.emptyTxt}>Aucun exercice trouvé</Text>
               </View>
             }
           />
@@ -190,50 +170,113 @@ const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {
       );
     }
 
-    // Step 3: Select Exercise
+    if (!selectedCategory) {
+      return (
+        <FlatList
+          data={categories}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={{ padding: SPACING.md }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.categoryCard}
+              onPress={() => handleSelectCategory(item)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.categoryIconContainer, { backgroundColor: item.color + '15' }]}>
+                <Icon name={item.icon} size={32} color={item.color} />
+              </View>
+              <Text style={styles.categoryNameText}>{item.name}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      );
+    }
+
+    if (!selectedSubcategory) {
+      return (
+        <View style={{ flex: 1 }}>
+          <View style={styles.breadcrumb}>
+            <TouchableOpacity onPress={() => setSelectedCategory(null)} style={styles.breadcrumbItem}>
+              <Text style={styles.breadcrumbText}>Catégories</Text>
+            </TouchableOpacity>
+            <Icon name="chevron-right" size={16} color={COLORS.gray[300]} />
+            <Text style={[styles.breadcrumbText, { color: COLORS.primary, fontWeight: '700' }]}>
+              {selectedCategory.name}
+            </Text>
+          </View>
+          <FlatList
+            data={subcategoriesMap[selectedCategory.id] || []}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ padding: SPACING.md }}
+            renderItem={({ item }) => (
+              <Card
+                style={styles.listCard}
+                padding="lg"
+                onPress={() => handleSelectSubcategory(item)}
+              >
+                <Text style={styles.listCardTitle}>{item.name}</Text>
+                <Icon name="chevron-right" size={20} color={COLORS.gray[300]} />
+              </Card>
+            )}
+          />
+        </View>
+      );
+    }
+
     return (
       <View style={{ flex: 1 }}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => setSelectedSubcategory(null)}
-        >
-          <Icon name="arrow-left" size={20} color="#6b7280" />
-          <Text style={styles.backButtonText}>{selectedSubcategory.name}</Text>
-        </TouchableOpacity>
+        <View style={styles.breadcrumb}>
+          <TouchableOpacity onPress={() => setSelectedCategory(null)} style={styles.breadcrumbItem}>
+            <Text style={styles.breadcrumbText}>Catégories</Text>
+          </TouchableOpacity>
+          <Icon name="chevron-right" size={16} color={COLORS.gray[300]} />
+          <TouchableOpacity onPress={() => setSelectedSubcategory(null)} style={styles.breadcrumbItem}>
+            <Text style={styles.breadcrumbText}>{selectedCategory.name}</Text>
+          </TouchableOpacity>
+          <Icon name="chevron-right" size={16} color={COLORS.gray[300]} />
+          <Text style={[styles.breadcrumbText, { color: COLORS.primary, fontWeight: '700' }]}>
+            {selectedSubcategory.name}
+          </Text>
+        </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#f97316" style={{ marginTop: 20 }} />
+          <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
         ) : (
           <FlatList
             data={filteredExercises}
             keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={{ padding: SPACING.md }}
             renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.exerciseItem}
+              <Card
+                style={styles.exerciseListCard}
+                padding="md"
                 onPress={() => handleSelectExercise(item)}
               >
-                <View style={styles.exerciseInfo}>
-                  <Text style={styles.exerciseName}>{item.name}</Text>
-                  <View style={styles.exerciseDetails}>
-                    <View style={styles.exerciseDetail}>
-                      <Icon name="clock-outline" size={14} color="#6b7280" />
-                      <Text style={styles.exerciseDetailText}>{item.duration} min</Text>
+                <View style={styles.exInfo}>
+                  <Text style={styles.exName}>{item.name}</Text>
+                  <View style={styles.exMeta}>
+                    <View style={styles.exMetaItem}>
+                      <Icon name="clock-outline" size={14} color={COLORS.gray[400]} />
+                      <Text style={styles.exMetaText}>{item.duration} min</Text>
                     </View>
-                    <View style={styles.exerciseDetail}>
-                      <Icon name="account-group" size={14} color="#6b7280" />
-                      <Text style={styles.exerciseDetailText}>
-                        {item.players_min || item.playersMin}-{item.players_max || item.playersMax} joueurs
+                    <View style={styles.exMetaItem}>
+                      <Icon name="account-group" size={14} color={COLORS.gray[400]} />
+                      <Text style={styles.exMetaText}>
+                        {item.players_min}-{item.players_max}
                       </Text>
                     </View>
                   </View>
                 </View>
-                <Icon name="plus-circle" size={24} color="#f97316" />
-              </TouchableOpacity>
+                <View style={styles.addBtn}>
+                  <Icon name="plus" size={20} color={COLORS.white} />
+                </View>
+              </Card>
             )}
             ListEmptyComponent={
-              <View style={styles.emptyExercises}>
-                <Icon name="clipboard-text-outline" size={48} color="#d1d5db" />
-                <Text style={styles.emptyText}>Aucun exercice trouvé</Text>
+              <View style={styles.emptyBox}>
+                <Icon name="basket-outline" size={48} color={COLORS.gray[200]} />
+                <Text style={styles.emptyTxt}>Aucun exercice dans cette catégorie</Text>
               </View>
             }
           />
@@ -249,395 +292,236 @@ const ExerciseSelectionModal = ({ visible, onClose, onSelectExercise }) => {
       visible={visible}
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.modalContainer}>
-        <View style={styles.modalContent}>
+      <View style={styles.modalBg}>
+        <View style={styles.modalSheet}>
           <View style={styles.modalHeader}>
-            <View style={styles.modalHeaderLeft}>
-              <Text style={styles.modalTitle}>Sélectionner un exercice</Text>
-              <TouchableOpacity
-                style={styles.manageButton}
-                onPress={() => {
-                  onClose();
-                }}
-              >
-                <Icon name="cog" size={16} color="#f97316" />
-                <Text style={styles.manageButtonText}>Gérer</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity onPress={onClose}>
-              <Icon name="close" size={24} color="#6b7280" />
+            <Text style={styles.modalTitle}>Ajouter un exercice</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <Icon name="close" size={24} color={COLORS.gray[400]} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.searchContainer}>
-            <Icon name="magnify" size={20} color="#9ca3af" style={styles.searchIcon} />
+          <View style={styles.searchBar}>
+            <Icon name="magnify" size={20} color={COLORS.primary} style={styles.searchBarIcon} />
             <TextInput
-              style={styles.searchInput}
+              style={styles.searchInputCustom}
               placeholder="Rechercher un exercice..."
+              placeholderTextColor={COLORS.gray[400]}
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholderTextColor="#9ca3af"
             />
+            {Boolean(searchQuery) && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchBarClear}>
+                <Icon name="close-circle" size={16} color={COLORS.gray[400]} />
+              </TouchableOpacity>
+            )}
           </View>
 
-          <View style={{ flex: 1, minHeight: 400 }}>
+          <View style={{ flex: 1 }}>
             {renderContent()}
           </View>
-
-          <TouchableOpacity
-            style={styles.customExerciseButton}
-            onPress={handleCreateCustomExercise}
-          >
-            <Icon name="plus-circle-outline" size={20} color="#3b82f6" />
-            <Text style={styles.customExerciseButtonText}>Ajouter mon propre exercice</Text>
-          </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 };
 
-// Custom Exercise Form Component
-const CustomExerciseForm = ({ onSave, onCancel }) => {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [duration, setDuration] = useState('');
-  const [playersMin, setPlayersMin] = useState('');
-  const [playersMax, setPlayersMax] = useState('');
-  const [equipment, setEquipment] = useState('');
-  const [category, setCategory] = useState('');
-
-  const handleSave = () => {
-    if (!name || !duration) {
-      Alert.alert('Erreur', 'Veuillez remplir les champs obligatoires');
-      return;
-    }
-
-    onSave({
-      name,
-      description,
-      duration: parseInt(duration),
-      players_min: playersMin ? parseInt(playersMin) : 1,
-      players_max: playersMax ? parseInt(playersMax) : 12,
-      equipment,
-      category: category || 'Personnalisé'
-    });
-  };
-
-  return (
-    <ScrollView style={styles.customForm}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={onCancel}
-      >
-        <Icon name="arrow-left" size={20} color="#6b7280" />
-        <Text style={styles.backButtonText}>Retour</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.formTitle}>Nouvel exercice</Text>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Nom de l'exercice *</Text>
-        <TextInput
-          style={styles.formInput}
-          value={name}
-          onChangeText={setName}
-          placeholder="Ex: Shoot en mouvement"
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Description</Text>
-        <TextInput
-          style={[styles.formInput, styles.textArea]}
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Décrivez l'exercice..."
-          multiline
-          numberOfLines={4}
-        />
-      </View>
-
-      <View style={styles.formRow}>
-        <View style={[styles.formGroup, styles.halfInput]}>
-          <Text style={styles.formLabel}>Durée (min) *</Text>
-          <TextInput
-            style={styles.formInput}
-            value={duration}
-            onChangeText={setDuration}
-            placeholder="15"
-            keyboardType="numeric"
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.formLabel}>Catégorie</Text>
-          <TextInput
-            style={styles.formInput}
-            value={category}
-            onChangeText={setCategory}
-            placeholder="Ex: Shoot"
-          />
-        </View>
-      </View>
-
-      <View style={styles.formRow}>
-        <View style={[styles.formGroup, styles.halfInput]}>
-          <Text style={styles.formLabel}>Joueurs min</Text>
-          <TextInput
-            style={styles.formInput}
-            value={playersMin}
-            onChangeText={setPlayersMin}
-            placeholder="1"
-            keyboardType="numeric"
-          />
-        </View>
-
-        <View style={[styles.formGroup, styles.halfInput]}>
-          <Text style={styles.formLabel}>Joueurs max</Text>
-          <TextInput
-            style={styles.formInput}
-            value={playersMax}
-            onChangeText={setPlayersMax}
-            placeholder="12"
-            keyboardType="numeric"
-          />
-        </View>
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Matériel nécessaire</Text>
-        <TextInput
-          style={styles.formInput}
-          value={equipment}
-          onChangeText={setEquipment}
-          placeholder="Ballons, plots, cerceaux..."
-        />
-      </View>
-
-      <TouchableOpacity
-        style={styles.formSaveButton}
-        onPress={handleSave}
-      >
-        <Text style={styles.formSaveButtonText}>Enregistrer l'exercice</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-};
-
 const styles = StyleSheet.create({
-  modalContainer: {
+  modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end'
   },
-  modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+  modalSheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     height: '92%',
+    ...SHADOWS.lg
   },
   modalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    justifyContent: 'space-between',
+    padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: COLORS.gray[50]
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
+    ...TYPOGRAPHY.h3,
+    fontSize: 20,
+    color: COLORS.gray[900]
   },
-  modalHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  manageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff7ed',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  closeBtn: {
+    width: 36,
+    height: 36,
     borderRadius: 12,
-    marginLeft: 12,
-    borderWidth: 1,
-    borderColor: '#ffedd5',
+    backgroundColor: COLORS.gray[50],
+    alignItems: 'center',
+    justifyContent: 'center'
   },
-  manageButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#f97316',
-    marginLeft: 4,
-  },
-  searchContainer: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    backgroundColor: COLORS.gray[50],
+    borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderColor: COLORS.gray[100],
+    paddingLeft: 20,
+    paddingRight: 8,
+    height: 48,
   },
-  searchIcon: {
-    marginRight: 12,
+  searchBarIcon: {
+    marginRight: 8,
   },
-  searchInput: {
+  searchBarClear: {
+    padding: 8,
+  },
+  searchInputCustom: {
     flex: 1,
-    fontSize: 16,
-    color: '#374151',
+    fontSize: 14,
+    color: COLORS.gray[900],
+    height: '100%',
   },
-  categoryItem: {
+  categoryCard: {
+    flex: 1,
+    aspectRatio: 1,
+    margin: 8,
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.gray[50],
+    ...SHADOWS.sm
+  },
+  categoryIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16
+  },
+  categoryNameText: {
+    ...TYPOGRAPHY.label,
+    fontSize: 13,
+    color: COLORS.gray[800],
+    textAlign: 'center'
+  },
+  breadcrumb: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    paddingHorizontal: 24,
+    backgroundColor: COLORS.gray[50],
+    gap: 10
   },
-  categoryIcon: {
+  breadcrumbItem: {
+    paddingVertical: 4
+  },
+  breadcrumbText: {
+    ...TYPOGRAPHY.label,
+    fontSize: 12,
+    color: COLORS.gray[400]
+  },
+  listCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 20,
+    ...SHADOWS.xs
+  },
+  listCardTitle: {
+    ...TYPOGRAPHY.body,
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.gray[800]
+  },
+  exerciseListCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 16,
+    ...SHADOWS.sm
+  },
+  exInfo: {
+    flex: 1
+  },
+  exName: {
+    ...TYPOGRAPHY.h4,
+    fontSize: 16,
+    color: COLORS.gray[900],
+    marginBottom: 6
+  },
+  exMeta: {
+    flexDirection: 'row',
+    gap: 12
+  },
+  exMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5
+  },
+  exMetaText: {
+    ...TYPOGRAPHY.bodySmall,
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.gray[400]
+  },
+  addBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#fff7ed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  categoryName: {
-    flex: 1,
-    fontSize: 16,
-    color: '#374151',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#374151',
-    marginLeft: 8,
-  },
-  subcategoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  subcategoryName: {
-    flex: 1,
-    fontSize: 16,
-    color: '#374151',
-  },
-  exerciseItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  exerciseInfo: {
-    flex: 1,
-  },
-  exerciseName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 4,
-  },
-  exerciseDetails: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  exerciseDetail: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  exerciseDetailText: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginLeft: 4,
-  },
-  exerciseEquipment: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  emptyExercises: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#9ca3af',
-    marginTop: 12,
-  },
-  customExerciseButton: {
-    flexDirection: 'row',
+    borderRadius: 14,
+    backgroundColor: COLORS.gray[900],
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    ...SHADOWS.sm
+  },
+  bottomActions: {
+    padding: 24,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 24,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  customExerciseButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3b82f6',
-    marginLeft: 8,
+    borderTopColor: COLORS.gray[50],
+    backgroundColor: COLORS.white
   },
   customForm: {
-    padding: 20,
+    padding: 24
   },
-  formTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 24,
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  formRow: {
+  formBack: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  halfInput: {
-    width: '48%',
-  },
-  formLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  formInput: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: 'white',
-  },
-  textArea: {
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  formSaveButton: {
-    backgroundColor: '#f97316',
-    borderRadius: 12,
-    padding: 16,
     alignItems: 'center',
-    marginTop: 24,
+    gap: 8,
+    marginBottom: 24
   },
-  formSaveButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+  formBackText: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.gray[400],
+    fontWeight: '700'
   },
+  formHeader: {
+    ...TYPOGRAPHY.h2,
+    fontSize: 24,
+    color: COLORS.gray[900],
+    marginBottom: 32
+  },
+  emptyBox: {
+    alignItems: 'center',
+    padding: 80
+  },
+  emptyTxt: {
+    ...TYPOGRAPHY.bodySmall,
+    color: COLORS.gray[300],
+    fontSize: 14,
+    marginTop: 16,
+    textAlign: 'center'
+  }
 });
 
 export default ExerciseSelectionModal;

@@ -6,10 +6,13 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
-    RefreshControl
+    RefreshControl,
+    Platform
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import PlanningService from '../../services/planningService';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Card from '../UI/Card';
 
 const AttendanceSelector = ({ onSelectSession }) => {
     const [events, setEvents] = useState([]);
@@ -45,7 +48,7 @@ const AttendanceSelector = ({ onSelectSession }) => {
     if (loading && !refreshing) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color="#f97316" />
+                <ActivityIndicator size="large" color={COLORS.primary} />
                 <Text style={styles.loadingText}>Chargement des séances...</Text>
             </View>
         );
@@ -61,44 +64,46 @@ const AttendanceSelector = ({ onSelectSession }) => {
             <ScrollView
                 style={styles.content}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} color="#f97316" />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
                 }
             >
                 {events.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Icon name="calendar-blank" size={60} color="#cbd5e1" />
+                        <Icon name="calendar-blank" size={60} color={COLORS.gray[200]} />
                         <Text style={styles.emptyText}>Aucune séance dans le planning</Text>
                         <Text style={styles.emptySubText}>Créez d'abord une séance dans l'onglet Planning.</Text>
                     </View>
                 ) : (
                     events.map(event => (
-                        <TouchableOpacity
+                        <Card
                             key={event.id}
                             style={styles.eventCard}
+                            padding="lg"
+                            shadow="sm"
                             onPress={() => onSelectSession(event)}
                         >
                             <View style={styles.eventInfo}>
                                 <Text style={styles.eventTheme}>{event.theme || event.title || 'Séance sans titre'}</Text>
                                 <View style={styles.eventMeta}>
                                     <View style={styles.metaItem}>
-                                        <Icon name="calendar" size={14} color="#64748b" />
+                                        <Icon name="calendar" size={14} color={COLORS.gray[400]} />
                                         <Text style={styles.metaText}>{event.date}</Text>
                                     </View>
                                     <View style={styles.metaItem}>
-                                        <Icon name="clock-outline" size={14} color="#64748b" />
+                                        <Icon name="clock-outline" size={14} color={COLORS.gray[400]} />
                                         <Text style={styles.metaText}>{event.heure}</Text>
                                     </View>
                                     <View style={styles.metaItem}>
-                                        <Icon name="account-group" size={14} color="#64748b" />
+                                        <Icon name="account-group" size={14} color={COLORS.gray[400]} />
                                         <Text style={styles.metaText}>{event.groupe}</Text>
                                     </View>
                                 </View>
                             </View>
-                            <Icon name="chevron-right" size={24} color="#cbd5e1" />
-                        </TouchableOpacity>
+                            <Icon name="chevron-right" size={24} color={COLORS.primary} />
+                        </Card>
                     ))
                 )}
-                <View style={{ height: 100 }} />
+                <View style={{ height: 40 }} />
             </ScrollView>
         </View>
     );
@@ -107,61 +112,60 @@ const AttendanceSelector = ({ onSelectSession }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
+        backgroundColor: COLORS.gray[50],
     },
     center: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: COLORS.gray[50],
     },
     loadingText: {
-        marginTop: 12,
-        color: '#64748b',
-        fontSize: 16,
+        marginTop: 16,
+        color: COLORS.gray[400],
+        ...TYPOGRAPHY.bodySmall,
     },
     header: {
-        padding: 24,
-        backgroundColor: 'white',
+        paddingHorizontal: SPACING.lg,
+        paddingTop: Platform.OS === 'ios' ? 60 : 30,
+        paddingBottom: 24,
+        backgroundColor: COLORS.white,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        borderBottomColor: COLORS.gray[100],
+        ...SHADOWS.sm,
     },
     title: {
+        ...TYPOGRAPHY.h1,
         fontSize: 28,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        color: COLORS.gray[900],
     },
     subtitle: {
-        fontSize: 15,
-        color: '#64748b',
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
         marginTop: 4,
     },
     content: {
         flex: 1,
-        padding: 16,
+        padding: SPACING.lg,
     },
     eventCard: {
-        backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 12,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        marginBottom: 16,
+        borderRadius: 20,
+        backgroundColor: COLORS.white,
         borderWidth: 1,
-        borderColor: '#f1f5f9',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        borderColor: COLORS.gray[50],
+        ...SHADOWS.sm,
     },
     eventInfo: {
         flex: 1,
     },
     eventTheme: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1e293b',
+        ...TYPOGRAPHY.h4,
+        fontSize: 16,
+        color: COLORS.gray[900],
         marginBottom: 8,
     },
     eventMeta: {
@@ -172,28 +176,37 @@ const styles = StyleSheet.create({
     metaItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
+        backgroundColor: COLORS.gray[50],
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: COLORS.gray[100],
     },
     metaText: {
-        fontSize: 12,
-        color: '#64748b',
+        ...TYPOGRAPHY.label,
+        fontSize: 10,
+        color: COLORS.gray[600],
+        fontWeight: '700',
     },
     emptyContainer: {
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 100,
+        marginTop: 80,
     },
     emptyText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#64748b',
-        marginTop: 16,
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[900],
+        marginTop: 24,
     },
     emptySubText: {
-        fontSize: 14,
-        color: '#94a3b8',
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
         marginTop: 8,
         textAlign: 'center',
+        paddingHorizontal: 40,
+        lineHeight: 20,
     }
 });
 

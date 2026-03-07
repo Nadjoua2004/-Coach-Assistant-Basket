@@ -10,29 +10,30 @@ import {
     Linking
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Button from '../UI/Button';
+import Card from '../UI/Card';
 
 const ExerciseDetailsModal = ({ visible, onClose, exercise, onEdit, onDelete }) => {
     if (!exercise) return null;
 
     const categoryIcons = {
-        shoot: 'basketball',
-        dribble: 'run',
-        defense: 'shield',
+        shoot: 'basketball-hoop',
+        dribble: 'basketball',
+        defense: 'shield-check',
         system: 'strategy',
-        physical: 'dumbbell',
+        physical: 'lightning-bolt',
         mental: 'brain'
     };
 
     const categoryLabels = {
-        shoot: 'Shoot',
-        dribble: 'Conduite',
-        defense: 'Défense',
-        system: 'Système',
-        physical: 'Physique',
-        mental: 'Mental'
+        shoot: 'Lancers & Paniers',
+        dribble: 'Maniement & Dribble',
+        defense: 'Défense & Interceptions',
+        system: 'Tactique & Systèmes',
+        physical: 'Condition Physique',
+        mental: 'Mental & Focus'
     };
-
-
 
     return (
         <Modal
@@ -42,122 +43,94 @@ const ExerciseDetailsModal = ({ visible, onClose, exercise, onEdit, onDelete }) 
             onRequestClose={onClose}
         >
             <View style={styles.container}>
-                {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={onClose}>
-                        <Icon name="close" size={24} color="#1A1A1A" />
+                    <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                        <Icon name="close" size={24} color={COLORS.gray[900]} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Détails</Text>
+                    <Text style={styles.headerTitle}>Détails Exercice</Text>
                     <View style={styles.headerActions}>
                         <TouchableOpacity
-                            style={styles.headerButton}
+                            style={[styles.headerAction, { backgroundColor: COLORS.info + '10' }]}
                             onPress={() => onEdit(exercise)}
                         >
-                            <Icon name="pencil" size={20} color="#4ECDC4" />
+                            <Icon name="pencil" size={20} color={COLORS.info} />
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={styles.headerButton}
+                            style={[styles.headerAction, { backgroundColor: COLORS.error + '10' }]}
                             onPress={() => onDelete(exercise)}
                         >
-                            <Icon name="delete" size={20} color="#FF6B35" />
+                            <Icon name="trash-can-outline" size={20} color={COLORS.error} />
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                    {/* Exercise Name */}
-                    <View style={styles.titleSection}>
-                        <View style={styles.iconBadge}>
+                    <View style={styles.heroSection}>
+                        <View style={styles.iconContainer}>
                             <Icon
-                                name={categoryIcons[exercise.category] || 'dumbbell'}
-                                size={32}
-                                color="#FF6B35"
+                                name={categoryIcons[exercise.category] || 'basketball'}
+                                size={44}
+                                color={COLORS.primary}
                             />
                         </View>
                         <Text style={styles.exerciseName}>{exercise.name}</Text>
-                        <View style={styles.categoryBadge}>
-                            <Text style={styles.categoryBadgeText}>
-                                {categoryLabels[exercise.category] || exercise.category}
-                            </Text>
-                            {exercise.subcategory && (
-                                <Text style={styles.subcategoryBadgeText}>
-                                    • {exercise.subcategory}
+                        <View style={styles.tagRow}>
+                            <View style={styles.categoryTag}>
+                                <Text style={styles.categoryTagText}>
+                                    {categoryLabels[exercise.category] || exercise.category}
                                 </Text>
-                            )}
-                        </View>
-                    </View>
-
-
-
-                    {/* Description */}
-                    {exercise.description && (
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>
-                                <Icon name="text" size={18} color="#1A1A1A" /> Description
-                            </Text>
-                            <Text style={styles.descriptionText}>{exercise.description}</Text>
-                        </View>
-                    )}
-
-                    {/* Details Grid */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>
-                            <Icon name="information" size={18} color="#1A1A1A" /> Informations
-                        </Text>
-                        <View style={styles.detailsGrid}>
-                            {exercise.duration && (
-                                <View style={styles.detailCard}>
-                                    <Icon name="clock-outline" size={24} color="#4ECDC4" />
-                                    <Text style={styles.detailValue}>{exercise.duration}</Text>
-                                    <Text style={styles.detailLabel}>minutes</Text>
-                                </View>
-                            )}
-
-                            {exercise.players_min && exercise.players_max && (
-                                <View style={styles.detailCard}>
-                                    <Icon name="account-group" size={24} color="#4ECDC4" />
-                                    <Text style={styles.detailValue}>
-                                        {exercise.players_min}-{exercise.players_max}
+                            </View>
+                            {Boolean(exercise.subcategory) && (
+                                <View style={styles.subcategoryTag}>
+                                    <Text style={styles.subcategoryTagText}>
+                                        {exercise.subcategory}
                                     </Text>
-                                    <Text style={styles.detailLabel}>joueurs</Text>
                                 </View>
                             )}
                         </View>
                     </View>
 
-                    {/* Equipment */}
-                    {exercise.equipment && (
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>
-                                <Icon name="basketball" size={18} color="#1A1A1A" /> Matériel nécessaire
+                    <View style={styles.infoGrid}>
+                        <Card style={styles.infoCard} padding="md">
+                            <Icon name="clock-time-four-outline" size={24} color={COLORS.primary} />
+                            <Text style={styles.infoValue}>{exercise.duration || '0'}</Text>
+                            <Text style={styles.infoLabel}>Minutes</Text>
+                        </Card>
+                        <Card style={styles.infoCard} padding="md">
+                            <Icon name="account-group" size={24} color={COLORS.primary} />
+                            <Text style={styles.infoValue}>
+                                {exercise.players_min || 0}-{exercise.players_max || 12}
                             </Text>
-                            <View style={styles.equipmentContainer}>
-                                <Icon name="checkbox-marked-circle" size={20} color="#4ECDC4" />
+                            <Text style={styles.infoLabel}>Joueurs</Text>
+                        </Card>
+                    </View>
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionLabel}>DESCRIPTION</Text>
+                        <Card style={styles.descCard} padding="lg">
+                            <Text style={styles.descriptionText}>
+                                {exercise.description || 'Aucune description fournie.'}
+                            </Text>
+                        </Card>
+                    </View>
+
+                    {Boolean(exercise.equipment) && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionLabel}>MATÉRIEL</Text>
+                            <Card style={styles.equipmentCard} padding="md">
+                                <View style={styles.equipmentIconBox}>
+                                    <Icon name="hammer-wrench" size={20} color={COLORS.white} />
+                                </View>
                                 <Text style={styles.equipmentText}>{exercise.equipment}</Text>
-                            </View>
+                            </Card>
                         </View>
                     )}
 
-                    {/* Metadata */}
-                    <View style={styles.metadataSection}>
-                        {exercise.created_at && (
-                            <View style={styles.metadataRow}>
-                                <Icon name="calendar-plus" size={16} color="#999" />
-                                <Text style={styles.metadataText}>
-                                    Créé le {new Date(exercise.created_at).toLocaleDateString('fr-FR')}
-                                </Text>
-                            </View>
-                        )}
-                        {exercise.updated_at && exercise.updated_at !== exercise.created_at && (
-                            <View style={styles.metadataRow}>
-                                <Icon name="calendar-edit" size={16} color="#999" />
-                                <Text style={styles.metadataText}>
-                                    Modifié le {new Date(exercise.updated_at).toLocaleDateString('fr-FR')}
-                                </Text>
-                            </View>
-                        )}
+                    <View style={styles.footerInfo}>
+                        <Text style={styles.footerText}>
+                            Ajouté le {new Date(exercise.created_at || Date.now()).toLocaleDateString('fr-FR')}
+                        </Text>
                     </View>
-
                     <View style={{ height: 40 }} />
                 </ScrollView>
             </View>
@@ -168,157 +141,196 @@ const ExerciseDetailsModal = ({ visible, onClose, exercise, onEdit, onDelete }) 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA'
+        backgroundColor: COLORS.gray[50]
     },
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        backgroundColor: '#FFF',
+        paddingHorizontal: SPACING.lg,
+        paddingTop: Platform.OS === 'ios' ? 60 : 30,
+        paddingBottom: 20,
+        backgroundColor: COLORS.white,
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E5E5',
-        ...Platform.select({
-            ios: {
-                paddingTop: 50
-            },
-            android: {
-                paddingTop: 20
-            }
-        })
+        borderBottomColor: COLORS.gray[100],
+        ...SHADOWS.sm
+    },
+    closeBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        backgroundColor: COLORS.gray[50],
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     headerTitle: {
+        flex: 1,
+        marginLeft: 16,
+        ...TYPOGRAPHY.h3,
         fontSize: 18,
-        fontWeight: '600',
-        color: '#1A1A1A'
+        color: COLORS.gray[900]
     },
     headerActions: {
-        flexDirection: 'row'
+        flexDirection: 'row',
+        gap: 10
     },
-    headerButton: {
-        padding: 8,
-        marginLeft: 8
+    headerAction: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...SHADOWS.xs
     },
     content: {
         flex: 1
     },
-    titleSection: {
+    heroSection: {
         alignItems: 'center',
-        paddingVertical: 32,
-        paddingHorizontal: 20,
-        backgroundColor: '#FFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E5E5'
+        paddingVertical: 48,
+        paddingHorizontal: SPACING.xl,
+        backgroundColor: COLORS.white,
+        borderBottomLeftRadius: 40,
+        borderBottomRightRadius: 40,
+        ...SHADOWS.md
     },
-    iconBadge: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        backgroundColor: '#FFF7F5',
+    iconContainer: {
+        width: 96,
+        height: 96,
+        borderRadius: 32,
+        backgroundColor: COLORS.gray[50],
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
-        borderWidth: 2,
-        borderColor: '#FF6B35'
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: COLORS.gray[100]
     },
     exerciseName: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1A1A1A',
+        ...TYPOGRAPHY.h1,
+        fontSize: 28,
+        color: COLORS.gray[900],
         textAlign: 'center',
-        marginBottom: 12
+        marginBottom: 20
     },
-    categoryBadge: {
+    tagRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F0F0F0',
-        paddingHorizontal: 16,
+        gap: 10,
+        flexWrap: 'wrap',
+        justifyContent: 'center'
+    },
+    categoryTag: {
+        backgroundColor: COLORS.gray[900],
+        paddingHorizontal: 14,
         paddingVertical: 8,
-        borderRadius: 20
+        borderRadius: 14
     },
-    categoryBadgeText: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#666'
+    categoryTagText: {
+        ...TYPOGRAPHY.label,
+        fontSize: 11,
+        color: COLORS.white,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
     },
-    subcategoryBadgeText: {
-        fontSize: 14,
-        color: '#999',
-        marginLeft: 4
+    subcategoryTag: {
+        backgroundColor: COLORS.primary + '10',
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: COLORS.primary + '20'
     },
-    section: {
-        backgroundColor: '#FFF',
-        marginTop: 16,
-        paddingHorizontal: 20,
-        paddingVertical: 20,
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: '#E5E5E5'
+    subcategoryTagText: {
+        ...TYPOGRAPHY.label,
+        fontSize: 11,
+        color: COLORS.primary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
     },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1A1A1A',
-        marginBottom: 16
-    },
-
-    descriptionText: {
-        fontSize: 16,
-        lineHeight: 24,
-        color: '#666'
-    },
-    detailsGrid: {
+    infoGrid: {
         flexDirection: 'row',
-        justifyContent: 'space-around'
+        paddingHorizontal: SPACING.lg,
+        paddingTop: 32,
+        paddingBottom: 24,
+        gap: 16
     },
-    detailCard: {
+    infoCard: {
         flex: 1,
         alignItems: 'center',
-        backgroundColor: '#F5F7FA',
+        borderRadius: 24,
+        backgroundColor: COLORS.white,
         paddingVertical: 20,
-        paddingHorizontal: 16,
-        marginHorizontal: 4,
-        borderRadius: 12
+        ...SHADOWS.sm
     },
-    detailValue: {
+    infoValue: {
+        ...TYPOGRAPHY.h2,
         fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1A1A1A',
-        marginTop: 8
+        color: COLORS.gray[900],
+        marginTop: 10
     },
-    detailLabel: {
-        fontSize: 12,
-        color: '#999',
-        marginTop: 4
+    infoLabel: {
+        ...TYPOGRAPHY.label,
+        color: COLORS.gray[400],
+        fontSize: 10,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        marginTop: 2
     },
-    equipmentContainer: {
+    section: {
+        paddingHorizontal: SPACING.lg,
+        marginBottom: 24
+    },
+    sectionLabel: {
+        ...TYPOGRAPHY.label,
+        fontSize: 11,
+        color: COLORS.gray[400],
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        marginLeft: 4,
+        marginBottom: 12
+    },
+    descCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: 24,
+        ...SHADOWS.sm
+    },
+    descriptionText: {
+        ...TYPOGRAPHY.body,
+        fontSize: 15,
+        color: COLORS.gray[700],
+        lineHeight: 26
+    },
+    equipmentCard: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
-        backgroundColor: '#F5F7FA',
+        alignItems: 'center',
+        gap: 16,
+        backgroundColor: COLORS.white,
+        borderRadius: 20,
         padding: 16,
-        borderRadius: 12
+        ...SHADOWS.sm
+    },
+    equipmentIconBox: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: COLORS.gray[900],
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     equipmentText: {
         flex: 1,
-        fontSize: 16,
-        color: '#666',
-        marginLeft: 12,
-        lineHeight: 22
+        ...TYPOGRAPHY.body,
+        fontSize: 15,
+        color: COLORS.gray[700],
+        fontWeight: '700'
     },
-    metadataSection: {
-        paddingHorizontal: 20,
-        paddingVertical: 16
-    },
-    metadataRow: {
-        flexDirection: 'row',
+    footerInfo: {
         alignItems: 'center',
-        marginBottom: 8
+        paddingVertical: 32
     },
-    metadataText: {
-        fontSize: 12,
-        color: '#999',
-        marginLeft: 8
+    footerText: {
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[300],
+        fontSize: 11,
+        fontWeight: '600'
     }
 });
 

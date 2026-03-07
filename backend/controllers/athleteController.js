@@ -45,6 +45,9 @@ class AthleteController {
       let query = supabase.from('athletes').select('*, medical_records(*)');
 
       if (req.query.blesse === 'true') query = query.eq('blesse', true);
+      if (req.query.groupe) query = query.eq('groupe', req.query.groupe);
+      if (req.query.poste) query = query.eq('poste', req.query.poste);
+      if (req.query.sexe) query = query.eq('sexe', req.query.sexe);
 
       // Filter by parent if requested OR if user is regular parent (security)
       if (req.query.parent_id) {

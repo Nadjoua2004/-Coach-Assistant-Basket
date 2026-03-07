@@ -8,17 +8,23 @@ import {
     TextInput,
     ActivityIndicator,
     Alert,
-    Image
+    Image,
+    Platform,
+    ScrollView,
 } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import AthleteService from '../../services/athleteService';
 import AuthService from '../../services/authService';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TYPOGRAPHY } from '../../config/theme';
+import Card from '../UI/Card';
+import Input from '../UI/Input';
+import Button from '../UI/Button';
 
 const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
     const [athletes, setAthletes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [viewMode, setViewMode] = useState('card'); // 'card' or 'list'
+    const [viewMode, setViewMode] = useState('card');
 
     // Filters
     const [filterGroupe, setFilterGroupe] = useState(null);
@@ -40,20 +46,15 @@ const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
             if (filterPoste) filters.poste = filterPoste;
             if (filterBlesse) filters.blesse = true;
 
-            // 1. Fetch Athletes (Rich Profiles)
             const athleteRes = await AthleteService.getAllAthletes(filters);
             let athletesData = athleteRes.success ? athleteRes.data : [];
 
-            // 2. Fetch Users (From Admin Auth Service) - Only if no specific attribute filters are set
-            // (Users don't have group/post/sex attributes to filter by yet)
             let unlinkedPlayers = [];
             if (!filterGroupe && !filterSexe && !filterPoste && !filterBlesse) {
                 try {
                     const userRes = await AuthService.getAllUsers();
                     if (userRes.success) {
                         const players = userRes.data.filter(u => u.role === 'joueur');
-
-                        // Filter out players who already have an athlete profile (match by user_id)
                         const athleteUserIds = new Set(athletesData.map(a => a.user_id).filter(id => id));
                         const unlinkedPlayersList = players.filter(p => !athleteUserIds.has(p.id));
 
@@ -65,8 +66,7 @@ const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
                                 nom: nameParts[0] || p.name,
                                 prenom: nameParts.slice(1).join(' ') || '',
                                 email: p.email,
-                                groupe: 'Non assigné',
-                                poste: null,
+                                groupe: 'Nouveau',
                                 photo_url: null,
                                 is_unlinked: true
                             };
@@ -77,25 +77,13 @@ const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
                 }
             }
 
-            // 3. Merge and Deduplicate Lists
             const mergedMap = new Map();
-
-            // Add real athletes first (priority)
-            athletesData.forEach(a => {
-                mergedMap.set(a.id, a);
-            });
-
-            // Add unlinked players if they are not already represented by a real athlete
+            athletesData.forEach(a => mergedMap.set(a.id, a));
             unlinkedPlayers.forEach(p => {
-                // Check if this user_id is already in mergedMap (unlikely if unlinked)
-                // or if name/email already exists (already filtered above, but let's be safe)
-                if (!mergedMap.has(p.id)) {
-                    mergedMap.set(p.id, p);
-                }
+                if (!mergedMap.has(p.id)) mergedMap.set(p.id, p);
             });
 
             setAthletes(Array.from(mergedMap.values()));
-
         } catch (error) {
             console.error('Error fetching athletes:', error);
             Alert.alert('Erreur', 'Impossible de charger les athlètes');
@@ -107,7 +95,7 @@ const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
     const handleDeleteAthlete = (id, name) => {
         Alert.alert(
             'Supprimer l\'athlète',
-            `Voulez-vous vraiment supprimer ${name} ?`,
+            `Voulez-vous vraiment supprimer ${name} de votre effectif ?`,
             [
                 { text: 'Annuler', style: 'cancel' },
                 {
@@ -116,7 +104,6 @@ const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
                     onPress: async () => {
                         if (id.toString().startsWith('temp_')) {
                             setAthletes(prev => prev.filter(a => a.id !== id));
-                            Alert.alert('Succès', 'Le compte joueur a été retiré de la liste (non supprimé de la base)');
                             return;
                         }
                         try {
@@ -139,227 +126,219 @@ const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
     );
 
     const renderAthleteItem = ({ item }) => {
+        const isUnlinked = item.is_unlinked;
+
         if (viewMode === 'list') {
             return (
-                <TouchableOpacity
-                    style={styles.athleteListItem}
-                    onPress={() => onEditAthlete(item)}
-                >
-                    <View style={styles.listAvatarContainer}>
-                        {item.photo_url ? (
-                            <Image source={{ uri: item.photo_url }} style={styles.listAvatar} />
-                        ) : (
-                            <View style={styles.listAvatarPlaceholder}>
-                                <Icon name="account" size={20} color="#9ca3af" />
-                            </View>
-                        )}
-                        {item.blesse && (
-                            <View style={styles.listInjuryBadge} />
-                        )}
-                    </View>
-                    <View style={styles.listInfo}>
-                        <Text style={styles.athleteName}>{item.nom} {item.prenom}</Text>
-                        <Text style={styles.athleteSubtext}>
-                            {item.is_unlinked ? '⚠️ Compte Joueur (non profilé)' : `${item.groupe} • ${item.poste || '?'}`}
-                        </Text>
-                    </View>
-                    <View style={styles.listActions}>
-                        <TouchableOpacity style={{ marginRight: 12 }} onPress={() => {
-                            if (item.is_unlinked) {
-                                Alert.alert('Information', 'Ce joueur n\'a pas encore rempli son profil.');
-                            } else {
-                                onViewMedical(item);
-                            }
-                        }}>
-                            <Icon name="medical-bag" size={20} color={item.is_unlinked ? "#d1d5db" : "#f97316"} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleDeleteAthlete(item.id, `${item.prenom} ${item.nom}`)}>
-                            <Icon name="trash-can-outline" size={20} color="#ef4444" />
+                <Card style={styles.listRow} padding="none" onPress={() => onEditAthlete(item)}>
+                    <View style={styles.listRowContent}>
+                        <View style={styles.listAvatar}>
+                            {item.photo_url ? (
+                                <Image source={{ uri: item.photo_url }} style={styles.avatarImg} />
+                            ) : (
+                                <Text style={styles.avatarTxt}>{item.prenom[0]}{item.nom[0]}</Text>
+                            )}
+                            {Boolean(item.blesse) && <View style={styles.injuryDot} />}
+                        </View>
+                        <View style={styles.listInfo}>
+                            <Text style={styles.listNameText}>{item.prenom} {item.nom}</Text>
+                            <Text style={styles.listSubText}>
+                                {isUnlinked ? item.email : `${item.groupe} • ${item.poste || 'No Poste'}`}
+                            </Text>
+                        </View>
+                        <TouchableOpacity style={styles.listAction} onPress={() => onViewMedical(item)}>
+                            <Icon name="medical-bag" size={20} color={COLORS.gray[300]} />
                         </TouchableOpacity>
                     </View>
-                </TouchableOpacity>
+                </Card>
             );
         }
 
         return (
-            <TouchableOpacity
-                style={styles.athleteCard}
+            <Card
+                style={styles.gridCard}
+                padding="none"
                 onPress={() => onEditAthlete(item)}
             >
-                <View style={styles.athleteInfo}>
-                    <View style={styles.avatarContainer}>
+                <View style={styles.gridCardContent}>
+                    <View style={styles.gridAvatarWrapper}>
                         {item.photo_url ? (
-                            <Image source={{ uri: item.photo_url }} style={styles.avatar} />
+                            <Image source={{ uri: item.photo_url }} style={styles.gridAvatarImg} />
                         ) : (
-                            <View style={styles.avatarPlaceholder}>
-                                <Icon name="account" size={30} color="#9ca3af" />
+                            <View style={styles.gridAvatarPlaceholder}>
+                                <Text style={styles.gridAvatarTxt}>{item.prenom[0]}{item.nom[0]}</Text>
                             </View>
                         )}
                         {item.blesse && (
-                            <View style={styles.injuryBadge}>
+                            <View style={styles.gridInjuryBadge}>
                                 <Icon name="plus" size={10} color="white" />
                             </View>
                         )}
                     </View>
-                    <View style={styles.detailsContainer}>
-                        <Text style={styles.athleteName}>{item.nom} {item.prenom}</Text>
-                        <Text style={styles.athleteSubtext}>
-                            {item.is_unlinked ? '⚠️ Compte Joueur (non profilé)' : `${item.groupe} • ${item.poste || '?'}`}
-                        </Text>
+
+                    <Text style={styles.gridNameText} numberOfLines={1}>{item.prenom} {item.nom}</Text>
+                    <View style={styles.gridBadgeRow}>
+                        <View style={[styles.gridBadge, isUnlinked && styles.incompleteBadge]}>
+                            <Text style={[styles.gridBadgeText, isUnlinked && styles.incompleteBadgeText]}>
+                                {isUnlinked ? 'À COMPLÉTER' : item.groupe}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.gridActionsRow}>
+                        {!isUnlinked && (
+                            <TouchableOpacity
+                                style={styles.gridActionBtn}
+                                onPress={() => onViewMedical(item)}
+                            >
+                                <Icon name="medical-bag" size={18} color={COLORS.primary} />
+                            </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                            style={styles.gridActionBtn}
+                            onPress={() => handleDeleteAthlete(item.id, `${item.prenom} ${item.nom}`)}
+                        >
+                            <Icon name="trash-can-outline" size={18} color={COLORS.gray[300]} />
+                        </TouchableOpacity>
                     </View>
                 </View>
-                <View style={styles.actions}>
-                    <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => {
-                            if (item.is_unlinked) {
-                                Alert.alert('Information', 'Ce joueur n\'a pas encore rempli son profil.');
-                            } else {
-                                onViewMedical(item);
-                            }
-                        }}
-                    >
-                        <Icon name="medical-bag" size={22} color={item.is_unlinked ? "#d1d5db" : "#f97316"} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => handleDeleteAthlete(item.id, `${item.prenom} ${item.nom}`)}
-                    >
-                        <Icon name="trash-can-outline" size={22} color="#ef4444" />
-                    </TouchableOpacity>
-                    <Icon name="chevron-right" size={24} color="#d1d5db" />
-                </View>
-            </TouchableOpacity>
+            </Card>
         );
     };
-
-
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Athlètes</Text>
+                <View style={styles.headerTop}>
+                    <Text style={styles.headerTitle}>Effectif</Text>
+                    <TouchableOpacity style={styles.addBtn} onPress={() => onAddAthlete && onAddAthlete()}>
+                        <Icon name="plus" size={24} color={COLORS.white} />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.searchBox}>
+                    <Icon name="magnify" size={20} color={COLORS.primary} style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInputField}
+                        placeholder="Chercher un joueur..."
+                        placeholderTextColor={COLORS.gray[400]}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {Boolean(searchQuery) && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear}>
+                            <Icon name="close-circle" size={16} color={COLORS.gray[400]} />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
-            <View style={styles.searchContainer}>
-                <Icon name="magnify" size={20} color="#9ca3af" style={styles.searchIcon} />
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Rechercher un athlète..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholderTextColor="#9ca3af"
-                />
-            </View>
-
-            {/* Controls Row */}
-            <View style={styles.controlsRow}>
+            <View style={styles.tabsPanel}>
                 <TouchableOpacity
-                    style={styles.filterToggleBtn}
+                    style={[styles.filterToggle, showFilters && styles.filterToggleOn]}
                     onPress={() => setShowFilters(!showFilters)}
                 >
-                    <Icon name="filter-variant" size={20} color={showFilters ? "#f97316" : "#64748b"} />
-                    <Text style={[styles.filterToggleText, showFilters && { color: '#f97316' }]}>Filtres</Text>
+                    <Icon name="tune" size={18} color={showFilters ? COLORS.white : COLORS.gray[500]} />
+                    <Text style={[styles.filterToggleLabel, showFilters && styles.filterToggleLabelOn]}>Filtres</Text>
+                    {(filterGroupe || filterPoste || filterBlesse) && <View style={styles.dot} />}
                 </TouchableOpacity>
 
-                <View style={styles.viewToggle}>
+                <View style={styles.viewModeSwitcher}>
                     <TouchableOpacity
-                        style={[styles.viewBtn, viewMode === 'card' && styles.activeViewBtn]}
+                        style={[styles.modeBtn, viewMode === 'card' && styles.modeBtnOn]}
                         onPress={() => setViewMode('card')}
                     >
-                        <Icon name="view-grid" size={20} color={viewMode === 'card' ? 'white' : '#64748b'} />
+                        <Icon name="view-grid" size={18} color={viewMode === 'card' ? COLORS.primary : COLORS.gray[400]} />
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={[styles.viewBtn, viewMode === 'list' && styles.activeViewBtn]}
+                        style={[styles.modeBtn, viewMode === 'list' && styles.modeBtnOn]}
                         onPress={() => setViewMode('list')}
                     >
-                        <Icon name="view-list" size={20} color={viewMode === 'list' ? 'white' : '#64748b'} />
+                        <Icon name="view-sequential" size={18} color={viewMode === 'list' ? COLORS.primary : COLORS.gray[400]} />
                     </TouchableOpacity>
                 </View>
             </View>
 
-            {/* Expanded Filters */}
             {showFilters && (
-                <View style={styles.advancedFilters}>
-                    <View style={styles.filterGroup}>
-                        <Text style={styles.filterLabel}>Groupe:</Text>
-                        <View style={styles.chipsRow}>
-                            <TouchableOpacity
-                                style={[styles.filterChip, !filterGroupe && styles.activeFilterChip]}
-                                onPress={() => setFilterGroupe(null)}
-                            >
-                                <Text style={[styles.filterText, !filterGroupe && styles.activeFilterText]}>Tous</Text>
-                            </TouchableOpacity>
+                <View style={styles.filtersPanel}>
+                    <View style={styles.fSection}>
+                        <Text style={styles.fSectionTitle}>CATÉGORIE</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.fChips}>
                             {['U13', 'U15', 'U17', 'Seniors'].map(g => (
                                 <TouchableOpacity
                                     key={g}
-                                    style={[styles.filterChip, filterGroupe === g && styles.activeFilterChip]}
-                                    onPress={() => setFilterGroupe(g)}
+                                    style={[styles.fChip, filterGroupe === g && styles.fChipOn]}
+                                    onPress={() => setFilterGroupe(filterGroupe === g ? null : g)}
                                 >
-                                    <Text style={[styles.filterText, filterGroupe === g && styles.activeFilterText]}>{g}</Text>
+                                    <Text style={[styles.fChipTxt, filterGroupe === g && styles.fChipTxtOn]}>{g}</Text>
                                 </TouchableOpacity>
                             ))}
-                        </View>
+                        </ScrollView>
                     </View>
 
-                    <View style={styles.filterGroup}>
-                        <Text style={styles.filterLabel}>Sexe:</Text>
-                        <View style={styles.chipsRow}>
-                            {['M', 'F'].map(s => (
-                                <TouchableOpacity
-                                    key={s}
-                                    style={[styles.filterChip, filterSexe === s && styles.activeFilterChip]}
-                                    onPress={() => setFilterSexe(filterSexe === s ? null : s)}
-                                >
-                                    <Text style={[styles.filterText, filterSexe === s && styles.activeFilterText]}>{s === 'M' ? 'Garçons' : 'Filles'}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-
-                    <View style={styles.filterGroup}>
-                        <Text style={styles.filterLabel}>Poste:</Text>
-                        <View style={styles.chipsRow}>
+                    <View style={styles.fSection}>
+                        <Text style={styles.fSectionTitle}>POSTE</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.fChips}>
                             {['Meneur', 'Arrière', 'Ailier', 'Ailier fort', 'Pivot'].map(p => (
                                 <TouchableOpacity
                                     key={p}
-                                    style={[styles.filterChip, filterPoste === p && styles.activeFilterChip]}
+                                    style={[styles.fChip, filterPoste === p && styles.fChipOn]}
                                     onPress={() => setFilterPoste(filterPoste === p ? null : p)}
                                 >
-                                    <Text style={[styles.filterText, filterPoste === p && styles.activeFilterText]}>{p}</Text>
+                                    <Text style={[styles.fChipTxt, filterPoste === p && styles.fChipTxtOn]}>{p}</Text>
                                 </TouchableOpacity>
                             ))}
-                        </View>
+                        </ScrollView>
                     </View>
 
-                    <TouchableOpacity
-                        style={[styles.filterRowItem, filterBlesse && styles.activeFilterRowItem]}
-                        onPress={() => setFilterBlesse(!filterBlesse)}
-                    >
-                        <Icon name={filterBlesse ? "check-box-outline" : "checkbox-blank-outline"} size={20} color={filterBlesse ? "#f97316" : "#64748b"} />
-                        <Text style={[styles.filterRowText, filterBlesse && { color: "#f97316", fontWeight: 'bold' }]}>Afficher blessés uniquement</Text>
-                    </TouchableOpacity>
+                    <View style={styles.fActions}>
+                        <TouchableOpacity
+                            style={styles.injuryToggle}
+                            onPress={() => setFilterBlesse(!filterBlesse)}
+                        >
+                            <Icon
+                                name={filterBlesse ? "checkbox-marked-circle" : "checkbox-blank-circle-outline"}
+                                size={18}
+                                color={filterBlesse ? COLORS.error : COLORS.gray[300]}
+                            />
+                            <Text style={[styles.injuryLabel, filterBlesse && { color: COLORS.error }]}>Uniquement les blessés</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={() => {
+                                setFilterGroupe(null);
+                                setFilterPoste(null);
+                                setFilterBlesse(false);
+                            }}
+                        >
+                            <Text style={styles.resetBtnTxt}>Réinitialiser</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             )}
 
             {loading ? (
-                <View style={styles.loader}>
-                    <ActivityIndicator size="large" color="#f97316" />
+                <View style={styles.centerBox}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
                 </View>
             ) : (
                 <FlatList
                     data={filteredAthletes}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={renderAthleteItem}
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={styles.listBody}
+                    numColumns={viewMode === 'card' ? 2 : 1}
+                    key={viewMode}
+                    showsVerticalScrollIndicator={false}
+                    onRefresh={fetchAthletes}
+                    refreshing={loading}
                     ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <Icon name="account-group-outline" size={64} color="#d1d5db" />
-                            <Text style={styles.emptyText}>Aucun athlète trouvé</Text>
+                        <View style={styles.emptyBox}>
+                            <Icon name="account-search-outline" size={60} color={COLORS.gray[100]} />
+                            <Text style={styles.emptyLabel}>Aucun athlète trouvé</Text>
+                            <Text style={styles.emptySubLabel}>Essayez d'ajuster vos filtres ou effectuez une nouvelle recherche.</Text>
                         </View>
                     }
-                    refreshing={loading}
-                    onRefresh={fetchAthletes}
                 />
             )}
         </View>
@@ -369,303 +348,344 @@ const AthleteListScreen = ({ onAddAthlete, onEditAthlete, onViewMedical }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc',
-    },
-    fab: {
-        position: 'absolute',
-        bottom: 24,
-        right: 24,
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: '#f97316',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#f97316',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
+        backgroundColor: COLORS.white,
     },
     header: {
+        backgroundColor: COLORS.white,
+        paddingHorizontal: SPACING.lg,
+        paddingTop: Platform.OS === 'ios' ? 60 : 20,
+    },
+    headerTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 24,
-        paddingTop: 20,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#1e293b',
-    },
-    addButton: {
-        backgroundColor: '#f97316',
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#f97316',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    searchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'white',
-        marginHorizontal: 24,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-        height: 48,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        marginBottom: 16,
-    },
-    searchIcon: {
-        marginRight: 10,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 16,
-        color: '#334155',
-    },
-    filterContainer: {
-        flexDirection: 'row',
-        paddingHorizontal: 24,
         marginBottom: 20,
     },
-    filterChip: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        marginRight: 8,
+    headerTitle: {
+        ...TYPOGRAPHY.h1,
+        color: COLORS.gray[900],
     },
-    activeFilterChip: {
-        backgroundColor: '#f97316',
-        borderColor: '#f97316',
-    },
-    filterText: {
-        fontSize: 14,
-        color: '#64748b',
-        fontWeight: '600',
-    },
-    activeFilterText: {
-        color: 'white',
-    },
-    listContent: {
-        paddingHorizontal: 24,
-        paddingBottom: 100, // Space for FAB
-    },
-    athleteCard: {
-        backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
-    },
-    athleteInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    avatarContainer: {
-        position: 'relative',
-        marginRight: 16,
-    },
-    avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-    },
-    avatarPlaceholder: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: '#f1f5f9',
+    addBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: COLORS.primary,
         justifyContent: 'center',
         alignItems: 'center',
+        ...SHADOWS.sm,
     },
-    injuryBadge: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        backgroundColor: '#ef4444',
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        borderWidth: 2,
-        borderColor: 'white',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    detailsContainer: {
-        flex: 1,
-    },
-    athleteName: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#1e293b',
-        marginBottom: 2,
-    },
-    athleteSubtext: {
-        fontSize: 13,
-        color: '#64748b',
-    },
-    actions: {
+    searchBox: {
         flexDirection: 'row',
         alignItems: 'center',
-    },
-    actionButton: {
-        padding: 8,
-        marginRight: 4,
-    },
-    loader: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        marginTop: 100,
-    },
-    emptyText: {
-        marginTop: 16,
-        fontSize: 16,
-        color: '#94a3b8',
-    },
-    controlsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 24,
-        marginBottom: 16,
-        alignItems: 'center',
-    },
-    filterToggleBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        padding: 8,
-    },
-    filterToggleText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#64748b',
-    },
-    viewToggle: {
-        flexDirection: 'row',
-        backgroundColor: '#e2e8f0',
-        borderRadius: 8,
-        padding: 2,
-    },
-    viewBtn: {
-        padding: 6,
-        borderRadius: 6,
-    },
-    activeViewBtn: {
-        backgroundColor: '#f97316',
-    },
-    advancedFilters: {
-        backgroundColor: 'white',
+        backgroundColor: COLORS.gray[50],
         borderTopWidth: 1,
         borderBottomWidth: 1,
-        borderColor: '#f1f5f9',
-        padding: 16,
-        marginBottom: 16,
+        borderColor: COLORS.gray[100],
+        marginHorizontal: -SPACING.lg,
+        paddingLeft: SPACING.lg,
+        paddingRight: 8,
+        height: 48,
+        marginTop: 12,
     },
-    filterGroup: {
-        marginBottom: 12,
+    searchIcon: {
+        marginRight: 8,
     },
-    filterLabel: {
-        fontSize: 12,
-        color: '#94a3b8',
-        fontWeight: '700',
-        marginBottom: 8,
-        textTransform: 'uppercase',
+    searchClear: {
+        padding: 8,
     },
-    chipsRow: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-    },
-    filterRowItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginTop: 4,
-    },
-    filterRowText: {
+    searchInputField: {
+        flex: 1,
         fontSize: 14,
-        color: '#64748b',
+        color: COLORS.gray[900],
+        height: '100%',
     },
-    // List View Styles
-    athleteListItem: {
+    tabsPanel: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: SPACING.lg,
+        paddingVertical: SPACING.md,
+    },
+    filterToggle: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'white',
-        padding: 12,
-        marginBottom: 8,
+        backgroundColor: COLORS.gray[50],
+        paddingHorizontal: 16,
+        paddingVertical: 10,
         borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
-    },
-    listAvatarContainer: {
-        marginRight: 12,
+        gap: 8,
         position: 'relative',
     },
-    listAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+    filterToggleOn: {
+        backgroundColor: COLORS.gray[900],
     },
-    listAvatarPlaceholder: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#f1f5f9',
+    filterToggleLabel: {
+        ...TYPOGRAPHY.label,
+        color: COLORS.gray[600],
+        fontSize: 13,
+    },
+    filterToggleLabelOn: {
+        color: COLORS.white,
+    },
+    dot: {
+        position: 'absolute',
+        top: 6,
+        right: 6,
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: COLORS.primary,
+    },
+    viewModeSwitcher: {
+        flexDirection: 'row',
+        backgroundColor: COLORS.gray[50],
+        borderRadius: 12,
+        padding: 4,
+    },
+    modeBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 8,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    listInjuryBadge: {
+    modeBtnOn: {
+        backgroundColor: COLORS.white,
+        ...SHADOWS.xs,
+    },
+    filtersPanel: {
+        backgroundColor: COLORS.white,
+        padding: SPACING.lg,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.gray[50],
+        ...SHADOWS.sm,
+    },
+    fSection: {
+        marginBottom: 16,
+    },
+    fSectionTitle: {
+        ...TYPOGRAPHY.label,
+        fontSize: 10,
+        color: COLORS.gray[400],
+        letterSpacing: 1,
+        marginBottom: 10,
+    },
+    fChips: {
+        gap: 8,
+    },
+    fChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 10,
+        backgroundColor: COLORS.gray[50],
+    },
+    fChipOn: {
+        backgroundColor: COLORS.primary,
+    },
+    fChipTxt: {
+        ...TYPOGRAPHY.label,
+        fontSize: 12,
+        color: COLORS.gray[600],
+    },
+    fChipTxtOn: {
+        color: COLORS.white,
+    },
+    fActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    injuryToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    injuryLabel: {
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[500],
+        fontWeight: '600',
+    },
+    resetBtnTxt: {
+        ...TYPOGRAPHY.label,
+        color: COLORS.primary,
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    listBody: {
+        padding: SPACING.lg - 8,
+        paddingBottom: 40,
+    },
+    gridCard: {
+        flex: 1,
+        margin: 8,
+        backgroundColor: COLORS.white,
+        ...SHADOWS.sm,
+        borderWidth: 1,
+        borderColor: COLORS.gray[50],
+    },
+    gridCardContent: {
+        padding: 16,
+        alignItems: 'center',
+    },
+    gridAvatarWrapper: {
+        position: 'relative',
+        marginBottom: 16,
+    },
+    gridAvatarImg: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: COLORS.gray[100],
+    },
+    gridAvatarPlaceholder: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: COLORS.gray[100],
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    gridAvatarTxt: {
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[400],
+        fontSize: 22,
+    },
+    gridInjuryBadge: {
         position: 'absolute',
-        bottom: 0,
+        bottom: 2,
+        right: 2,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        borderWidth: 3,
+        borderColor: COLORS.white,
+        backgroundColor: COLORS.error,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    gridNameText: {
+        ...TYPOGRAPHY.h4,
+        color: COLORS.gray[900],
+        fontSize: 15,
+        textAlign: 'center',
+        marginBottom: 6,
+    },
+    gridBadgeRow: {
+        flexDirection: 'row',
+        marginBottom: 16,
+    },
+    gridBadge: {
+        backgroundColor: COLORS.gray[50],
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    incompleteBadge: {
+        backgroundColor: COLORS.warning + '12',
+    },
+    gridBadgeText: {
+        ...TYPOGRAPHY.label,
+        fontSize: 9,
+        fontWeight: '800',
+        color: COLORS.gray[500],
+    },
+    incompleteBadgeText: {
+        color: COLORS.warning,
+    },
+    gridActionsRow: {
+        flexDirection: 'row',
+        gap: 16,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.gray[50],
+        width: '100%',
+        justifyContent: 'center',
+    },
+    gridActionBtn: {
+        padding: 4,
+    },
+    listRow: {
+        marginBottom: 12,
+        marginHorizontal: 8,
+        backgroundColor: COLORS.white,
+        ...SHADOWS.xs,
+    },
+    listRowContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+    },
+    listAvatar: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: COLORS.gray[100],
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+        position: 'relative',
+    },
+    avatarImg: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+    },
+    avatarTxt: {
+        ...TYPOGRAPHY.h4,
+        color: COLORS.gray[400],
+        fontSize: 16,
+    },
+    injuryDot: {
+        position: 'absolute',
+        top: 0,
         right: 0,
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: '#ef4444',
-        borderWidth: 1.5,
-        borderColor: 'white',
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: COLORS.error,
+        borderWidth: 2,
+        borderColor: COLORS.white,
     },
     listInfo: {
         flex: 1,
     },
-    listName: {
+    listNameText: {
+        ...TYPOGRAPHY.h4,
+        color: COLORS.gray[900],
         fontSize: 15,
-        fontWeight: '600',
-        color: '#1e293b',
     },
-    listSubtext: {
+    listSubText: {
+        ...TYPOGRAPHY.bodySmall,
+        color: COLORS.gray[400],
         fontSize: 12,
-        color: '#64748b',
+        marginTop: 2,
     },
-    listActions: {
-        flexDirection: 'row',
+    listAction: {
+        padding: 8,
+    },
+    centerBox: {
+        flex: 1,
+        justifyContent: 'center',
         alignItems: 'center',
+        height: 300,
+    },
+    emptyBox: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 100,
+        paddingHorizontal: 40,
+    },
+    emptyLabel: {
+        ...TYPOGRAPHY.h3,
+        color: COLORS.gray[900],
+        marginTop: 24,
+    },
+    emptySubLabel: {
+        ...TYPOGRAPHY.body,
+        color: COLORS.gray[400],
+        textAlign: 'center',
+        marginTop: 10,
     }
 });
 
